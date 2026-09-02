@@ -1,0 +1,11 @@
+{
+  "name": "SehatRoute AI",
+  "short_name": "SehatRoute",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F766E",
+  "description": "Care-plan support that helps patients and families prepare for real-life barriers.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}
