@@ -5985,6 +5985,50 @@ class AppStrings {
       AppLanguage.urdu: 'ٹھیک ہے',
       AppLanguage.romanUrdu: 'Theek hai',
     },
+
+    // ── Care Gap action button display labels ──
+    'gap_action_review_care_plan': {
+      AppLanguage.english: 'Review care plan',
+      AppLanguage.urdu: 'نگہداشت کا منصوبہ دیکھیں',
+      AppLanguage.romanUrdu: 'Care plan dekhein',
+    },
+    'gap_action_review_instruction': {
+      AppLanguage.english: 'Review instruction',
+      AppLanguage.urdu: 'ہدایت دیکھیں',
+      AppLanguage.romanUrdu: 'Instruction dekhein',
+    },
+    'gap_action_review_schedule': {
+      AppLanguage.english: 'Review schedule',
+      AppLanguage.urdu: 'شیڈول دیکھیں',
+      AppLanguage.romanUrdu: 'Schedule dekhein',
+    },
+    'gap_action_reality_check': {
+      AppLanguage.english: 'Reality check',
+      AppLanguage.urdu: 'عملی جائزہ',
+      AppLanguage.romanUrdu: 'Reality check',
+    },
+    'gap_action_upload_documents': {
+      AppLanguage.english: 'Upload documents',
+      AppLanguage.urdu: 'دستاویزات اپ لوڈ کریں',
+      AppLanguage.romanUrdu: 'Documents upload karein',
+    },
+    'gap_action_family_care': {
+      AppLanguage.english: 'Family care',
+      AppLanguage.urdu: 'خاندانی نگہداشت',
+      AppLanguage.romanUrdu: 'Family care',
+    },
+    'gap_action_calendar': {
+      AppLanguage.english: 'Calendar',
+      AppLanguage.urdu: 'کیلنڈر',
+      AppLanguage.romanUrdu: 'Calendar',
+    },
+
+    // ── Doctor question title template ──
+    'gap_doctor_q_title': {
+      AppLanguage.english: '{subject} clarification',
+      AppLanguage.urdu: '{subject} وضاحت',
+      AppLanguage.romanUrdu: '{subject} wazahat',
+    },
   };
   static String get(
     String key,

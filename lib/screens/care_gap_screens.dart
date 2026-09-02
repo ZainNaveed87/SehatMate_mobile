@@ -167,6 +167,20 @@ String _localizedTypeLabel(BuildContext context, String raw) => switch (raw) {
   _ => raw,
 };
 
+/// Maps internal actionType to a localized display label.
+/// Falls back to the raw actionLabel for unknown/unmapped types.
+String _localizedActionLabel(BuildContext context, CareGapItemData gap) =>
+    switch (gap.actionType) {
+      'review_instruction' => context.tr('gap_action_review_instruction'),
+      'review_schedule' => context.tr('gap_action_review_schedule'),
+      'reality_check' => context.tr('gap_action_reality_check'),
+      'documents' => context.tr('gap_action_upload_documents'),
+      'family_care' => context.tr('gap_action_family_care'),
+      'calendar' => context.tr('gap_action_calendar'),
+      'care_plan' => context.tr('gap_action_review_care_plan'),
+      _ => gap.actionLabel,
+    };
+
 class CareGapsScreen extends StatefulWidget {
   const CareGapsScreen({
     super.key,
@@ -768,13 +782,13 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
                     OutlinedButton.icon(
                       onPressed: () => _openAction(gap),
                       icon: const Icon(Icons.arrow_forward, size: 17),
-                      label: Text(gap.actionLabel),
+                      label: Text(_localizedActionLabel(context, gap)),
                     )
                   else if (gap.actionLabel.isNotEmpty)
                     OutlinedButton.icon(
                       onPressed: () => _openAction(gap),
                       icon: const Icon(Icons.open_in_new, size: 17),
-                      label: Text(gap.actionLabel),
+                      label: Text(_localizedActionLabel(context, gap)),
                     ),
                 ],
               ),
@@ -1598,7 +1612,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                   child: FilledButton.icon(
                     onPressed: saving ? null : () => _openAction(gap),
                     icon: const Icon(Icons.arrow_forward, size: 17),
-                    label: Text(gap.actionLabel),
+                    label: Text(_localizedActionLabel(context, gap)),
                   ),
                 ),
 
@@ -1677,7 +1691,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                     child: OutlinedButton.icon(
                       onPressed: saving ? null : () => _openAction(gap),
                       icon: const Icon(Icons.open_in_new, size: 17),
-                      label: Text(gap.actionLabel),
+                      label: Text(_localizedActionLabel(context, gap)),
                     ),
                   ),
                 ],
@@ -1849,7 +1863,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
       await CarePlanService.instance.createCareGapDoctorQuestion(
         gap.id,
         groupName: 'Care Instructions',
-        title: '$subject clarification',
+        title: context.tr('gap_doctor_q_title', values: {'subject': subject}),
         question: _doctorQuestionText(gap),
       );
 
