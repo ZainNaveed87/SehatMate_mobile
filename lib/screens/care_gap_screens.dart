@@ -136,6 +136,37 @@ Future<void> _navigateToGapAction(
   }
 }
 
+/// Maps internal severity values to localized display text.
+/// Internal values remain unchanged for logic comparisons.
+String _localizedSeverityLabel(BuildContext context, String raw) =>
+    switch (raw) {
+      'Blocking' => context.tr('gap_severity_blocking'),
+      'Needs attention' => context.tr('gap_severity_needs_attention'),
+      'Previously blocking' => context.tr('gap_severity_previously_blocking'),
+      _ => raw,
+    };
+
+/// Maps internal lifecycle values to localized display text.
+String _localizedLifecycleLabel(BuildContext context, String raw) =>
+    switch (raw) {
+      'In progress' => context.tr('gap_lifecycle_in_progress'),
+      'Resolved' => context.tr('gap_lifecycle_resolved'),
+      'Open' => context.tr('gap_lifecycle_open'),
+      _ => raw,
+    };
+
+/// Maps internal gap-type values to localized display text.
+String _localizedTypeLabel(BuildContext context, String raw) => switch (raw) {
+  'Missing information' => context.tr('gap_type_missing_information'),
+  'Schedule gap' => context.tr('gap_type_schedule_gap'),
+  'Overdue' => context.tr('gap_type_overdue'),
+  'Verification' => context.tr('gap_type_verification'),
+  'Document gap' => context.tr('gap_type_document_gap'),
+  'Care coordination' => context.tr('gap_type_care_coordination'),
+  'Care gap' => context.tr('gap_type_care_gap'),
+  _ => raw,
+};
+
 class CareGapsScreen extends StatefulWidget {
   const CareGapsScreen({
     super.key,
@@ -644,7 +675,7 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
                 children: [
                   StatusBadge(status: gap.badgeStatus),
                   _smallBadge(
-                    gap.severityLabel,
+                    _localizedSeverityLabel(context, gap.severityLabel),
                     gap.severityWasBlocking
                         ? AppColors.criticalSoft
                         : AppColors.warningSoft,
@@ -654,7 +685,7 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
                   ),
                   if (!gap.isResolved)
                     _smallBadge(
-                      gap.lifecycleLabel,
+                      _localizedLifecycleLabel(context, gap.lifecycleLabel),
                       AppColors.infoSoft,
                       AppColors.infoForeground,
                     ),
@@ -674,7 +705,7 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
               const SizedBox(height: 3),
 
               Text(
-                '${gap.typeLabel} · $planTitle',
+                '${_localizedTypeLabel(context, gap.typeLabel)} · $planTitle',
                 style: const TextStyle(fontSize: 13, color: AppColors.muted),
               ),
 
@@ -1074,30 +1105,31 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     final patientReality = gap.patientReality.trim();
 
     if (when.isNotEmpty && patientReality.isNotEmpty) {
-      return 'The care plan currently shows $subject at '
-          '${_friendlyClockTime(when)}. '
-          'My saved Reality Check says: "$patientReality". '
-          'What should I clarify with my healthcare professional '
-          'if this timing is not workable?';
+      return context.tr(
+        'gap_doctor_q_when_and_reality',
+        values: {
+          'subject': subject,
+          'time': _friendlyClockTime(when),
+          'reality': patientReality,
+        },
+      );
     }
 
     if (patientReality.isNotEmpty) {
-      return 'Regarding "$subject", my saved Reality Check says: '
-          '"$patientReality". '
-          'What should I clarify with my healthcare professional '
-          'about following the existing care instruction?';
+      return context.tr(
+        'gap_doctor_q_reality_only',
+        values: {'subject': subject, 'reality': patientReality},
+      );
     }
 
     if (when.isNotEmpty) {
-      return 'The care plan currently shows $subject at '
-          '${_friendlyClockTime(when)}. '
-          'What should I clarify with my healthcare professional '
-          'if I cannot reliably follow this existing timing?';
+      return context.tr(
+        'gap_doctor_q_when_only',
+        values: {'subject': subject, 'time': _friendlyClockTime(when)},
+      );
     }
 
-    return 'Regarding "$subject", what should I clarify with my '
-        'healthcare professional about following the existing '
-        'care instruction?';
+    return context.tr('gap_doctor_q_generic', values: {'subject': subject});
   }
 
   @override
@@ -1153,7 +1185,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                 children: [
                   StatusBadge(status: gap.badgeStatus),
                   _detailBadge(
-                    gap.severityLabel,
+                    _localizedSeverityLabel(context, gap.severityLabel),
                     gap.severityWasBlocking
                         ? AppColors.criticalSoft
                         : AppColors.warningSoft,
@@ -1163,7 +1195,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                   ),
                   if (!gap.isResolved)
                     _detailBadge(
-                      gap.lifecycleLabel,
+                      _localizedLifecycleLabel(context, gap.lifecycleLabel),
                       AppColors.infoSoft,
                       AppColors.infoForeground,
                     ),
@@ -1192,7 +1224,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
 
               _detail(
                 context.tr('gap_type_label'),
-                gap.typeLabel,
+                _localizedTypeLabel(context, gap.typeLabel),
                 bottom: gap.resolutionNote.isEmpty,
               ),
 
@@ -1686,7 +1718,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
           PageHeader(
             title: gap.title,
             subtitle: [
-              gap.typeLabel,
+              _localizedTypeLabel(context, gap.typeLabel),
               gap.whenText,
             ].where((value) => value.isNotEmpty).join(' · '),
           ),

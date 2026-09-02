@@ -5869,6 +5869,122 @@ class AppStrings {
       AppLanguage.urdu: 'موجودہ برقرار رکھیں',
       AppLanguage.romanUrdu: 'Current rakhein',
     },
+
+    // ── Doctor question templates ──
+    'gap_doctor_q_when_and_reality': {
+      AppLanguage.english:
+          'The care plan currently shows {subject} at {time}. My saved Reality Check says: "{reality}". What should I clarify with my healthcare professional if this timing is not workable?',
+      AppLanguage.urdu:
+          'نگہداشت کے منصوبے میں فی الحال {subject} {time} بجے دکھایا گیا ہے۔ میری محفوظ Reality Check کہتی ہے: "{reality}"۔ اگر یہ ٹائمنگ قابل عمل نہیں ہے تو مجھے اپنے صحت کے پیشہ ور سے کیا واضح کرنا چاہیے؟',
+      AppLanguage.romanUrdu:
+          'Care plan mein filhal {subject} {time} bajey dikhaya gaya hai. Meri saved Reality Check kehti hai: "{reality}". Agar yeh timing workable nahi hai to mujhe apne healthcare professional se kya wazeh karna chahiye?',
+    },
+    'gap_doctor_q_reality_only': {
+      AppLanguage.english:
+          'Regarding "{subject}", my saved Reality Check says: "{reality}". What should I clarify with my healthcare professional about following the existing care instruction?',
+      AppLanguage.urdu:
+          '"{subject}" کے بارے میں، میری محفوظ Reality Check کہتی ہے: "{reality}"۔ موجودہ نگہداشت کی ہدایت پر عمل کرنے کے بارے میں مجھے اپنے صحت کے پیشہ ور سے کیا واضح کرنا چاہیے؟',
+      AppLanguage.romanUrdu:
+          '"{subject}" ke bare mein, meri saved Reality Check kehti hai: "{reality}". Mojooda care hidayat par amal karne ke bare mein mujhe apne healthcare professional se kya wazeh karna chahiye?',
+    },
+    'gap_doctor_q_when_only': {
+      AppLanguage.english:
+          'The care plan currently shows {subject} at {time}. What should I clarify with my healthcare professional if I cannot reliably follow this existing timing?',
+      AppLanguage.urdu:
+          'نگہداشت کے منصوبے میں فی الحال {subject} {time} بجے دکھایا گیا ہے۔ اگر میں اس موجودہ ٹائمنگ پر قابل اعتماد طریقے سے عمل نہیں کر سکتا تو مجھے اپنے صحت کے پیشہ ور سے کیا واضح کرنا چاہیے؟',
+      AppLanguage.romanUrdu:
+          'Care plan mein filhal {subject} {time} bajey dikhaya gaya hai. Agar main is mojooda timing par qabil-e-aitmaad tor par amal nahi kar sakta to mujhe apne healthcare professional se kya wazeh karna chahiye?',
+    },
+    'gap_doctor_q_generic': {
+      AppLanguage.english:
+          'Regarding "{subject}", what should I clarify with my healthcare professional about following the existing care instruction?',
+      AppLanguage.urdu:
+          '"{subject}" کے بارے میں، موجودہ نگہداشت کی ہدایت پر عمل کرنے کے بارے میں مجھے اپنے صحت کے پیشہ ور سے کیا واضح کرنا چاہیے؟',
+      AppLanguage.romanUrdu:
+          '"{subject}" ke bare mein, mojooda care hidayat par amal karne ke bare mein mujhe apne healthcare professional se kya wazeh karna chahiye?',
+    },
+
+    // ── Care Gap display labels ──
+    'gap_severity_blocking': {
+      AppLanguage.english: 'Blocking',
+      AppLanguage.urdu: 'رکاوٹ',
+      AppLanguage.romanUrdu: 'Blocking',
+    },
+    'gap_severity_needs_attention': {
+      AppLanguage.english: 'Needs attention',
+      AppLanguage.urdu: 'توجہ درکار ہے',
+      AppLanguage.romanUrdu: 'Tawajjo darkar hai',
+    },
+    'gap_severity_previously_blocking': {
+      AppLanguage.english: 'Previously blocking',
+      AppLanguage.urdu: 'پہلے رکاوٹ تھا',
+      AppLanguage.romanUrdu: 'Pehle blocking tha',
+    },
+    'gap_lifecycle_in_progress': {
+      AppLanguage.english: 'In progress',
+      AppLanguage.urdu: 'جاری ہے',
+      AppLanguage.romanUrdu: 'Jari hai',
+    },
+    'gap_lifecycle_resolved': {
+      AppLanguage.english: 'Resolved',
+      AppLanguage.urdu: 'حل شدہ',
+      AppLanguage.romanUrdu: 'Resolve ho gaya',
+    },
+    'gap_lifecycle_open': {
+      AppLanguage.english: 'Open',
+      AppLanguage.urdu: 'کھلا',
+      AppLanguage.romanUrdu: 'Open',
+    },
+    'gap_type_missing_information': {
+      AppLanguage.english: 'Missing information',
+      AppLanguage.urdu: 'معلومات نامکمل',
+      AppLanguage.romanUrdu: 'Missing information',
+    },
+    'gap_type_schedule_gap': {
+      AppLanguage.english: 'Schedule gap',
+      AppLanguage.urdu: 'شیڈول کی کمی',
+      AppLanguage.romanUrdu: 'Schedule gap',
+    },
+    'gap_type_overdue': {
+      AppLanguage.english: 'Overdue',
+      AppLanguage.urdu: 'تاخیر',
+      AppLanguage.romanUrdu: 'Overdue',
+    },
+    'gap_type_verification': {
+      AppLanguage.english: 'Verification',
+      AppLanguage.urdu: 'تصدیق',
+      AppLanguage.romanUrdu: 'Verification',
+    },
+    'gap_type_document_gap': {
+      AppLanguage.english: 'Document gap',
+      AppLanguage.urdu: 'دستاویز کی کمی',
+      AppLanguage.romanUrdu: 'Document gap',
+    },
+    'gap_type_care_coordination': {
+      AppLanguage.english: 'Care coordination',
+      AppLanguage.urdu: 'نگہداشت میں ہم آہنگی',
+      AppLanguage.romanUrdu: 'Care coordination',
+    },
+    'gap_type_care_gap': {
+      AppLanguage.english: 'Care gap',
+      AppLanguage.urdu: 'نگہداشت کی کمی',
+      AppLanguage.romanUrdu: 'Care gap',
+    },
+
+    // ── Medical timing conflict (safety-neutral) ──
+    'cpd_timing_conflict_body': {
+      AppLanguage.english:
+          'The verified medical instruction was not changed. If this exact timing is not workable for your routine, please confirm with your prescriber, pharmacist, or another qualified healthcare professional before making any change.',
+      AppLanguage.urdu:
+          'تصدیق شدہ طبی ہدایت تبدیل نہیں کی گئی۔ اگر یہ عین ٹائمنگ آپ کی روزمرہ کے لیے قابل عمل نہیں ہے، تو براہ کرم کوئی تبدیلی کرنے سے پہلے اپنے نسخہ لکھنے والے، فارماسسٹ، یا کسی دوسرے قابل صحت کے پیشہ ور سے تصدیق کریں۔',
+      AppLanguage.romanUrdu:
+          'Verified medical hidayat change nahi ki gayi. Agar yeh ain timing aap ki routine ke liye workable nahi hai, to barah-e-karam koi tabdeeli karne se pehle apne prescriber, pharmacist, ya doosre qabil healthcare professional se tasdeeq karein.',
+    },
+    'cpd_ok': {
+      AppLanguage.english: 'OK',
+      AppLanguage.urdu: 'ٹھیک ہے',
+      AppLanguage.romanUrdu: 'Theek hai',
+    },
   };
   static String get(
     String key,

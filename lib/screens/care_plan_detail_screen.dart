@@ -1416,12 +1416,17 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                 color: AppColors.primary,
               ),
             ),
+            const SizedBox(height: 10),
+            Text(
+              context.tr('cpd_timing_conflict_body'),
+              style: const TextStyle(color: AppColors.muted, height: 1.4),
+            ),
           ],
         ),
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(context.tr('cpd_choose_safe_time')),
+            child: Text(context.tr('cpd_ok')),
           ),
         ],
       ),
