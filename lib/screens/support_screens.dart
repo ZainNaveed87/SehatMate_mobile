@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
+import '../localization/app_language.dart';
+import '../localization/language_scope.dart';
 import '../services/auth_service.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/page_header.dart';
@@ -18,35 +20,55 @@ class SettingsScreen extends StatelessWidget {
       animation: state,
       builder: (context, _) => AppShell(
         currentRoute: AppRoutes.settings,
-        title: 'Settings',
+        title: context.tr('settings'),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 680),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const PageHeader(title: 'Settings', subtitle: 'Language, accessibility and privacy.'),
+                PageHeader(title: context.tr('settings'), subtitle: context.tr('settings_subtitle')),
                 AppCard(
                   padding: const EdgeInsets.all(24),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Language', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+                    Text(context.tr('language'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 14),
-                    SizedBox(width: 300, child: DropdownButtonFormField<String>(initialValue: state.language, items: const [DropdownMenuItem(value: 'English', child: Text('English')), DropdownMenuItem(value: 'Urdu', child: Text('اردو (Urdu)')), DropdownMenuItem(value: 'Roman Urdu', child: Text('Roman Urdu'))], onChanged: (value) { if (value != null) { state.updatePreferences(language: value); showDemoMessage(context, 'Language set to $value'); } })),
+                    SizedBox(
+                      width: 300,
+                      child: DropdownButtonFormField<AppLanguage>(
+                        initialValue: context.appLanguage,
+                        items: AppLanguage.values
+                            .map(
+                              (language) => DropdownMenuItem(
+                                value: language,
+                                child: Text(language.displayName),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) async {
+                          if (value == null) return;
+                          await LanguageScope.read(context).setLanguage(value);
+                          state.updatePreferences(language: value.displayName);
+                          if (!context.mounted) return;
+                          showDemoMessage(context, context.tr('language_changed'));
+                        },
+                      ),
+                    ),
                   ]),
                 ),
                 const SizedBox(height: 18),
                 AppCard(
                   padding: const EdgeInsets.all(24),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Accessibility', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+                    Text(context.tr('accessibility'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 12),
-                    _toggle('Large text', 'Increase text size across the app', state.largeText, (value) => state.updatePreferences(largeText: value)),
-                    _toggle('Voice guidance', 'Read instructions aloud where available', state.voiceGuidance, (value) => state.updatePreferences(voiceGuidance: value)),
-                    _toggle('Simple Care Mode', 'Show one task at a time in plain language', state.simpleCareMode, (value) => state.updatePreferences(simpleCareMode: value)),
-                    _toggle('Reduced motion', 'Minimise animations and transitions', state.reducedMotion, (value) => state.updatePreferences(reducedMotion: value), last: true),
+                    _toggle(context.tr('large_text'), context.tr('settings_large_text_hint'), state.largeText, (value) => state.updatePreferences(largeText: value)),
+                    _toggle(context.tr('voice_guidance'), context.tr('settings_voice_guidance_hint'), state.voiceGuidance, (value) => state.updatePreferences(voiceGuidance: value)),
+                    _toggle(context.tr('simple_care_mode'), context.tr('settings_simple_care_hint'), state.simpleCareMode, (value) => state.updatePreferences(simpleCareMode: value)),
+                    _toggle(context.tr('reduced_motion'), context.tr('settings_reduced_motion_hint'), state.reducedMotion, (value) => state.updatePreferences(reducedMotion: value), last: true),
                     if (state.simpleCareMode) ...[
                       const SizedBox(height: 14),
-                      OutlinedButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.simpleCare), child: const Text('Open Simple Care view')),
+                      OutlinedButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.simpleCare), child: Text(context.tr('open_simple_care_view'))),
                     ],
                   ]),
                 ),
@@ -54,15 +76,18 @@ class SettingsScreen extends StatelessWidget {
                 AppCard(
                   padding: const EdgeInsets.all(24),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Privacy & data', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+                    Text(context.tr('privacy_and_data'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
-                    const Text('Your documents and answers are used only to build and verify your care plan.', style: TextStyle(fontSize: 15, color: AppColors.muted)),
+                    Text(context.tr('privacy_data_description'), style: const TextStyle(fontSize: 15, color: AppColors.muted)),
                     const SizedBox(height: 14),
-                    Wrap(spacing: 8, runSpacing: 8, children: [OutlinedButton(onPressed: () => showDemoMessage(context, 'Data export requested'), child: const Text('Export my data')), OutlinedButton(onPressed: () => showDemoMessage(context, 'Account deletion is disabled in this demo.'), child: const Text('Delete account'))]),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      OutlinedButton(onPressed: () => showDemoMessage(context, context.tr('data_export_requested')), child: Text(context.tr('export_my_data'))),
+                      OutlinedButton(onPressed: () => showDemoMessage(context, context.tr('account_deletion_demo_disabled')), child: Text(context.tr('delete_account'))),
+                    ]),
                   ]),
                 ),
                 const SizedBox(height: 20),
-                const SafetyNote(text: 'SehatMate supports understanding of an existing care plan. It does not provide medical advice or diagnosis.'),
+                SafetyNote(text: context.tr('settings_safety_note')),
               ],
             ),
           ),
@@ -137,7 +162,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   Future<void> _saveProfile() async {
     if (name.text.trim().length < 2 || city.text.trim().length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid name and city.')),
+        SnackBar(content: Text(context.tr('enter_valid_name_and_city'))),
       );
       return;
     }
@@ -168,7 +193,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       );
       if (!mounted) return;
       setState(() => _profile = updated);
-      showDemoMessage(context, 'Profile updated');
+      showDemoMessage(context, context.tr('profile_updated'));
     } on AuthException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -177,7 +202,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile could not be updated.')),
+        SnackBar(content: Text(context.tr('profile_update_failed'))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -191,24 +216,24 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       animation: state,
       builder: (context, _) => AppShell(
         currentRoute: AppRoutes.patientProfile,
-        title: 'Patient Profile',
+        title: context.tr('patient_profile'),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PageHeader(title: 'Patient Profile', subtitle: 'Used to check whether the care plan fits daily life.', action: OutlinedButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.realityCheck), child: const Text('Update Reality Check'))),
+                PageHeader(title: context.tr('patient_profile'), subtitle: context.tr('patient_profile_subtitle'), action: OutlinedButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.realityCheck), child: Text(context.tr('update_reality_check')))),
                 AppCard(
                   padding: const EdgeInsets.all(24),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Basic details', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+                    Text(context.tr('basic_details'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 14),
                     LayoutBuilder(builder: (context, constraints) {
                       final fields = [
-                        fieldLabel('Full name', TextField(controller: name)),
+                        fieldLabel(context.tr('full_name'), TextField(controller: name)),
                         fieldLabel(
-                          'Age group',
+                          context.tr('age_group'),
                           DropdownButtonFormField<String>(
                             key: ValueKey(ageGroup),
                             initialValue: ageGroup,
@@ -218,7 +243,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                                 .map(
                                   (item) => DropdownMenuItem<String>(
                                     value: item,
-                                    child: Text(item),
+                                    child: Text(ageGroupLabel(item, context.appLanguage)),
                                   ),
                                 )
                                 .toList(),
@@ -229,43 +254,43 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                             },
                           ),
                         ),
-                        fieldLabel('City', TextField(controller: city)),
+                        fieldLabel(context.tr('city'), TextField(controller: city)),
                         fieldLabel(
-                          'Preferred language',
+                          context.tr('preferred_language'),
                           InputDecorator(
                             decoration: const InputDecoration(),
-                            child: Text(state.language),
+                            child: Text(demoLanguageLabel(state.language)),
                           ),
                         ),
                       ];
                       return constraints.maxWidth >= 520 ? Wrap(spacing: 16, runSpacing: 14, children: fields.map((field) => SizedBox(width: (constraints.maxWidth - 16) / 2, child: field)).toList()) : Column(children: fields.map((field) => Padding(padding: const EdgeInsets.only(bottom: 14), child: field)).toList());
                     }),
                     const SizedBox(height: 16),
-                    FilledButton(onPressed: _saving ? null : _saveProfile, child: const Text('Save changes')),
+                    FilledButton(onPressed: _saving ? null : _saveProfile, child: Text(context.tr('save_changes'))),
                   ]),
                 ),
                 const SizedBox(height: 18),
                 AppCard(
                   padding: const EdgeInsets.all(24),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Daily routine & support', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+                    Text(context.tr('daily_routine_and_support'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 14),
-                    ...realityQuestions.take(5).toList().asMap().entries.map((entry) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: Text(entry.value.question, style: const TextStyle(fontSize: 15, color: AppColors.muted))), const SizedBox(width: 12), Flexible(child: Text(entry.value.options[entry.key % entry.value.options.length], textAlign: TextAlign.right, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)))]))),
+                    ...realityQuestions.take(5).toList().asMap().entries.map((entry) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: Text(demoRealityQuestionText(entry.value, context.appLanguage), style: const TextStyle(fontSize: 15, color: AppColors.muted))), const SizedBox(width: 12), Flexible(child: Text(demoRealityOptionText(entry.value.options[entry.key % entry.value.options.length], context.appLanguage), textAlign: TextAlign.right, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)))]))),
                   ]),
                 ),
                 const SizedBox(height: 18),
                 AppCard(
                   padding: const EdgeInsets.all(24),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Caregiver support', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+                    Text(context.tr('caregiver_support'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 12),
                     ...state.caregivers.map((caregiver) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [Expanded(child: Text('${caregiver.name} · ${caregiver.relationship}', style: const TextStyle(fontSize: 15))), Text(caregiver.availability, style: const TextStyle(fontSize: 15, color: AppColors.muted))]))),
                     const SizedBox(height: 8),
-                    OutlinedButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.family), child: const Text('Manage caregivers')),
+                    OutlinedButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.family), child: Text(context.tr('manage_caregivers'))),
                   ]),
                 ),
                 const SizedBox(height: 20),
-                const SafetyNote(text: 'This profile stores practical living information only, never clinical assessments.'),
+                SafetyNote(text: context.tr('patient_profile_safety_note')),
               ],
             ),
           ),
@@ -289,7 +314,7 @@ class SimpleCareScreen extends StatelessWidget {
         final caregiver = state.caregivers.firstOrNull;
         return AppShell(
           currentRoute: AppRoutes.simpleCare,
-          title: 'Simple Care',
+          title: context.tr('simple_care'),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
@@ -301,23 +326,23 @@ class SimpleCareScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(color: AppColors.primaryLight, border: Border.all(color: AppColors.primary, width: 2), borderRadius: BorderRadius.circular(AppRadii.xxxl)),
                     child: Column(children: [
-                      const Text('Next thing to do', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.accentForeground)),
+                      Text(context.tr('next_thing_to_do'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.accentForeground)),
                       if (next == null)
-                        const Padding(padding: EdgeInsets.only(top: 12), child: Text('Nothing left for today', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)))
+                        Padding(padding: const EdgeInsets.only(top: 12), child: Text(context.tr('nothing_left_today'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)))
                       else ...[
                         const SizedBox(height: 12),
-                        Text(next.title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, height: 1.15)),
+                        Text(demoTaskTitle(next, context.appLanguage), textAlign: TextAlign.center, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, height: 1.15)),
                         const SizedBox(height: 8),
                         Text(next.time, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.muted)),
                         const SizedBox(height: 8),
-                        Text(next.note, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, color: AppColors.muted)),
+                        Text(demoTaskNote(next, context.appLanguage), textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, color: AppColors.muted)),
                         const SizedBox(height: 20),
-                        SizedBox(width: double.infinity, height: 56, child: FilledButton.icon(onPressed: () { state.toggleTask(next.id); showDemoMessage(context, 'Marked as done'); }, icon: const Icon(Icons.check, size: 25), label: Text(next.completed ? 'Done' : 'Mark as done', style: const TextStyle(fontSize: 19)))),
+                        SizedBox(width: double.infinity, height: 56, child: FilledButton.icon(onPressed: () { state.toggleTask(next.id); showDemoMessage(context, context.tr('marked_as_done')); }, icon: const Icon(Icons.check, size: 25), label: Text(next.completed ? context.tr('done') : context.tr('mark_as_done'), style: const TextStyle(fontSize: 19)))),
                       ],
                     ]),
                   ),
                   const SizedBox(height: 24),
-                  const Text('Rest of today', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+                  Text(context.tr('rest_of_today'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 12),
                   ...todays.map((task) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -326,17 +351,17 @@ class SimpleCareScreen extends StatelessWidget {
                           duration: const Duration(milliseconds: 180),
                           child: AppCard(
                             padding: const EdgeInsets.all(18),
-                            child: Row(children: [TaskIcon(icon: task.icon, size: 46), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(task.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)), Text(task.time, style: const TextStyle(fontSize: 18, color: AppColors.muted))])), OutlinedButton(onPressed: () => state.toggleTask(task.id), child: const Icon(Icons.check, size: 24))]),
+                            child: Row(children: [TaskIcon(icon: task.icon, size: 46), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(demoTaskTitle(task, context.appLanguage), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)), Text(task.time, style: const TextStyle(fontSize: 18, color: AppColors.muted))])), OutlinedButton(onPressed: () => state.toggleTask(task.id), child: const Icon(Icons.check, size: 24))]),
                           ),
                         ),
                       )),
                   const SizedBox(height: 12),
                   AppCard(
                     padding: const EdgeInsets.all(24),
-                    child: Column(children: [const Text('Need help?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)), const SizedBox(height: 4), Text('${caregiver?.name ?? ''} · ${caregiver?.phone ?? ''}', style: const TextStyle(fontSize: 17, color: AppColors.muted)), const SizedBox(height: 14), SizedBox(width: double.infinity, height: 54, child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, AppRoutes.family), icon: const Icon(Icons.phone_outlined, size: 25), label: const Text('Contact family', style: TextStyle(fontSize: 19))))]),
+                    child: Column(children: [Text(context.tr('need_help'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)), const SizedBox(height: 4), Text('${caregiver?.name ?? ''} · ${caregiver?.phone ?? ''}', style: const TextStyle(fontSize: 17, color: AppColors.muted)), const SizedBox(height: 14), SizedBox(width: double.infinity, height: 54, child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, AppRoutes.family), icon: const Icon(Icons.phone_outlined, size: 25), label: Text(context.tr('contact_family'), style: const TextStyle(fontSize: 19))))]),
                   ),
                   const SizedBox(height: 20),
-                  const SafetyNote(text: 'For any medical emergency, contact a healthcare professional immediately.'),
+                  SafetyNote(text: context.tr('medical_emergency_contact_professional')),
                 ],
               ),
             ),
@@ -356,9 +381,9 @@ class TeachBackScreen extends StatefulWidget {
 
 class _TeachBackScreenState extends State<TeachBackScreen> {
   static const prompts = [
-    ('tb1', 'When will you take your morning medicine?', 'Every morning at 8:00 AM, after breakfast.'),
-    ('tb2', 'What will you do before your hospital visit?', 'Fast overnight and arrive by 10:00 AM with a confirmed ride.'),
-    ('tb3', 'Who helps you with dressing changes?', 'Ahmed helps with the dressing in the evening.'),
+    ('tb1', 'teach_back_prompt_morning_medicine', 'teach_back_plan_morning_medicine'),
+    ('tb2', 'teach_back_prompt_hospital_visit', 'teach_back_plan_hospital_visit'),
+    ('tb3', 'teach_back_prompt_dressing_help', 'teach_back_plan_dressing_help'),
   ];
   final answers = <String, String>{};
   final controller = TextEditingController();
@@ -379,14 +404,24 @@ class _TeachBackScreenState extends State<TeachBackScreen> {
     if (done) {
       return AppShell(
         currentRoute: AppRoutes.teachBack,
-        title: 'Teach-Back',
+        title: context.tr('teach_back'),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
             child: FadeSlideIn(
               child: AppCard(
                 padding: const EdgeInsets.all(30),
-                child: Column(children: [const Icon(Icons.check_circle_outline, size: 50, color: AppColors.success), const SizedBox(height: 14), const Text('Understanding recorded', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)), const SizedBox(height: 6), Text('Understanding score: $score% — clear on medicines, review the visit preparation once more.', textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, color: AppColors.muted)), const SizedBox(height: 18), LinearProgressIndicator(value: score / 100, minHeight: 10, borderRadius: BorderRadius.circular(99)), const SizedBox(height: 22), FilledButton.icon(onPressed: () => setState(() { index = 0; answers.clear(); controller.clear(); done = false; }), icon: const Icon(Icons.refresh, size: 18), label: const Text('Try again'))]),
+                child: Column(children: [
+                  const Icon(Icons.check_circle_outline, size: 50, color: AppColors.success),
+                  const SizedBox(height: 14),
+                  Text(context.tr('understanding_recorded'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Text(context.tr('understanding_score_summary', values: {'score': score}), textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, color: AppColors.muted)),
+                  const SizedBox(height: 18),
+                  LinearProgressIndicator(value: score / 100, minHeight: 10, borderRadius: BorderRadius.circular(99)),
+                  const SizedBox(height: 22),
+                  FilledButton.icon(onPressed: () => setState(() { index = 0; answers.clear(); controller.clear(); done = false; }), icon: const Icon(Icons.refresh, size: 18), label: Text(context.tr('retry'))),
+                ]),
               ),
             ),
           ),
@@ -396,14 +431,17 @@ class _TeachBackScreenState extends State<TeachBackScreen> {
     final prompt = prompts[index];
     return AppShell(
       currentRoute: AppRoutes.teachBack,
-      title: 'Teach-Back',
+      title: context.tr('teach_back'),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              PageHeader(title: 'Explain the plan in your own words', subtitle: 'Current understanding score: ${state.understanding}%'),
+              PageHeader(
+                title: context.tr('teach_back_title'),
+                subtitle: context.tr('current_understanding_score', values: {'score': state.understanding}),
+              ),
               LinearProgressIndicator(value: (index + 1) / prompts.length, minHeight: 8, borderRadius: BorderRadius.circular(99)),
               const SizedBox(height: 20),
               FadeSlideIn(
@@ -413,16 +451,16 @@ class _TeachBackScreenState extends State<TeachBackScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('QUESTION ${index + 1} OF ${prompts.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.muted, letterSpacing: .5)),
+                      Text(context.tr('question_counter_caps', values: {'current': index + 1, 'total': prompts.length}), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.muted, letterSpacing: .5)),
                       const SizedBox(height: 8),
-                      Text(prompt.$2, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
+                      Text(context.tr(prompt.$2), style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 14),
-                      TextField(controller: controller, minLines: 4, maxLines: 5, onChanged: (value) => setState(() => answers[prompt.$1] = value), decoration: const InputDecoration(hintText: 'Type your answer, or speak it aloud')),
+                      TextField(controller: controller, minLines: 4, maxLines: 5, onChanged: (value) => setState(() => answers[prompt.$1] = value), decoration: InputDecoration(hintText: context.tr('type_or_speak_answer'))),
                       const SizedBox(height: 10),
-                      OutlinedButton.icon(onPressed: () => showDemoMessage(context, 'Voice capture is not connected in this demo.'), icon: const Icon(Icons.mic_none, size: 18), label: const Text('Speak answer')),
+                      OutlinedButton.icon(onPressed: () => showDemoMessage(context, context.tr('voice_capture_demo_unavailable')), icon: const Icon(Icons.mic_none, size: 18), label: Text(context.tr('speak_answer'))),
                       if (controller.text.trim().isNotEmpty) ...[
                         const SizedBox(height: 14),
-                        Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(AppRadii.xl)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('What the plan says', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accentForeground)), Text(prompt.$3, style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
+                        Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(AppRadii.xl)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(context.tr('what_plan_says'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accentForeground)), Text(context.tr(prompt.$3), style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
                       ],
                       const SizedBox(height: 18),
                       Align(
@@ -437,7 +475,7 @@ class _TeachBackScreenState extends State<TeachBackScreen> {
                               setState(() { index += 1; controller.text = answers[prompts[index].$1] ?? ''; });
                             }
                           },
-                          child: Text(index + 1 == prompts.length ? 'Finish' : 'Next'),
+                          child: Text(index + 1 == prompts.length ? context.tr('finish') : context.tr('next_label')),
                         ),
                       ),
                     ],
@@ -445,7 +483,7 @@ class _TeachBackScreenState extends State<TeachBackScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              const SafetyNote(text: 'This check measures understanding of the care plan only. It is not a medical assessment.'),
+              SafetyNote(text: context.tr('teach_back_safety_note')),
             ],
           ),
         ),

@@ -18,6 +18,7 @@ import '../screens/support_screens.dart';
 import '../screens/task_outcome_screens.dart';
 import '../services/auth_service.dart';
 import '../services/care_plan_service.dart';
+import '../localization/language_scope.dart';
 import 'app_routes.dart';
 import 'app_theme.dart';
 
@@ -224,7 +225,7 @@ class _NotFoundScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SehatMate'),
+        title: Text(context.tr('app_name')),
       ),
       body: Center(
         child: Padding(
@@ -240,18 +241,18 @@ class _NotFoundScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Page not found',
-                style: TextStyle(
+              Text(
+                context.tr('page_not_found'),
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                "The page you're looking for doesn't exist or has been moved.",
+              Text(
+                context.tr('page_not_found_description'),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.muted,
                 ),
               ),
@@ -262,7 +263,7 @@ class _NotFoundScreen extends StatelessWidget {
                   context,
                   AppRoutes.landing,
                 ),
-                child: const Text('Go home'),
+                child: Text(context.tr('go_home')),
               ),
             ],
           ),

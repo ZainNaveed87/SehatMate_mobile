@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
+import '../localization/language_scope.dart';
+import '../localization/localized_errors.dart';
 import '../services/auth_service.dart';
 import '../services/care_plan_service.dart';
 import '../services/care_reliability_service.dart';
@@ -103,13 +105,13 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = error.message;
+        _error = localizedCarePlanExceptionMessage(error, context.appLanguage);
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Care plan could not be loaded.';
+        _error = context.tr('care_plan_load_failed');
       });
     }
   }
@@ -124,7 +126,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       animation: CareDemoState.instance,
       builder: (context, _) => AppShell(
       currentRoute: AppRoutes.carePlan(plan.id),
-      title: 'Care Plan',
+      title: context.tr('care_plan'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -152,16 +154,16 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               icon: const Icon(Icons.arrow_back, size: 17),
               label: Text(
                 widget.guidedSetup && tab == 1
-                    ? 'Back to Review'
+                    ? context.tr('back_to_review')
                     : widget.returnToPrevious
-                        ? 'Back'
-                        : 'Care Plans',
+                        ? context.tr('back')
+                        : context.tr('care_plans'),
               ),
             ),
           ),
           PageHeader(
-            title: plan.title,
-            subtitle: 'Started ${plan.startDate} · Next: ${plan.nextTask}',
+            title: demoPlanTitle(plan, context.appLanguage),
+            subtitle: context.tr('care_plan_header_subtitle', values: {'date': displayPlanStartDate(plan.startDate, context.appLanguage), 'next': demoPlanNextTask(plan, context.appLanguage)}),
             action: PlanStatusBadge(status: plan.status),
           ),
           if (!widget.guidedSetup &&
@@ -185,7 +187,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Expanded(child: Text('Care readiness', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
+                    Expanded(child: Text(context.tr('care_readiness'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
                     Text('${plan.readiness}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.primary)),
                   ],
                 ),
@@ -202,12 +204,12 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: AppTabs<int>(
-                tabs: const [
-                  AppTab(0, 'Instructions'),
-                  AppTab(1, 'Schedule'),
-                  AppTab(2, 'Simulation'),
-                  AppTab(3, 'Care Gaps'),
-                  AppTab(4, 'Documents'),
+                tabs: [
+                  AppTab(0, context.tr('instructions')),
+                  AppTab(1, context.tr('schedule')),
+                  AppTab(2, context.tr('simulation')),
+                  AppTab(3, context.tr('care_gaps')),
+                  AppTab(4, context.tr('documents')),
                 ],
                 selected: tab,
                 onChanged: (value) => setState(() => tab = value),
@@ -217,7 +219,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           ],
           _tabContent(detail),
           const SizedBox(height: 32),
-          const SafetyNote(text: 'This plan reflects instructions given by your healthcare professional. SehatRoute does not change medical treatment.'),
+          SafetyNote(text: context.tr('care_plan_detail_safety_note')),
         ],
       ),
       ),
@@ -232,14 +234,14 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final explanation = completed
-              ? 'This plan is completed. Reactivating it re-checks the current plan and restores valid reminders without deleting completed task history.'
-              : 'Complete this plan when you no longer want future reminders. Completed task history will stay available.';
+              ? context.tr('completed_plan_reactivate_explanation')
+              : context.tr('active_plan_complete_explanation');
 
           final text = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                completed ? 'Plan completed' : 'Plan actions',
+                completed ? context.tr('plan_completed') : context.tr('plan_actions'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -270,7 +272,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                         )
                       : const Icon(Icons.restart_alt_outlined, size: 18),
                   label: Text(
-                    _lifecycleSaving ? 'Reactivating…' : 'Reactivate plan',
+                    _lifecycleSaving ? context.tr('reactivating') : context.tr('reactivate_plan'),
                   ),
                 )
               : OutlinedButton.icon(
@@ -285,7 +287,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                         )
                       : const Icon(Icons.check_circle_outline, size: 18),
                   label: Text(
-                    _lifecycleSaving ? 'Completing…' : 'Complete plan',
+                    _lifecycleSaving ? context.tr('completing') : context.tr('complete_plan'),
                   ),
                 );
 
@@ -317,18 +319,16 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Complete this care plan?'),
-        content: const Text(
-          'Future reminders for this plan will stop. Completed and past task history will remain available, and you can reactivate the plan later if it is still valid.',
-        ),
+        title: Text(context.tr('complete_this_care_plan_question')),
+        content: Text(context.tr('complete_this_care_plan_body')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Complete plan'),
+            child: Text(context.tr('complete_plan')),
           ),
         ],
       ),
@@ -350,16 +350,12 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       await _loadPlan();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Care plan completed. Future reminders were stopped and task history was kept.',
-          ),
-        ),
+        SnackBar(content: Text(context.tr('care_plan_completed_reminders_stopped'))),
       );
     } on CarePlanException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
+          SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage))),
         );
       }
     } finally {
@@ -371,18 +367,16 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Reactivate this care plan?'),
-        content: const Text(
-          'SehatMate will re-check the current verified instructions, schedule, Reality Check and blocking Care Gaps. Completed task history will stay unchanged. Medical instructions are not extended or changed automatically.',
-        ),
+        title: Text(context.tr('reactivate_this_care_plan_question')),
+        content: Text(context.tr('reactivate_this_care_plan_body')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Reactivate plan'),
+            child: Text(context.tr('reactivate_plan')),
           ),
         ],
       ),
@@ -405,10 +399,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       if (!mounted) return;
 
       final message = !notificationResult.permissionGranted
-          ? 'Care plan reactivated, but notification permission is not granted.'
+          ? context.tr('care_plan_reactivated_no_notification_permission')
           : !notificationResult.exactAlarmGranted
-              ? 'Care plan reactivated. Allow exact alarms in Android settings to restore exact reminders.'
-              : 'Care plan reactivated. ${notificationResult.scheduledCount} reminder${notificationResult.scheduledCount == 1 ? '' : 's'} restored.';
+              ? context.tr('care_plan_reactivated_exact_alarm_missing')
+              : context.tr('care_plan_reactivated_reminders_restored', values: {'count': notificationResult.scheduledCount});
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
@@ -416,17 +410,13 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     } on CarePlanException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
+          SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage))),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'The plan could not be reactivated on this device.',
-            ),
-          ),
+          SnackBar(content: Text(context.tr('plan_reactivation_device_failed'))),
         );
       }
     } finally {
@@ -438,10 +428,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     switch (tab) {
       case 0:
         if (detail.instructions.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
             icon: Icons.fact_check_outlined,
-            title: 'No instructions yet',
-            description: 'Upload documents to extract care instructions.',
+            title: context.tr('no_instructions_yet'),
+            description: context.tr('upload_documents_to_extract_instructions'),
           );
         }
         return Column(
@@ -462,7 +452,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   if (mounted) await _loadPlan();
                 },
                 icon: const Icon(Icons.edit_outlined, size: 17),
-                label: const Text('Edit instructions'),
+                label: Text(context.tr('edit_instructions')),
               ),
             ),
             const SizedBox(height: 12),
@@ -480,14 +470,14 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         if (detail.tasks.isEmpty) {
           return EmptyState(
             icon: Icons.calendar_today_outlined,
-            title: 'No scheduled tasks yet',
-            description: 'Generate a schedule from the verified prescription instructions.',
+            title: context.tr('no_scheduled_tasks_yet'),
+            description: context.tr('generate_schedule_from_verified_instructions'),
             action: FilledButton.icon(
               onPressed: _generatingSchedule ? null : _generateSchedule,
               icon: _generatingSchedule
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.auto_awesome, size: 18),
-              label: Text(_generatingSchedule ? 'Generating…' : 'Generate schedule'),
+              label: Text(_generatingSchedule ? context.tr('generating') : context.tr('generate_schedule')),
             ),
           );
         }
@@ -501,17 +491,17 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             ],
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'AI copied explicit timings and marked inferred slots for confirmation.',
-                    style: TextStyle(fontSize: 13, color: AppColors.muted),
+                    context.tr('schedule_ai_copied_timings_help'),
+                    style: const TextStyle(fontSize: 13, color: AppColors.muted),
                   ),
                 ),
                 const SizedBox(width: 12),
                 OutlinedButton.icon(
                   onPressed: _generatingSchedule ? null : _generateSchedule,
                   icon: const Icon(Icons.refresh, size: 17),
-                  label: const Text('Regenerate'),
+                  label: Text(context.tr('regenerate')),
                 ),
               ],
             ),
@@ -534,10 +524,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               icon: Icon(widget.returnToPrevious ? Icons.check : Icons.arrow_forward, size: 18),
               label: Text(
                 detail.tasks.any((task) => task.status == TaskStatus.atRisk) || _unsavedPeriodChanges.isNotEmpty
-                    ? 'Confirm schedule items first'
+                    ? context.tr('confirm_schedule_items_first')
                     : widget.returnToPrevious
-                        ? 'Done'
-                        : 'Continue to Reality Check',
+                        ? context.tr('done')
+                        : context.tr('continue_to_reality_check'),
               ),
             ),
           ],
@@ -561,7 +551,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   if (mounted) await _loadPlan();
                 },
                 icon: const Icon(Icons.edit_note_outlined, size: 17),
-                label: const Text('Edit Reality Check'),
+                label: Text(context.tr('edit_reality_check')),
               ),
             ),
             const SizedBox(height: 12),
@@ -573,10 +563,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             .where((gap) => gap.status != TaskStatus.resolved)
             .toList();
         if (openGaps.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
             icon: Icons.check_circle_outline,
-            title: 'No open care gaps',
-            description: 'There are no unresolved care-plan issues right now.',
+            title: context.tr('no_open_care_gaps'),
+            description: context.tr('no_unresolved_care_plan_issues'),
           );
         }
         return Column(
@@ -612,8 +602,8 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         if (documents.isEmpty) {
           return EmptyState(
             icon: Icons.description_outlined,
-            title: 'No documents yet',
-            description: 'Upload a prescription or discharge summary to build this plan.',
+            title: context.tr('no_documents_yet'),
+            description: context.tr('upload_document_to_build_plan'),
             action: FilledButton(
               onPressed: () => Navigator.pushNamed(
                 context,
@@ -624,7 +614,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   returnToPrevious: true,
                 ),
               ),
-              child: const Text('Upload document'),
+              child: Text(context.tr('upload_document')),
             ),
           );
         }
@@ -647,7 +637,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   if (mounted) await _loadPlan();
                 },
                 icon: const Icon(Icons.add, size: 17),
-                label: const Text('Add document'),
+                label: Text(context.tr('add_document')),
               ),
             ),
             const SizedBox(height: 12),
@@ -666,14 +656,14 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(document.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                              Text('${document.type} · ${document.pages} page${document.pages == 1 ? '' : 's'} · ${document.date}', style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+                              Text(context.tr(document.pages == 1 ? 'document_meta_page' : 'document_meta_pages', values: {'type': document.type, 'pages': document.pages, 'date': document.date}), style: const TextStyle(fontSize: 13, color: AppColors.muted)),
                             ],
                           ),
                         ),
                         IconButton(
                           onPressed: () => _deleteDocument(document.id),
                           icon: const Icon(Icons.delete_outline, size: 19),
-                          tooltip: 'Remove document',
+                          tooltip: context.tr('remove_document'),
                         ),
                       ],
                     ),
@@ -1896,4 +1886,3 @@ class _ScheduleRow extends StatelessWidget {
     );
   }
 }
-

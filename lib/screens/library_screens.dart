@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
+import '../localization/language_scope.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/page_header.dart';
 import '../widgets/status_badge.dart';
@@ -29,15 +30,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final dayTasks = state.tasks.where((task) => task.day == selected).toList();
         return AppShell(
           currentRoute: AppRoutes.calendar,
-          title: 'Care Calendar',
+          title: context.tr('care_calendar'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PageHeader(title: 'Care Calendar', subtitle: 'Everything scheduled for this care plan.'),
+              PageHeader(title: context.tr('care_calendar'), subtitle: context.tr('care_calendar_subtitle')),
               Align(
                 alignment: Alignment.centerLeft,
                 child: AppTabs<String>(
-                  tabs: const [AppTab('Week', 'Week'), AppTab('Month', 'Month')],
+                  tabs: [
+                    AppTab('Week', context.tr('week')),
+                    AppTab('Month', context.tr('month')),
+                  ],
                   selected: mode,
                   onChanged: (value) => setState(() => mode = value),
                 ),
@@ -77,9 +81,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Text(item.short, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                                          Text(_demoDayShort(context, item), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                                           Text('${item.number}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-                                          Text('$count task${count == 1 ? '' : 's'}', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                                          Text(context.tr('task_count', values: {'count': count}), style: const TextStyle(fontSize: 11, color: AppColors.muted)),
                                         ],
                                       ),
                                     ),
@@ -89,10 +93,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          Text('${day.label} · ${day.dateLabel}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+                          Text('${_demoDayLong(context, day)} · ${_demoDateLabel(context, day)}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 12),
                           if (dayTasks.isEmpty)
-                            const EmptyState(title: 'No tasks this day', description: 'Nothing is scheduled for this date.')
+                            EmptyState(title: context.tr('no_tasks_this_day'), description: context.tr('nothing_scheduled_for_date'))
                           else
                             ...dayTasks.asMap().entries.map((entry) => Padding(
                                   padding: const EdgeInsets.only(bottom: 10),
@@ -112,8 +116,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               childAspectRatio: 1.15,
-                              children: const ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-                                  .map((label) => Center(child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600))))
+                              children: const ['mon_initial', 'tue_initial', 'wed_initial', 'thu_initial', 'fri_initial', 'sat_initial', 'sun_initial']
+                                  .map((label) => Center(child: Text(context.tr(label), style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600))))
                                   .toList(),
                             ),
                             GridView.count(
@@ -169,7 +173,7 @@ class _CalendarTask extends StatelessWidget {
             SizedBox(width: 76, child: Text(task.time, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.muted))),
             TaskIcon(icon: task.icon),
             const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), Text(task.note, style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(demoTaskTitle(task, context.appLanguage), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), Text(demoTaskNote(task, context.appLanguage), style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
             const SizedBox(width: 8),
             StatusBadge(status: task.status),
           ],
@@ -187,21 +191,21 @@ class NotificationsScreen extends StatelessWidget {
       animation: state,
       builder: (context, _) => AppShell(
         currentRoute: AppRoutes.notifications,
-        title: 'Notifications',
+        title: context.tr('notifications'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             PageHeader(
-              title: 'Notifications',
-              subtitle: 'Care reminders and updates.',
-              action: OutlinedButton(onPressed: state.markAllRead, child: const Text('Mark all read')),
+              title: context.tr('notifications'),
+              subtitle: context.tr('notifications_subtitle'),
+              action: OutlinedButton(onPressed: state.markAllRead, child: Text(context.tr('mark_all_read'))),
             ),
             if (state.notifications.isEmpty)
-              const EmptyState(icon: Icons.notifications_none, title: 'Nothing new', description: "You're all caught up.")
+              EmptyState(icon: Icons.notifications_none, title: context.tr('nothing_new'), description: context.tr('all_caught_up'))
             else
               for (final group in const ['Today', 'Yesterday']) ...[
                 if (state.notifications.any((notification) => notification.group == group)) ...[
-                  Text(group, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                  Text(group == 'Today' ? context.tr('today') : context.tr('yesterday'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
                   ...state.notifications.where((notification) => notification.group == group).map((notification) => Padding(
                         padding: const EdgeInsets.only(bottom: 10),
@@ -221,7 +225,7 @@ class NotificationsScreen extends StatelessWidget {
                               children: [
                                 Icon(notification.kind == null ? Icons.notifications_none : _kindIcon(notification.kind!), size: 21, color: AppColors.primary),
                                 const SizedBox(width: 12),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(notification.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), Text(notification.detail, style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(demoNotificationTitle(notification, context.appLanguage), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), Text(demoNotificationDetail(notification, context.appLanguage), style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
                                 if (!notification.read) const Padding(padding: EdgeInsets.only(top: 7), child: CircleAvatar(radius: 4, backgroundColor: AppColors.primary)),
                               ],
                             ),
@@ -248,17 +252,17 @@ class DocumentsScreen extends StatelessWidget {
       animation: state,
       builder: (context, _) => AppShell(
         currentRoute: AppRoutes.documents,
-        title: 'Documents',
+        title: context.tr('documents'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             PageHeader(
-              title: 'Documents',
-              subtitle: 'Every document used to build your care plans.',
-              action: FilledButton.icon(onPressed: () => Navigator.pushNamed(context, AppRoutes.carePlanNew), icon: const Icon(Icons.upload, size: 18), label: const Text('Upload')),
+              title: context.tr('documents'),
+              subtitle: context.tr('documents_subtitle'),
+              action: FilledButton.icon(onPressed: () => Navigator.pushNamed(context, AppRoutes.carePlanNew), icon: const Icon(Icons.upload, size: 18), label: Text(context.tr('upload'))),
             ),
             if (state.documents.isEmpty)
-              EmptyState(icon: Icons.description_outlined, title: 'No documents yet', description: 'Upload a prescription or discharge summary to get started.', action: FilledButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.carePlanNew), child: const Text('Upload document')))
+              EmptyState(icon: Icons.description_outlined, title: context.tr('no_documents_yet'), description: context.tr('upload_prescription_or_discharge'), action: FilledButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.carePlanNew), child: Text(context.tr('upload_document'))))
             else
               LayoutBuilder(
                 builder: (context, constraints) {
@@ -278,12 +282,12 @@ class DocumentsScreen extends StatelessWidget {
                               Expanded(child: Container(width: double.infinity, decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(AppRadii.xl)), child: const Icon(Icons.description_outlined, size: 38, color: AppColors.primary))),
                               const SizedBox(height: 12),
                               Text(document.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                              Text('${document.type} · ${document.pages} page${document.pages == 1 ? '' : 's'} · ${document.date}', style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+                              Text(context.tr('document_pages_summary', values: {'type': document.type, 'pages': document.pages, 'date': document.date}), style: const TextStyle(fontSize: 13, color: AppColors.muted)),
                               Text(document.plan, style: const TextStyle(fontSize: 13, color: AppColors.subtle)),
                               const SizedBox(height: 12),
                               Wrap(spacing: 8, children: [
-                                OutlinedButton.icon(onPressed: () => showDemoMessage(context, 'Document preview is not available in this demo.'), icon: const Icon(Icons.visibility_outlined, size: 17), label: const Text('View')),
-                                TextButton.icon(onPressed: () { state.removeDocument(document.id); showDemoMessage(context, 'Document removed'); }, icon: const Icon(Icons.delete_outline, size: 17), label: const Text('Delete')),
+                                OutlinedButton.icon(onPressed: () => showDemoMessage(context, context.tr('document_preview_demo_unavailable')), icon: const Icon(Icons.visibility_outlined, size: 17), label: Text(context.tr('view'))),
+                                TextButton.icon(onPressed: () { state.removeDocument(document.id); showDemoMessage(context, context.tr('document_removed')); }, icon: const Icon(Icons.delete_outline, size: 17), label: Text(context.tr('delete'))),
                               ]),
                             ],
                           ),
@@ -294,7 +298,7 @@ class DocumentsScreen extends StatelessWidget {
                 },
               ),
             const SizedBox(height: 24),
-            const SafetyNote(text: 'Documents are stored only to build and verify your care plan.'),
+            SafetyNote(text: context.tr('documents_safety_note')),
           ],
         ),
       ),
@@ -315,18 +319,18 @@ class ProgressScreen extends StatelessWidget {
         final resolved = state.gaps.where((gap) => gap.status == TaskStatus.resolved).length;
         final maxReadiness = readinessTrend.map((point) => point.$2).fold<int>(state.readiness, (highest, value) => value > highest ? value : highest);
         final stats = [
-          ('Care readiness', '${state.readiness}%'),
-          ('Tasks completed', '$completed/${state.tasks.length}'),
-          ('Gaps resolved', '$resolved/${state.gaps.length}'),
-          ('Understanding', '${state.understanding}%'),
+          (context.tr('care_readiness'), '${state.readiness}%'),
+          (context.tr('tasks_completed'), '$completed/${state.tasks.length}'),
+          (context.tr('gaps_resolved'), '$resolved/${state.gaps.length}'),
+          (context.tr('understanding'), '${state.understanding}%'),
         ];
         return AppShell(
           currentRoute: AppRoutes.progress,
-          title: 'Progress',
+          title: context.tr('progress'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PageHeader(title: 'Care Progress', subtitle: 'How practical the care plan has become over time.'),
+              PageHeader(title: context.tr('care_progress'), subtitle: context.tr('care_progress_subtitle')),
               LayoutBuilder(builder: (context, constraints) {
                 final columns = constraints.maxWidth >= 900 ? 4 : constraints.maxWidth >= 480 ? 2 : 1;
                 return GridView.count(
@@ -345,13 +349,13 @@ class ProgressScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Care readiness trend', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+                    Text(context.tr('care_readiness_trend'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 22),
                     SizedBox(
                       height: 220,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
-                        children: readinessTrend.map((point) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 7), child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [Text('${point.$2}%', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), const SizedBox(height: 7), TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: point.$2 / maxReadiness), duration: const Duration(milliseconds: 500), curve: Curves.easeOut, builder: (context, value, _) => Container(height: 150 * value, decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: .85), borderRadius: const BorderRadius.vertical(top: Radius.circular(8))))), const SizedBox(height: 7), Text(point.$1, style: const TextStyle(fontSize: 13, color: AppColors.muted))])))).toList(),
+                        children: readinessTrend.map((point) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 7), child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [Text('${point.$2}%', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), const SizedBox(height: 7), TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: point.$2 / maxReadiness), duration: const Duration(milliseconds: 500), curve: Curves.easeOut, builder: (context, value, _) => Container(height: 150 * value, decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: .85), borderRadius: const BorderRadius.vertical(top: Radius.circular(8))))), const SizedBox(height: 7), Text(_readinessTrendLabel(context, point.$1), style: const TextStyle(fontSize: 13, color: AppColors.muted))])))).toList(),
                       ),
                     ),
                   ],
@@ -360,19 +364,58 @@ class ProgressScreen extends StatelessWidget {
               const SizedBox(height: 24),
               LayoutBuilder(builder: (context, constraints) {
                 final cards = [
-                  AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Understanding score', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)), const SizedBox(height: 16), LinearProgressIndicator(value: state.understanding / 100, minHeight: 10, borderRadius: BorderRadius.circular(99)), const SizedBox(height: 12), const Text('Based on your latest Teach-Back session.', style: TextStyle(fontSize: 14, color: AppColors.muted))])),
-                  AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Most common barriers', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)), const SizedBox(height: 14), ...[('Transport', 3, 1.0), ('Caregiver availability', 2, .66), ('Medicine access', 1, .33)].map((item) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Column(children: [Row(children: [Expanded(child: Text(item.$1)), Text('${item.$2} times', style: const TextStyle(color: AppColors.muted))]), const SizedBox(height: 5), LinearProgressIndicator(value: item.$3, minHeight: 6, borderRadius: BorderRadius.circular(99))]))) ])),
+                  AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(context.tr('understanding_score'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)), const SizedBox(height: 16), LinearProgressIndicator(value: state.understanding / 100, minHeight: 10, borderRadius: BorderRadius.circular(99)), const SizedBox(height: 12), Text(context.tr('latest_teach_back_basis'), style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
+                  AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(context.tr('most_common_barriers'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)), const SizedBox(height: 14), ...[(context.tr('transport'), 3, 1.0), (context.tr('caregiver_availability'), 2, .66), (context.tr('medicine_access'), 1, .33)].map((item) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Column(children: [Row(children: [Expanded(child: Text(item.$1)), Text(context.tr('times_count', values: {'count': item.$2}), style: const TextStyle(color: AppColors.muted))]), const SizedBox(height: 5), LinearProgressIndicator(value: item.$3, minHeight: 6, borderRadius: BorderRadius.circular(99))]))) ])),
                 ];
                 return constraints.maxWidth >= 760 ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: cards[0]), const SizedBox(width: 16), Expanded(child: cards[1])]) : Column(children: [cards[0], const SizedBox(height: 16), cards[1]]);
               }),
               const SizedBox(height: 24),
-              const SafetyNote(text: 'These metrics describe care-plan feasibility and understanding, not clinical outcomes.'),
+              SafetyNote(text: context.tr('progress_demo_safety_note')),
             ],
           ),
         );
       },
     );
   }
+}
+
+String _demoDayShort(BuildContext context, DemoDay day) => context.tr(
+      switch (day.short) {
+        'Mon' => 'mon_short',
+        'Tue' => 'tue_short',
+        'Wed' => 'wed_short',
+        'Thu' => 'thu_short',
+        'Fri' => 'fri_short',
+        'Sat' => 'sat_short',
+        _ => 'sun_short',
+      },
+    );
+
+String _demoDayLong(BuildContext context, DemoDay day) => context.tr(
+      switch (day.label) {
+        'Monday' => 'monday',
+        'Tuesday' => 'tuesday',
+        'Wednesday' => 'wednesday',
+        'Thursday' => 'thursday',
+        'Friday' => 'friday',
+        'Saturday' => 'saturday',
+        _ => 'sunday',
+      },
+    );
+
+String _demoDateLabel(BuildContext context, DemoDay day) => context.tr(
+      'progress_day_label',
+      values: {
+        'weekday': '',
+        'day': day.number,
+        'month': context.tr('aug_short'),
+      },
+    ).trim();
+
+String _readinessTrendLabel(BuildContext context, String value) {
+  final match = RegExp(r'^Week (\d+)$').firstMatch(value);
+  if (match == null) return value;
+  return context.tr('week_number', values: {'number': match.group(1)});
 }
 
 IconData _kindIcon(TaskKind kind) => switch (kind) {

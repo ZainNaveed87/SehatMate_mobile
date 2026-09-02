@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
+import '../localization/language_scope.dart';
+import '../localization/localized_errors.dart';
 import '../services/auth_service.dart';
 import '../services/care_plan_service.dart';
 import '../services/notification_service.dart';
@@ -136,7 +138,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        error = exception.message;
+        error = localizedCarePlanExceptionMessage(exception, context.appLanguage);
       });
     }
   }
@@ -196,7 +198,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
     final reviewed = visibleItems.where((item) => item.state != ReviewState.review).length;
     return AppShell(
       currentRoute: AppRoutes.carePlanReview,
-      title: 'Verify Instructions',
+      title: context.tr('verify_instructions'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -211,10 +213,10 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                 }
               },
               icon: const Icon(Icons.arrow_back, size: 17),
-              label: const Text('Back'),
+              label: Text(context.tr('back')),
             ),
           ),
-          PageHeader(title: 'Review extracted instructions', subtitle: '$reviewed of ${visibleItems.length} instructions reviewed · $verified confirmed'),
+          PageHeader(title: context.tr('review_extracted_instructions'), subtitle: context.tr('review_instructions_progress', values: {'reviewed': reviewed, 'total': visibleItems.length, 'verified': verified})),
           if (widget.guidedSetup && widget.planId != null) ...[
             GuidedCareSetupProgress(
               currentStep: 2,
@@ -233,15 +235,15 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                 children: [
                   Text(error!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.critical)),
                   const SizedBox(height: 12),
-                  OutlinedButton(onPressed: _load, child: const Text('Retry')),
+                  OutlinedButton(onPressed: _load, child: Text(context.tr('retry'))),
                 ],
               ),
             )
           else if (visibleItems.isEmpty)
-            const AppCard(child: Text('No instructions were extracted. Go back and upload a clearer document.'))
+            AppCard(child: Text(context.tr('no_instructions_extracted_upload_clearer')))
           else ...[
             ...visibleGroups.map((group) => _group(group, visibleItems)),
-            const SafetyNote(text: 'Instructions are never activated automatically. Only items you confirm become part of the care plan.'),
+            SafetyNote(text: context.tr('review_instructions_safety_note')),
             const SizedBox(height: 24),
             AppCard(
               child: Column(
@@ -252,14 +254,14 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                     value: confirmed,
                     onChanged: (value) => setState(() => confirmed = value ?? false),
                     controlAffinity: ListTileControlAffinity.leading,
-                    title: const Text('I have reviewed these instructions against the original document.', style: TextStyle(fontSize: 15)),
+                    title: Text(context.tr('reviewed_against_original_document'), style: const TextStyle(fontSize: 15)),
                   ),
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
                     child: FilledButton(
                       onPressed: confirmed && reviewed == visibleItems.length && !continuing ? _continue : null,
-                      child: Text(continuing ? 'Saving…' : widget.returnToPrevious ? 'Save changes' : widget.guidedSetup ? 'Continue to Schedule' : 'Continue'),
+                      child: Text(continuing ? context.tr('saving') : widget.returnToPrevious ? context.tr('save_changes') : widget.guidedSetup ? context.tr('continue_to_schedule') : context.tr('continue')),
                     ),
                   ),
                 ],
@@ -279,7 +281,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(group, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+          Text(_reviewGroupLabel(group), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           ...groupItems.map((item) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _instruction(item))),
         ],
@@ -301,22 +303,22 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Review summary', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+          Text(context.tr('review_summary'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _summaryChip('${visibleItems.length} found', Icons.document_scanner_outlined, AppColors.primary),
-              _summaryChip('$confirmedCount confirmed', Icons.check_circle_outline, AppColors.successForeground),
-              if (pendingCount > 0) _summaryChip('$pendingCount to review', Icons.manage_search_outlined, AppColors.muted),
-              if (attentionCount > 0) _summaryChip('$attentionCount need confirmation', Icons.help_outline, AppColors.warningForeground),
+              _summaryChip(context.tr('instructions_found_count', values: {'count': visibleItems.length}), Icons.document_scanner_outlined, AppColors.primary),
+              _summaryChip(context.tr('instructions_confirmed_count', values: {'count': confirmedCount}), Icons.check_circle_outline, AppColors.successForeground),
+              if (pendingCount > 0) _summaryChip(context.tr('instructions_to_review_count', values: {'count': pendingCount}), Icons.manage_search_outlined, AppColors.muted),
+              if (attentionCount > 0) _summaryChip(context.tr('instructions_need_confirmation_count', values: {'count': attentionCount}), Icons.help_outline, AppColors.warningForeground),
             ],
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Open an item only when you need its explanation or evidence. The original document remains the final reference.',
-            style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
+          Text(
+            context.tr('review_summary_help'),
+            style: const TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
           ),
         ],
       ),
@@ -340,11 +342,40 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
         ),
       );
 
+  String _reviewGroupLabel(String group) => switch (group) {
+        'Medicines' => context.tr('medicines'),
+        'Follow-Ups' => context.tr('follow_ups'),
+        'Lab Tests' => context.tr('lab_tests'),
+        'Care Tasks' => context.tr('care_tasks'),
+        'Other Instructions' => context.tr('other_instructions'),
+        _ => group,
+      };
+
+  String _sourceDisplay(String source) {
+    if (source == 'Uploaded document') {
+      return context.tr('uploaded_document');
+    }
+    const prefix = 'Uploaded document — ';
+    if (source.startsWith(prefix)) {
+      return context.tr(
+        'uploaded_document_source_page',
+        values: {'source': source.substring(prefix.length)},
+      );
+    }
+    return source;
+  }
+
+  String _sourceTitle(String title) {
+    return title == 'Trusted health source'
+        ? context.tr('trusted_health_source')
+        : title;
+  }
+
   Widget _instruction(ReviewInstruction item) {
     final (foreground, background, border, label) = switch (item.state) {
-      ReviewState.verified => (AppColors.successForeground, AppColors.successSoft, AppColors.success, 'Verified'),
-      ReviewState.review => (AppColors.muted, AppColors.secondary, AppColors.border, 'Needs Review'),
-      ReviewState.unclear => (AppColors.warningForeground, AppColors.warningSoft, AppColors.warning, 'Unclear'),
+      ReviewState.verified => (AppColors.successForeground, AppColors.successSoft, AppColors.success, context.tr('verified')),
+      ReviewState.review => (AppColors.muted, AppColors.secondary, AppColors.border, context.tr('needs_review')),
+      ReviewState.unclear => (AppColors.warningForeground, AppColors.warningSoft, AppColors.warning, context.tr('unclear')),
     };
     final saving = savingIds.contains(item.id);
     final checking = checkingIds.contains(item.id);
@@ -371,7 +402,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                     const SizedBox(height: 4),
                     Text(_instructionDetails(item), style: const TextStyle(fontSize: 14, color: AppColors.muted)),
                     const SizedBox(height: 3),
-                    Text('Source: ${item.source}', style: const TextStyle(fontSize: 13, color: AppColors.subtle)),
+                    Text(context.tr('source_label_value', values: {'source': _sourceDisplay(item.source)}), style: const TextStyle(fontSize: 13, color: AppColors.subtle)),
                   ],
                 ),
               ),
@@ -392,13 +423,13 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                 if (item.isCorrected)
                   _metaPill(
                     Icons.history_outlined,
-                    'Corrected · original preserved',
+                    context.tr('corrected_original_preserved'),
                     AppColors.primary,
                   ),
                 if (item.possibleDuplicate)
                   _metaPill(
                     Icons.content_copy_outlined,
-                    'Possible duplicate medicine',
+                    context.tr('possible_duplicate_medicine'),
                     AppColors.warningForeground,
                   ),
               ],
@@ -429,7 +460,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
               ),
               TextButton(
                 onPressed: () => _showInstructionDetails(item),
-                child: const Text('Details'),
+                child: Text(context.tr('details')),
               ),
             ],
           ),
@@ -445,18 +476,18 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                 icon: const Icon(Icons.check, size: 17),
                 label: Text(
                   saving
-                      ? 'Saving…'
+                      ? context.tr('saving')
                       : item.state == ReviewState.verified
-                          ? 'Saved'
+                          ? context.tr('saved')
                           : item.requiresProfessionalConfirmation
-                              ? 'Doctor confirmed'
-                              : 'Looks correct',
+                              ? context.tr('doctor_confirmed')
+                              : context.tr('looks_correct'),
                 ),
               ),
               OutlinedButton.icon(
                 onPressed: saving ? null : () => _edit(item),
                 icon: const Icon(Icons.edit_outlined, size: 17),
-                label: const Text('Edit'),
+                label: Text(context.tr('edit')),
               ),
               if (item.possibleDuplicate)
                 OutlinedButton.icon(
@@ -466,14 +497,14 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                     size: 17,
                     color: AppColors.criticalForeground,
                   ),
-                  label: const Text('Remove duplicate'),
+                  label: Text(context.tr('remove_duplicate')),
                 ),
               OutlinedButton.icon(
                 onPressed: saving || checking ? null : () => _checkSafety(item),
                 icon: checking
                     ? const SizedBox(width: 17, height: 17, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.fact_check_outlined, size: 17),
-                label: Text(checking ? 'Checking…' : item.safetyCheck == null ? 'Check sources' : 'View sources'),
+                label: Text(checking ? context.tr('checking') : item.safetyCheck == null ? context.tr('check_sources') : context.tr('view_sources')),
               ),
             ],
           ),
@@ -536,28 +567,28 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       return item.duplicateReason;
     }
     if (item.isCorrected) {
-      return 'Your confirmed correction is shown separately; the originally extracted instruction is preserved for traceability.';
+      return context.tr('confirmed_correction_original_preserved');
     }
     if (item.ingredientEvidence != null) {
       final ingredients = item.ingredientEvidence!.activeIngredients.map((value) => value.name).join(', ');
       return ingredients.isEmpty
-          ? 'The ingredient label still needs a clearer photo.'
-          : 'Label evidence found: $ingredients. Open details to compare it.';
+          ? context.tr('ingredient_label_needs_clearer_photo')
+          : context.tr('label_evidence_found', values: {'ingredients': ingredients});
     }
     if (item.safetyCheck != null) {
       return switch (item.safetyCheck!.status) {
-        'no_issue_found' => 'A medicine-name record was found. This does not confirm the prescribed dose.',
-        'needs_confirmation' => 'Official records were found, but the medicine instruction still needs confirmation.',
-        _ => 'No reliable medicine-name match was found. Add label evidence or ask a professional.',
+        'no_issue_found' => context.tr('medicine_name_record_found'),
+        'needs_confirmation' => context.tr('official_records_need_confirmation'),
+        _ => context.tr('no_reliable_medicine_match'),
       };
     }
     if (item.requiresProfessionalConfirmation || item.state == ReviewState.unclear) {
       return item.ambiguityReason.isEmpty
-          ? 'A medicine, amount, timing, or duration is not clear enough to confirm.'
+          ? context.tr('critical_detail_unclear')
           : item.ambiguityReason;
     }
-    if (item.state == ReviewState.verified) return 'Confirmed against the original document.';
-    return 'Compare this item with the original document before confirming it.';
+    if (item.state == ReviewState.verified) return context.tr('confirmed_against_original_document');
+    return context.tr('compare_with_original_before_confirming');
   }
 
   Future<void> _showInstructionDetails(ReviewInstruction item) async {
@@ -590,7 +621,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(child: Text(item.title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700))),
-                          IconButton(onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close)),
+                          IconButton(onPressed: () => Navigator.pop(sheetContext), tooltip: context.tr('close'), icon: const Icon(Icons.close)),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -601,14 +632,14 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                       if (item.isCorrected) ...[
                         _detailSection(
                           icon: Icons.history_outlined,
-                          title: 'Original from uploaded document',
+                          title: context.tr('original_from_uploaded_document'),
                           body: _originalInstructionDetails(item),
                           accent: AppColors.primary,
                         ),
                         const SizedBox(height: 10),
                         _detailSection(
                           icon: Icons.edit_note_outlined,
-                          title: 'Confirmed / corrected version',
+                          title: context.tr('confirmed_corrected_version'),
                           body: _instructionDetails(item),
                           accent: AppColors.successForeground,
                         ),
@@ -617,7 +648,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                       if (item.possibleDuplicate) ...[
                         _detailSection(
                           icon: Icons.content_copy_outlined,
-                          title: 'Possible duplicate medicine',
+                          title: context.tr('possible_duplicate_medicine'),
                           body: item.duplicateReason,
                           accent: AppColors.warningForeground,
                         ),
@@ -626,24 +657,24 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                       if (item.requiresProfessionalConfirmation || item.ambiguityReason.isNotEmpty)
                         _detailSection(
                           icon: Icons.help_outline,
-                          title: 'What needs confirmation',
+                          title: context.tr('what_needs_confirmation'),
                           body: item.ambiguityReason.isEmpty
-                              ? 'A safety-critical detail is unclear in the document.'
+                              ? context.tr('safety_critical_detail_unclear')
                               : item.ambiguityReason,
                           accent: AppColors.warningForeground,
                         )
                       else if (item.state == ReviewState.review)
                         _detailSection(
                           icon: Icons.manage_search_outlined,
-                          title: 'Why review this item',
-                          body: 'Confirm the name, instruction and timing against the original document. AI confidence describes text recognition, not medical correctness.',
+                          title: context.tr('why_review_this_item'),
+                          body: context.tr('why_review_this_item_body'),
                           accent: AppColors.primary,
                         ),
                       if (item.possibleInterpretation.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         _detailSection(
                           icon: Icons.alt_route,
-                          title: 'Possible readings',
+                          title: context.tr('possible_readings'),
                           body: item.possibleInterpretation,
                           accent: AppColors.muted,
                         ),
@@ -652,7 +683,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                         const SizedBox(height: 10),
                         _detailSection(
                           icon: Icons.shield_outlined,
-                          title: 'Safety note',
+                          title: context.tr('safety_note'),
                           body: item.safetyNote,
                           accent: AppColors.warningForeground,
                         ),
@@ -685,7 +716,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                                   _pickIngredientEvidence(item);
                                 },
                           icon: const Icon(Icons.add_a_photo_outlined, size: 18),
-                          label: Text(item.ingredientEvidence == null ? 'Add label photo' : 'Replace label photo'),
+                          label: Text(item.ingredientEvidence == null ? context.tr('add_label_photo') : context.tr('replace_label_photo')),
                         ),
                       OutlinedButton.icon(
                         onPressed: () {
@@ -693,11 +724,11 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                           _createDoctorQuestion(item);
                         },
                         icon: const Icon(Icons.contact_support_outlined, size: 18),
-                        label: const Text("Doctor's question"),
+                        label: Text(context.tr('doctor_question')),
                       ),
                       FilledButton(
                         onPressed: () => Navigator.pop(sheetContext),
-                        child: const Text('Done'),
+                        child: Text(context.tr('done')),
                       ),
                     ],
                   ),
@@ -772,9 +803,9 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
 
   Widget _safetyCheckCard(InstructionSafetyCheck check) {
     final statusLabel = switch (check.status) {
-      'no_issue_found' => 'Name match found',
-      'needs_confirmation' => 'Needs confirmation',
-      _ => 'Not verified',
+      'no_issue_found' => context.tr('name_match_found'),
+      'needs_confirmation' => context.tr('needs_confirmation'),
+      _ => context.tr('not_verified'),
     };
     final statusColor = check.status == 'no_issue_found' ? AppColors.successForeground : AppColors.warningForeground;
     final statusBackground = check.status == 'no_issue_found' ? AppColors.successSoft : AppColors.warningSoft;
@@ -790,7 +821,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
         children: [
           Row(
             children: [
-              const Expanded(child: Text('Trusted-source check', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
+              Expanded(child: Text(context.tr('trusted_source_check'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(color: statusBackground, borderRadius: BorderRadius.circular(99)),
@@ -805,21 +836,21 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
           if (check.possibleInterpretation.isNotEmpty) ...[
             const SizedBox(height: 8),
             _highlightedText(
-              'Possible interpretation only: ${check.possibleInterpretation}',
+              context.tr('possible_interpretation_only', values: {'interpretation': check.possibleInterpretation}),
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, height: 1.45),
             ),
           ],
           if (check.questionForProfessional.isNotEmpty) ...[
             const SizedBox(height: 8),
             _highlightedText(
-              'Ask: ${check.questionForProfessional}',
+              context.tr('ask_prefix', values: {'question': check.questionForProfessional}),
               style: const TextStyle(fontSize: 13, color: AppColors.warningForeground, height: 1.45),
               important: true,
             ),
           ],
           if (check.sources.isNotEmpty) ...[
             const SizedBox(height: 10),
-            const Text('Sources checked', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            Text(context.tr('sources_checked'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
             ...check.sources.map((source) => Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: SizedBox(
@@ -832,7 +863,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(source.title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                            Text(_sourceTitle(source.title), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                             const SizedBox(height: 2),
                             Text(
                               Uri.tryParse(source.url)?.host ?? source.url,
@@ -849,7 +880,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
           ],
           const SizedBox(height: 10),
           _highlightedText(
-            'Trusted databases can check a medicine name, but they cannot prove what unclear handwriting means or confirm a patient-specific dose. The original instruction is never changed automatically.',
+            context.tr('trusted_database_safety_note'),
             style: const TextStyle(fontSize: 12, color: AppColors.muted, height: 1.45),
             important: true,
           ),
@@ -893,9 +924,9 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
 
   Widget _ingredientEvidenceCard(IngredientEvidence evidence) {
     final statusLabel = switch (evidence.purposeStatus) {
-      'broadly_consistent' => 'Broadly consistent',
-      'purpose_not_stated' => 'Purpose not stated',
-      _ => 'Needs confirmation',
+      'broadly_consistent' => context.tr('broadly_consistent'),
+      'purpose_not_stated' => context.tr('purpose_not_stated'),
+      _ => context.tr('needs_confirmation'),
     };
     final statusColor = evidence.purposeStatus == 'broadly_consistent'
         ? AppColors.successForeground
@@ -914,18 +945,18 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
             children: [
               const Icon(Icons.science_outlined, size: 19, color: AppColors.primary),
               const SizedBox(width: 8),
-              const Expanded(child: Text('Ingredient-label evidence', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
+              Expanded(child: Text(context.tr('ingredient_label_evidence'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
               Text(statusLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: statusColor)),
             ],
           ),
           if (evidence.brandName.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _evidenceRow('Brand on package', evidence.brandName),
+            _evidenceRow(context.tr('brand_on_package'), evidence.brandName),
           ],
           if (evidence.activeIngredients.isNotEmpty) ...[
             const SizedBox(height: 8),
             _evidenceRow(
-              'Active ingredients',
+              context.tr('active_ingredients'),
               evidence.activeIngredients
                   .map((item) => item.strength.isEmpty ? item.name : '${item.name} ${item.strength}')
                   .join(', '),
@@ -933,11 +964,11 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
           ],
           if (evidence.dosageForm.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _evidenceRow('Form', evidence.dosageForm),
+            _evidenceRow(context.tr('form'), evidence.dosageForm),
           ],
           if (evidence.manufacturer.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _evidenceRow('Manufacturer', evidence.manufacturer),
+            _evidenceRow(context.tr('manufacturer'), evidence.manufacturer),
           ],
           const SizedBox(height: 12),
           Text(evidence.purposeSummary, style: const TextStyle(fontSize: 13, height: 1.45)),
@@ -947,7 +978,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
           ],
           if (evidence.sources.isNotEmpty) ...[
             const SizedBox(height: 12),
-            const Text('Evidence sources', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            Text(context.tr('evidence_sources'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
             ...evidence.sources.map((source) => Padding(
                   padding: const EdgeInsets.only(top: 7),
                   child: OutlinedButton.icon(
@@ -955,15 +986,15 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                     icon: const Icon(Icons.open_in_new, size: 16),
                     label: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(source.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      child: Text(_sourceTitle(source.title), maxLines: 2, overflow: TextOverflow.ellipsis),
                     ),
                   ),
                 )),
           ],
           const SizedBox(height: 10),
-          const Text(
-            'This evidence checks package identity and common-purpose consistency only. It does not confirm the prescribed dose or prove what the doctor intended.',
-            style: TextStyle(fontSize: 12, color: AppColors.muted, fontStyle: FontStyle.italic, height: 1.4),
+          Text(
+            context.tr('ingredient_evidence_safety_note'),
+            style: const TextStyle(fontSize: 12, color: AppColors.muted, fontStyle: FontStyle.italic, height: 1.4),
           ),
         ],
       ),
@@ -981,7 +1012,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
 
   Future<void> _pickIngredientEvidence(ReviewInstruction item) async {
     if (AuthSession.instance.isGuest) {
-      showDemoMessage(context, 'Ingredient-label checking is available after sign in.');
+      showDemoMessage(context, context.tr('ingredient_checking_sign_in_required'));
       return;
     }
     final files = await FilePicker.pickFiles(
@@ -992,7 +1023,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
     final file = files.first;
     final byteLength = await file.length();
     if (byteLength > 10 * 1024 * 1024) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('The label image exceeds the 10 MB limit.')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('label_image_exceeds_10_mb_limit'))));
       return;
     }
     final extension = file.name.split('.').last.toLowerCase();
@@ -1009,7 +1040,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       setState(() => item.ingredientEvidence = evidence);
       await _showInstructionDetails(item);
     } on CarePlanException catch (exception) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(exception.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(localizedCarePlanExceptionMessage(exception, context.appLanguage))));
     } finally {
       if (mounted) setState(() => evidenceLoadingIds.remove(item.id));
     }
@@ -1019,14 +1050,14 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
     final uri = Uri.tryParse(value);
     if (uri == null || !uri.hasScheme || !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open this trusted-source page.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('trusted_source_page_open_failed'))));
       }
     }
   }
 
   Future<void> _checkSafety(ReviewInstruction item) async {
     if (AuthSession.instance.isGuest) {
-      showDemoMessage(context, 'Trusted-source checking is available after sign in.');
+      showDemoMessage(context, context.tr('trusted_source_checking_sign_in_required'));
       return;
     }
     if (item.safetyCheck != null) {
@@ -1047,7 +1078,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       await _showInstructionDetails(item);
     } on CarePlanException catch (exception) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(exception.message)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(localizedCarePlanExceptionMessage(exception, context.appLanguage))));
     } finally {
       if (mounted) setState(() => checkingIds.remove(item.id));
     }
@@ -1057,23 +1088,21 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove duplicate instruction?'),
+        title: Text(context.tr('remove_duplicate_instruction_question')),
         content: Text(
-          'This removes the duplicate "${item.title}" from SehatMate, including '
-          'any schedule rows created from this duplicate. It does not change '
-          'the original prescription or mean that a medicine should be stopped.',
+          context.tr('remove_duplicate_instruction_body', values: {'title': item.title}),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.criticalForeground,
             ),
-            child: const Text('Remove duplicate'),
+            child: Text(context.tr('remove_duplicate')),
           ),
         ],
       ),
@@ -1110,12 +1139,12 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       });
       showDemoMessage(
         context,
-        'Duplicate instruction removed from SehatMate.',
+        context.tr('duplicate_instruction_removed'),
       );
     } on CarePlanException catch (exception) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(exception.message)),
+        SnackBar(content: Text(localizedCarePlanExceptionMessage(exception, context.appLanguage))),
       );
     } finally {
       if (mounted) {
@@ -1149,8 +1178,8 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       showDemoMessage(
         context,
         state == ReviewState.verified
-            ? 'Instruction saved as verified.'
-            : 'Instruction marked as unclear.',
+            ? context.tr('instruction_saved_as_verified')
+            : context.tr('instruction_marked_as_unclear'),
       );
       return true;
     } on CarePlanException catch (exception) {
@@ -1159,7 +1188,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
         item.state = previousState;
         item.requiresProfessionalConfirmation = previousConfirmation;
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(exception.message)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(localizedCarePlanExceptionMessage(exception, context.appLanguage))));
       return false;
     } finally {
       if (mounted) setState(() => savingIds.remove(item.id));
@@ -1170,9 +1199,9 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
     final trustedQuestion = item.safetyCheck?.questionForProfessional.trim() ?? '';
     if (trustedQuestion.isNotEmpty) return trustedQuestion;
     final timing = item.timing == 'Timing unclear in document'
-        ? 'the timing'
-        : 'the timing ${item.timing}';
-    return 'Please confirm the exact name, instruction and $timing for ${item.title} against the original document.';
+        ? context.tr('the_timing')
+        : context.tr('the_timing_value', values: {'timing': item.timing});
+    return context.tr('doctor_question_confirm_instruction_template', values: {'timing': timing, 'title': item.title});
   }
 
   Future<void> _createDoctorQuestion(ReviewInstruction item) async {
@@ -1192,10 +1221,10 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
     }
 
     final tags = <String>[
-      if (item.group == 'Medicines') 'Medicine name',
-      if (item.instruction.trim().isNotEmpty) 'Instruction',
-      if (item.timing == 'Timing unclear in document') 'Timing unclear',
-      if (item.requiresProfessionalConfirmation) 'Confirmation required',
+      if (item.group == 'Medicines') context.tr('medicine_name'),
+      if (item.instruction.trim().isNotEmpty) context.tr('instruction'),
+      if (item.timing == 'Timing unclear in document') context.tr('timing_unclear'),
+      if (item.requiresProfessionalConfirmation) context.tr('confirmation_required'),
     ];
 
     await showModalBottomSheet<void>(
@@ -1243,21 +1272,21 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                             child: const Icon(Icons.check_rounded, color: AppColors.successForeground),
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Question saved', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-                                SizedBox(height: 3),
+                                Text(context.tr('question_saved'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                                const SizedBox(height: 3),
                                 Text(
-                                  'Added to Doctor Questions. The prescription has not been changed.',
-                                  style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.35),
+                                  context.tr('question_saved_description'),
+                                  style: const TextStyle(fontSize: 13, color: AppColors.muted, height: 1.35),
                                 ),
                               ],
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Close',
+                            tooltip: context.tr('close'),
                             onPressed: () => Navigator.pop(sheetContext),
                             icon: const Icon(Icons.close),
                           ),
@@ -1284,7 +1313,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                         ),
                       ],
                       const SizedBox(height: 18),
-                      const Text('Question to ask', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.muted)),
+                      Text(context.tr('question_to_ask'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.muted)),
                       const SizedBox(height: 8),
                       Container(
                         width: double.infinity,
@@ -1297,15 +1326,15 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                         child: SelectableText(question, style: const TextStyle(fontSize: 15, height: 1.45)),
                       ),
                       const SizedBox(height: 12),
-                      const Row(
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.info_outline, size: 17, color: AppColors.primary),
-                          SizedBox(width: 8),
+                          const Icon(Icons.info_outline, size: 17, color: AppColors.primary),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Record the doctor or pharmacist response before confirming this instruction.',
-                              style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
+                              context.tr('record_professional_response_before_confirming'),
+                              style: const TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
                             ),
                           ),
                         ],
@@ -1330,7 +1359,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                             Navigator.pushNamed(context, AppRoutes.doctorQuestions);
                           },
                           icon: const Icon(Icons.arrow_forward, size: 18),
-                          label: const Text('Open Doctor Questions'),
+                          label: Text(context.tr('open_doctor_questions')),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -1341,12 +1370,12 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                             await Clipboard.setData(ClipboardData(text: question));
                             if (sheetContext.mounted) {
                               ScaffoldMessenger.of(sheetContext).showSnackBar(
-                                const SnackBar(content: Text('Question copied.')),
+                                SnackBar(content: Text(context.tr('question_copied'))),
                               );
                             }
                           },
                           icon: const Icon(Icons.copy_outlined, size: 18),
-                          label: const Text('Copy question'),
+                          label: Text(context.tr('copy_question')),
                         ),
                       ),
                     ],
@@ -1390,7 +1419,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
         item.timing = previous.$3;
         item.requiresProfessionalConfirmation = previous.$4;
       } else if (mounted) {
-        showDemoMessage(context, 'Instruction updated and confirmed');
+        showDemoMessage(context, context.tr('instruction_updated_and_confirmed'));
       }
     }
   }
@@ -1431,7 +1460,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       }
     } on CarePlanException catch (exception) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(exception.message)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(localizedCarePlanExceptionMessage(exception, context.appLanguage))));
     } finally {
       if (mounted) setState(() => continuing = false);
     }
@@ -1475,7 +1504,7 @@ class _EditInstructionSheetState extends State<_EditInstructionSheet> {
   void _save() {
     if (_title.text.trim().isEmpty || _instruction.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Title and instruction are required.')),
+        SnackBar(content: Text(context.tr('title_and_instruction_required'))),
       );
       return;
     }
@@ -1532,10 +1561,10 @@ class _EditInstructionSheetState extends State<_EditInstructionSheet> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Edit instruction',
-                              style: TextStyle(
+                              context.tr('edit_instruction'),
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1543,7 +1572,7 @@ class _EditInstructionSheetState extends State<_EditInstructionSheet> {
                           ),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
-                            tooltip: 'Close',
+                            tooltip: context.tr('close'),
                             icon: const Icon(Icons.close),
                           ),
                         ],
@@ -1551,8 +1580,8 @@ class _EditInstructionSheetState extends State<_EditInstructionSheet> {
                       const SizedBox(height: 4),
                       Text(
                         widget.item.requiresProfessionalConfirmation
-                            ? 'Only save a correction after the doctor or pharmacist has confirmed the unclear detail.'
-                            : 'Correct the text so it exactly matches the original document.',
+                            ? context.tr('save_correction_after_professional_confirmation')
+                            : context.tr('correct_text_to_match_original'),
                         style: const TextStyle(
                           color: AppColors.muted,
                           height: 1.45,
@@ -1569,17 +1598,17 @@ class _EditInstructionSheetState extends State<_EditInstructionSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.history_outlined,
                                   size: 18,
                                   color: AppColors.primary,
                                 ),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Original from document · read-only',
-                                  style: TextStyle(
+                                  context.tr('original_from_document_read_only'),
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -1606,14 +1635,14 @@ class _EditInstructionSheetState extends State<_EditInstructionSheet> {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      const Text('Title'),
+                      Text(context.tr('title')),
                       const SizedBox(height: 6),
                       TextField(
                         controller: _title,
                         textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 12),
-                      const Text('Instruction'),
+                      Text(context.tr('instruction')),
                       const SizedBox(height: 6),
                       TextField(
                         controller: _instruction,
@@ -1622,7 +1651,7 @@ class _EditInstructionSheetState extends State<_EditInstructionSheet> {
                         textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 12),
-                      const Text('Timing'),
+                      Text(context.tr('timing')),
                       const SizedBox(height: 6),
                       TextField(
                         controller: _timing,
@@ -1635,14 +1664,14 @@ class _EditInstructionSheetState extends State<_EditInstructionSheet> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
+                              child: Text(context.tr('cancel')),
                             ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: FilledButton(
                               onPressed: _save,
-                              child: const Text('Save and confirm'),
+                              child: Text(context.tr('save_and_confirm')),
                             ),
                           ),
                         ],
@@ -1658,4 +1687,3 @@ class _EditInstructionSheetState extends State<_EditInstructionSheet> {
     );
   }
 }
-

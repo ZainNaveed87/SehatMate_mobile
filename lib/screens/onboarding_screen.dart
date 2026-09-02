@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
+import '../localization/language_scope.dart';
 import '../services/auth_service.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/ui.dart';
@@ -59,7 +60,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             child: const BrandLogo(),
                           ),
                           const Spacer(),
-                          Text('Step $step of 4', style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+                          Text(
+                            context.tr(
+                              'onboarding_step_of_total',
+                              values: {'step': step, 'total': 4},
+                            ),
+                            style: const TextStyle(fontSize: 13, color: AppColors.muted),
+                          ),
                         ],
                       ),
                     ),
@@ -88,14 +95,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 TextButton.icon(
                                   onPressed: _back,
                                   icon: const Icon(Icons.arrow_back, size: 17),
-                                  label: const Text('Back'),
+                                  label: Text(context.tr('back')),
                                 ),
                                 const Spacer(),
                                 FilledButton.icon(
                                   onPressed: _submitting ? null : _next,
                                   iconAlignment: IconAlignment.end,
                                   icon: step < 4 ? const Icon(Icons.arrow_forward, size: 17) : const SizedBox.shrink(),
-                                  label: Text(step < 4 ? 'Continue' : 'Go to Dashboard'),
+                                  label: Text(step < 4 ? context.tr('continue') : context.tr('go_to_dashboard')),
                                 ),
                               ],
                             ),
@@ -119,21 +126,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _StepHeading(
-              title: 'Who are you using SehatMate for?',
-              subtitle: 'This helps us decide how much detail to show.',
+            _StepHeading(
+              title: context.tr('onboarding_who_title'),
+              subtitle: context.tr('onboarding_who_subtitle'),
             ),
             const SizedBox(height: 20),
             OptionCard(
-              label: 'Myself',
-              description: 'I am the patient following the care plan.',
+              label: context.tr('onboarding_myself'),
+              description: context.tr('onboarding_myself_description'),
               selected: who == 'Myself',
               onTap: () => setState(() => who = 'Myself'),
             ),
             const SizedBox(height: 12),
             OptionCard(
-              label: 'Someone I care for',
-              description: 'I am a family member or caregiver.',
+              label: context.tr('onboarding_someone_i_care_for'),
+              description: context.tr('onboarding_someone_description'),
               selected: who == 'Someone I care for',
               onTap: () => setState(() => who = 'Someone I care for'),
             ),
@@ -143,20 +150,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _StepHeading(
-              title: 'Preferred language',
-              subtitle: 'You can change this later in Settings.',
+            _StepHeading(
+              title: context.tr('preferred_language'),
+              subtitle: context.tr('language_change_later_settings'),
             ),
             const SizedBox(height: 20),
             ...['English', 'Urdu', 'Roman Urdu'].map(
               (item) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: OptionCard(
-                  label: item,
+                  label: demoLanguageLabel(item),
                   selected: language == item,
-                  onTap: () {
+                  onTap: () async {
                     setState(() => language = item);
                     CareDemoState.instance.updatePreferences(language: item);
+                    await LanguageScope.read(context).setFromStorageValue(item);
                   },
                 ),
               ),
@@ -165,25 +173,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         );
       case 3:
         const options = [
-          ('Standard', 'Normal text and full interface.'),
-          ('Large Text', 'Bigger text across the whole app.'),
-          ('Voice Guidance', 'Listen buttons on care tasks.'),
-          ('Simple Care Mode', 'One task at a time, very large buttons.'),
+          ('Standard', 'standard', 'standard_accessibility_description'),
+          ('Large Text', 'large_text', 'large_text_description'),
+          ('Voice Guidance', 'voice_guidance', 'voice_guidance_description'),
+          ('Simple Care Mode', 'simple_care_mode', 'simple_care_mode_description'),
         ];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _StepHeading(
-              title: 'Accessibility',
-              subtitle: 'Choose how comfortable the interface should be to read and use.',
+            _StepHeading(
+              title: context.tr('accessibility'),
+              subtitle: context.tr('accessibility_subtitle'),
             ),
             const SizedBox(height: 20),
             ...options.map(
               (item) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: OptionCard(
-                  label: item.$1,
-                  description: item.$2,
+                  label: context.tr(item.$2),
+                  description: context.tr(item.$3),
                   selected: access == item.$1,
                   onTap: () {
                     setState(() => access = item.$1);
@@ -202,16 +210,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _StepHeading(
-              title: 'Basic setup',
-              subtitle: 'A few details to personalise the plan.',
+            _StepHeading(
+              title: context.tr('basic_setup'),
+              subtitle: context.tr('basic_setup_subtitle'),
             ),
             const SizedBox(height: 20),
-            const Text('Patient name', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(context.tr('patient_name'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             const SizedBox(height: 6),
             TextField(controller: name),
             const SizedBox(height: 16),
-            const Text('Age group', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(context.tr('age_group'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
               initialValue: ageGroup,
@@ -221,7 +229,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   .map(
                     (item) => DropdownMenuItem<String>(
                       value: item,
-                      child: Text(item),
+                      child: Text(ageGroupLabel(item, context.appLanguage)),
                     ),
                   )
                   .toList(),
@@ -230,7 +238,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               },
             ),
             const SizedBox(height: 16),
-            const Text('City', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(context.tr('city'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             const SizedBox(height: 6),
             TextField(controller: city),
             const SizedBox(height: 16),
@@ -247,7 +255,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   contentPadding: EdgeInsets.zero,
                   value: caregiver,
                   onChanged: (value) => setState(() => caregiver = value),
-                  title: const Text('Caregiver support available', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  title: Text(context.tr('caregiver_support_available'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                 ),
               ),
             ),
@@ -272,13 +280,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     if (name.text.trim().length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid patient name.')),
+        SnackBar(content: Text(context.tr('enter_valid_patient_name'))),
       );
       return;
     }
     if (city.text.trim().length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid city.')),
+        SnackBar(content: Text(context.tr('enter_valid_city'))),
       );
       return;
     }
@@ -308,8 +316,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Onboarding could not be saved. Please try again.'),
+        SnackBar(
+          content: Text(context.tr('onboarding_save_failed')),
         ),
       );
     } finally {

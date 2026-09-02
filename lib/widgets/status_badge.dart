@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
+import '../localization/language_scope.dart';
 
 class StatusBadge extends StatelessWidget {
   const StatusBadge({required this.status, super.key, this.label});
@@ -11,11 +12,36 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (text, foreground, background, icon) = switch (status) {
-      TaskStatus.ready => (label ?? 'Ready', AppColors.successForeground, AppColors.successSoft, Icons.check_circle_outline),
-      TaskStatus.atRisk => (label ?? 'At Risk', AppColors.warningForeground, AppColors.warningSoft, Icons.warning_amber_rounded),
-      TaskStatus.blocked => (label ?? 'Blocked', AppColors.criticalForeground, AppColors.criticalSoft, Icons.cancel_outlined),
-      TaskStatus.unclear => (label ?? 'Unclear', AppColors.infoForeground, AppColors.infoSoft, Icons.help_outline),
-      TaskStatus.resolved => (label ?? 'Resolved', AppColors.accentForeground, AppColors.primaryLight, Icons.verified_outlined),
+      TaskStatus.ready => (
+          label ?? taskStatusLabel(status, context.appLanguage),
+          AppColors.successForeground,
+          AppColors.successSoft,
+          Icons.check_circle_outline,
+        ),
+      TaskStatus.atRisk => (
+          label ?? taskStatusLabel(status, context.appLanguage),
+          AppColors.warningForeground,
+          AppColors.warningSoft,
+          Icons.warning_amber_rounded,
+        ),
+      TaskStatus.blocked => (
+          label ?? taskStatusLabel(status, context.appLanguage),
+          AppColors.criticalForeground,
+          AppColors.criticalSoft,
+          Icons.cancel_outlined,
+        ),
+      TaskStatus.unclear => (
+          label ?? taskStatusLabel(status, context.appLanguage),
+          AppColors.infoForeground,
+          AppColors.infoSoft,
+          Icons.help_outline,
+        ),
+      TaskStatus.resolved => (
+          label ?? taskStatusLabel(status, context.appLanguage),
+          AppColors.accentForeground,
+          AppColors.primaryLight,
+          Icons.verified_outlined,
+        ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -39,13 +65,41 @@ class PlanStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (text, foreground, background) = switch (status) {
-      PlanStatus.active => ('Active', AppColors.successForeground, AppColors.successSoft),
-      PlanStatus.needsAttention => ('Needs Attention', AppColors.warningForeground, AppColors.warningSoft),
-      PlanStatus.draft => ('Draft', AppColors.muted, AppColors.secondary),
-      PlanStatus.processing => ('Processing', AppColors.infoForeground, AppColors.infoSoft),
-      PlanStatus.needsReview => ('Needs Review', AppColors.foreground, AppColors.secondary),
-      PlanStatus.realityCheck => ('Reality Check Required', AppColors.warningForeground, AppColors.warningSoft),
-      PlanStatus.completed => ('Completed', AppColors.accentForeground, AppColors.primaryLight),
+      PlanStatus.active => (
+          planStatusLabel(status, context.appLanguage),
+          AppColors.successForeground,
+          AppColors.successSoft,
+        ),
+      PlanStatus.needsAttention => (
+          planStatusLabel(status, context.appLanguage),
+          AppColors.warningForeground,
+          AppColors.warningSoft,
+        ),
+      PlanStatus.draft => (
+          planStatusLabel(status, context.appLanguage),
+          AppColors.muted,
+          AppColors.secondary,
+        ),
+      PlanStatus.processing => (
+          planStatusLabel(status, context.appLanguage),
+          AppColors.infoForeground,
+          AppColors.infoSoft,
+        ),
+      PlanStatus.needsReview => (
+          planStatusLabel(status, context.appLanguage),
+          AppColors.foreground,
+          AppColors.secondary,
+        ),
+      PlanStatus.realityCheck => (
+          planStatusLabel(status, context.appLanguage),
+          AppColors.warningForeground,
+          AppColors.warningSoft,
+        ),
+      PlanStatus.completed => (
+          planStatusLabel(status, context.appLanguage),
+          AppColors.accentForeground,
+          AppColors.primaryLight,
+        ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

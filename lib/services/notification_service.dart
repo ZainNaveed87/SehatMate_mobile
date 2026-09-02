@@ -5,6 +5,8 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../data/demo_data.dart';
+import '../localization/app_strings.dart';
+import '../localization/language_controller.dart';
 
 class NotificationScheduleResult {
   const NotificationScheduleResult({
@@ -61,6 +63,7 @@ class NotificationService {
     }
 
     var scheduled = 0;
+    final language = LanguageController.instance.language;
     for (final task in tasks.where((item) => item.status == TaskStatus.ready)) {
       final time = _parseClockTime(task.time);
       if (time == null) continue;
@@ -68,18 +71,23 @@ class NotificationService {
       if (occurrence == null) continue;
       await _plugin.zonedSchedule(
         id: _notificationId(planId, task.id),
-        title: task.kind == TaskKind.medicine ? 'Medicine reminder' : 'Care-plan reminder',
+        title: task.kind == TaskKind.medicine
+            ? AppStrings.get('notification_medicine_reminder_title', language)
+            : AppStrings.get('notification_care_plan_reminder_title', language),
         body: '${task.title} · ${_formatClock(time.$1, time.$2)}',
         scheduledDate: occurrence,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'sehatmate_care_reminders',
-            'Care reminders',
-            channelDescription: 'Confirmed medicine and care-plan reminders',
+            AppStrings.get('notification_care_reminders_channel', language),
+            channelDescription: AppStrings.get(
+              'notification_care_reminders_channel_description',
+              language,
+            ),
             importance: Importance.high,
             priority: Priority.high,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: 'care-plan:$planId;task:${task.id}',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
+import '../localization/language_scope.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/ui.dart';
 import '../services/auth_service.dart';
@@ -20,7 +21,12 @@ class _LandingScreenState extends State<LandingScreen> {
   final safetyKey = GlobalKey();
   final faqKey = GlobalKey();
 
-  static const navLabels = ['How It Works', 'Features', 'Safety', 'FAQ'];
+  static const navKeys = [
+    'landing_nav_how_it_works',
+    'landing_nav_features',
+    'landing_nav_safety',
+    'landing_nav_faq',
+  ];
 
   Future<void> _go(String route) async {
     if (route == AppRoutes.dashboard && !AuthSession.instance.canAccessApp) {
@@ -30,11 +36,11 @@ class _LandingScreenState extends State<LandingScreen> {
     Navigator.pushNamed(context, route);
   }
 
-  Future<void> _scrollTo(String label) async {
-    final key = switch (label) {
-      'How It Works' => howItWorksKey,
-      'Features' => featuresKey,
-      'Safety' => safetyKey,
+  Future<void> _scrollTo(String keyName) async {
+    final key = switch (keyName) {
+      'landing_nav_how_it_works' => howItWorksKey,
+      'landing_nav_features' => featuresKey,
+      'landing_nav_safety' => safetyKey,
       _ => faqKey,
     };
     if (menuOpen) setState(() => menuOpen = false);
@@ -71,16 +77,16 @@ class _LandingScreenState extends State<LandingScreen> {
                         const BrandLogo(),
                         const Spacer(),
                         if (MediaQuery.sizeOf(context).width >= 768) ...[
-                          ...navLabels.map(
-                            (label) => Padding(
+                          ...navKeys.map(
+                            (labelKey) => Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 14),
                               child: InkWell(
-                                onTap: () => _scrollTo(label),
+                                onTap: () => _scrollTo(labelKey),
                                 borderRadius: BorderRadius.circular(8),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(vertical: 8),
                                   child: Text(
-                                    label,
+                                    context.tr(labelKey),
                                     style: const TextStyle(
                                       color: AppColors.muted,
                                       fontSize: 15,
@@ -94,18 +100,18 @@ class _LandingScreenState extends State<LandingScreen> {
                           const SizedBox(width: 12),
                           TextButton(
                             onPressed: () => _go(AppRoutes.auth),
-                            child: const Text('Sign In'),
+                            child: Text(context.tr('sign_in')),
                           ),
                           const SizedBox(width: 4),
                           FilledButton(
                             onPressed: () => _go(AppRoutes.auth),
-                            child: const Text('Get Started'),
+                            child: Text(context.tr('get_started')),
                           ),
                         ] else
                           IconButton(
                             onPressed: () => setState(() => menuOpen = !menuOpen),
                             icon: const Icon(Icons.menu),
-                            tooltip: menuOpen ? 'Close menu' : 'Open menu',
+                            tooltip: context.tr(menuOpen ? 'close_menu' : 'open_menu'),
                           ),
                       ],
                     ),
@@ -125,14 +131,14 @@ class _LandingScreenState extends State<LandingScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            ...navLabels.map(
-                              (label) => Padding(
+                            ...navKeys.map(
+                              (labelKey) => Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 7),
                                 child: InkWell(
-                                  onTap: () => _scrollTo(label),
+                                  onTap: () => _scrollTo(labelKey),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 3),
-                                    child: Text(label, style: const TextStyle(color: AppColors.muted)),
+                                    child: Text(context.tr(labelKey), style: const TextStyle(color: AppColors.muted)),
                                   ),
                                 ),
                               ),
@@ -143,14 +149,14 @@ class _LandingScreenState extends State<LandingScreen> {
                                 Expanded(
                                   child: OutlinedButton(
                                     onPressed: () => _go(AppRoutes.auth),
-                                    child: const Text('Sign In'),
+                                    child: Text(context.tr('sign_in')),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: FilledButton(
                                     onPressed: () => _go(AppRoutes.auth),
-                                    child: const Text('Get Started'),
+                                    child: Text(context.tr('get_started')),
                                   ),
                                 ),
                               ],
@@ -162,48 +168,46 @@ class _LandingScreenState extends State<LandingScreen> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(child: _Hero(onNavigate: _go, onHowItWorks: () => _scrollTo('How It Works'))),
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(child: _Hero(onNavigate: _go, onHowItWorks: () => _scrollTo('landing_nav_how_it_works'))),
+            SliverToBoxAdapter(
               child: _LandingSection(
-                eyebrow: 'The problem',
-                title: 'Care plans are written for ideal days, not real ones.',
-                description:
-                    "Patients leave the hospital with clear instructions and still miss doses, appointments and dressings — not because they don't care, but because daily life gets in the way.",
-                child: _ProblemGrid(),
+                eyebrow: context.tr('landing_problem_eyebrow'),
+                title: context.tr('landing_problem_title'),
+                description: context.tr('landing_problem_description'),
+                child: const _ProblemGrid(),
               ),
             ),
             SliverToBoxAdapter(
               child: _LandingSection(
                 key: howItWorksKey,
-                eyebrow: 'How it works',
-                title: "From doctor's instructions to a plan that fits real life.",
-                child: _HowItWorksGrid(),
+                eyebrow: context.tr('landing_how_it_works_eyebrow'),
+                title: context.tr('landing_how_it_works_title'),
+                child: const _HowItWorksGrid(),
               ),
             ),
             SliverToBoxAdapter(
               child: _LandingSection(
                 key: featuresKey,
-                eyebrow: 'Features',
-                title: 'Everything a family needs to keep the plan on track.',
-                child: _FeatureGrid(),
+                eyebrow: context.tr('landing_features_eyebrow'),
+                title: context.tr('landing_features_title'),
+                child: const _FeatureGrid(),
               ),
             ),
             SliverToBoxAdapter(
               child: _LandingSection(
                 key: safetyKey,
-                eyebrow: 'Responsible AI',
-                title: 'We are not replacing the doctor.',
-                description:
-                    'SehatMate helps organize and understand an existing care plan. It does not diagnose conditions, prescribe treatment or change doses.',
-                child: _SafetyGrid(),
+                eyebrow: context.tr('landing_safety_eyebrow'),
+                title: context.tr('landing_safety_title'),
+                description: context.tr('landing_safety_description'),
+                child: const _SafetyGrid(),
               ),
             ),
             SliverToBoxAdapter(
               child: _LandingSection(
                 key: faqKey,
-                eyebrow: 'FAQ',
-                title: 'Common questions',
-                child: _FaqList(),
+                eyebrow: context.tr('landing_faq_eyebrow'),
+                title: context.tr('landing_faq_title'),
+                child: const _FaqList(),
               ),
             ),
             SliverToBoxAdapter(child: _CallToAction(onNavigate: _go)),
@@ -243,14 +247,14 @@ class _Hero extends StatelessWidget {
                       color: AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(99),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
-                        SizedBox(width: 7),
+                        const Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
+                        const SizedBox(width: 7),
                         Text(
-                          'Care-plan support, not diagnosis',
-                          style: TextStyle(
+                          context.tr('landing_hero_badge'),
+                          style: const TextStyle(
                             color: AppColors.accentForeground,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -261,7 +265,7 @@ class _Hero extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Make every care plan easier to follow at home.',
+                    context.tr('landing_hero_title'),
                     style: TextStyle(
                       color: AppColors.foreground,
                       fontSize: narrow ? 34 : 44,
@@ -271,9 +275,9 @@ class _Hero extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'SehatMate AI helps identify real-life barriers that can make doctor-prescribed care difficult to follow, so patients and families can prepare before problems happen.',
-                    style: TextStyle(color: AppColors.muted, fontSize: 16, height: 1.55),
+                  Text(
+                    context.tr('landing_hero_description'),
+                    style: const TextStyle(color: AppColors.muted, fontSize: 16, height: 1.55),
                   ),
                   const SizedBox(height: 28),
                   Wrap(
@@ -284,18 +288,18 @@ class _Hero extends StatelessWidget {
                         onPressed: () => onNavigate(AppRoutes.carePlanNew),
                         iconAlignment: IconAlignment.end,
                         icon: const Icon(Icons.arrow_forward, size: 17),
-                        label: const Text('Start Care Plan'),
+                        label: Text(context.tr('start_care_plan')),
                       ),
                       OutlinedButton(
                         onPressed: onHowItWorks,
-                        child: const Text('See How It Works'),
+                        child: Text(context.tr('see_how_it_works')),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Demo experience with sample data. No real medical records required.',
-                    style: TextStyle(fontSize: 13, color: AppColors.muted),
+                  Text(
+                    context.tr('landing_demo_note'),
+                    style: const TextStyle(fontSize: 13, color: AppColors.muted),
                   ),
                 ],
               );
@@ -329,7 +333,7 @@ class _PreviewCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          const Row(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
@@ -337,37 +341,37 @@ class _PreviewCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Care Readiness',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.muted),
+                      context.tr('care_readiness'),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.muted),
                     ),
-                    Text(
+                    const Text(
                       '82%',
                       style: TextStyle(fontSize: 40, height: 1.15, fontWeight: FontWeight.w700, color: AppColors.primary),
                     ),
                   ],
                 ),
               ),
-              _ToneTag(text: 'Good', tone: _Tone.success),
+              _ToneTag(text: context.tr('good'), tone: _Tone.success),
             ],
           ),
           const SizedBox(height: 16),
-          const Row(
+          Row(
             children: [
-              Expanded(child: _MetricTile(value: '8', label: 'Ready', tone: _Tone.success)),
-              SizedBox(width: 8),
-              Expanded(child: _MetricTile(value: '2', label: 'At Risk', tone: _Tone.warning)),
-              SizedBox(width: 8),
-              Expanded(child: _MetricTile(value: '1', label: 'Blocked', tone: _Tone.critical)),
+              Expanded(child: _MetricTile(value: '8', label: context.tr('ready'), tone: _Tone.success)),
+              const SizedBox(width: 8),
+              Expanded(child: _MetricTile(value: '2', label: context.tr('at_risk'), tone: _Tone.warning)),
+              const SizedBox(width: 8),
+              Expanded(child: _MetricTile(value: '1', label: context.tr('blocked'), tone: _Tone.critical)),
             ],
           ),
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          const _PreviewTask(time: '8:00 AM', title: 'Morning Medicine', state: 'Ready', tone: _Tone.success),
+          _PreviewTask(time: '8:00 AM', title: context.tr('demo_morning_medicine'), state: context.tr('ready'), tone: _Tone.success),
           const SizedBox(height: 12),
-          const _PreviewTask(time: '1:00 PM', title: 'Afternoon Medicine', state: 'At Risk', tone: _Tone.warning),
+          _PreviewTask(time: '1:00 PM', title: context.tr('demo_afternoon_medicine'), state: context.tr('at_risk'), tone: _Tone.warning),
           const SizedBox(height: 12),
-          const _PreviewTask(time: '9:00 AM', title: 'Lab Visit — Wednesday', state: 'Blocked', tone: _Tone.critical),
+          _PreviewTask(time: '9:00 AM', title: context.tr('demo_lab_visit_wednesday'), state: context.tr('blocked'), tone: _Tone.critical),
         ],
       ),
     );
@@ -507,61 +511,9 @@ class _Grid extends StatelessWidget {
 class _ProblemGrid extends StatelessWidget {
   const _ProblemGrid();
   static const items = [
-    ('Timing clashes', 'Doses land while the patient is out of home or asleep.'),
-    ('Missing help', 'Tasks need assistance at times when no caregiver is free.'),
-    ('Unclear instructions', 'Handwritten notes leave families guessing about timings.'),
-  ];
-
-  @override
-  Widget build(BuildContext context) => _Grid(
-        desktopColumns: 3,
-        children: items.map((item) => _InfoCard(title: item.$1, body: item.$2)).toList(),
-      );
-}
-
-class _HowItWorksGrid extends StatelessWidget {
-  const _HowItWorksGrid();
-  static const items = [
-    (Icons.assignment_outlined, 'Upload documents', 'Prescriptions, discharge summaries and follow-up slips.'),
-    (Icons.verified_user_outlined, 'Verify extraction', 'You confirm every extracted instruction before it activates.'),
-    (Icons.psychology_outlined, 'Share your routine', 'A short conversation about your day, help and transport.'),
-    (Icons.route_outlined, 'See the simulation', 'A 7-day view showing ready, risky and blocked tasks.'),
-  ];
-
-  @override
-  Widget build(BuildContext context) => _Grid(
-        desktopColumns: 4,
-        children: List.generate(items.length, (index) {
-          final item = items[index];
-          return _IconCard(icon: item.$1, eyebrow: 'Step ${index + 1}', title: item.$2, body: item.$3);
-        }),
-      );
-}
-
-class _FeatureGrid extends StatelessWidget {
-  const _FeatureGrid();
-  static const items = [
-    (Icons.route_outlined, 'Care Simulation', 'Walk through the next seven days before they happen and see exactly where the plan is likely to break.'),
-    (Icons.record_voice_over_outlined, 'Teach-Back', "Explain tomorrow's care in your own words and see what was remembered, missed or needs verification."),
-    (Icons.handshake_outlined, 'Family Care', 'Assign tasks to the people who actually help, with the minimum access they need.'),
-    (Icons.headphones_outlined, 'Simple Care Mode', 'One task at a time, large text and a listen button — built for elderly and low-literacy users.'),
-    (Icons.language_outlined, 'Urdu & Roman Urdu', 'Switch the interface language so instructions are read the way the family speaks.'),
-    (Icons.verified_user_outlined, 'Human verification', 'Nothing extracted by AI becomes part of the plan until a person confirms it.'),
-  ];
-
-  @override
-  Widget build(BuildContext context) => _Grid(
-        desktopColumns: 2,
-        children: items.map((item) => _IconCard(icon: item.$1, title: item.$2, body: item.$3)).toList(),
-      );
-}
-
-class _SafetyGrid extends StatelessWidget {
-  const _SafetyGrid();
-  static const items = [
-    'Every extracted instruction is verified by a person before it is used.',
-    'Care Readiness reflects practical feasibility, not medical risk.',
-    'Unclear instructions become questions for a qualified healthcare professional.',
+    ('landing_problem_timing_title', 'landing_problem_timing_body'),
+    ('landing_problem_help_title', 'landing_problem_help_body'),
+    ('landing_problem_unclear_title', 'landing_problem_unclear_body'),
   ];
 
   @override
@@ -569,13 +521,88 @@ class _SafetyGrid extends StatelessWidget {
         desktopColumns: 3,
         children: items
             .map(
-              (text) => AppCard(
+              (item) => _InfoCard(
+                title: context.tr(item.$1),
+                body: context.tr(item.$2),
+              ),
+            )
+            .toList(),
+      );
+}
+
+class _HowItWorksGrid extends StatelessWidget {
+  const _HowItWorksGrid();
+  static const items = [
+    (Icons.assignment_outlined, 'landing_how_upload_title', 'landing_how_upload_body'),
+    (Icons.verified_user_outlined, 'landing_how_verify_title', 'landing_how_verify_body'),
+    (Icons.psychology_outlined, 'landing_how_routine_title', 'landing_how_routine_body'),
+    (Icons.route_outlined, 'landing_how_simulation_title', 'landing_how_simulation_body'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => _Grid(
+        desktopColumns: 4,
+        children: List.generate(items.length, (index) {
+          final item = items[index];
+          return _IconCard(
+            icon: item.$1,
+            eyebrow: context.tr(
+              'step_number',
+              values: {'number': index + 1},
+            ),
+            title: context.tr(item.$2),
+            body: context.tr(item.$3),
+          );
+        }),
+      );
+}
+
+class _FeatureGrid extends StatelessWidget {
+  const _FeatureGrid();
+  static const items = [
+    (Icons.route_outlined, 'care_simulation', 'landing_feature_simulation_body'),
+    (Icons.record_voice_over_outlined, 'teach_back', 'landing_feature_teach_back_body'),
+    (Icons.handshake_outlined, 'family_care', 'landing_feature_family_body'),
+    (Icons.headphones_outlined, 'simple_care_mode', 'landing_feature_simple_body'),
+    (Icons.language_outlined, 'landing_feature_languages_title', 'landing_feature_languages_body'),
+    (Icons.verified_user_outlined, 'landing_feature_verification_title', 'landing_feature_verification_body'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => _Grid(
+        desktopColumns: 2,
+        children: items
+            .map(
+              (item) => _IconCard(
+                icon: item.$1,
+                title: context.tr(item.$2),
+                body: context.tr(item.$3),
+              ),
+            )
+            .toList(),
+      );
+}
+
+class _SafetyGrid extends StatelessWidget {
+  const _SafetyGrid();
+  static const items = [
+    'landing_safety_verified',
+    'landing_safety_readiness',
+    'landing_safety_questions',
+  ];
+
+  @override
+  Widget build(BuildContext context) => _Grid(
+        desktopColumns: 3,
+        children: items
+            .map(
+              (key) => AppCard(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.verified_user_outlined, size: 21, color: AppColors.primary),
                     const SizedBox(width: 12),
-                    Expanded(child: Text(text, style: const TextStyle(fontSize: 14, color: AppColors.muted, height: 1.5))),
+                    Expanded(child: Text(context.tr(key), style: const TextStyle(fontSize: 14, color: AppColors.muted, height: 1.5))),
                   ],
                 ),
               ),
@@ -636,11 +663,11 @@ class _IconCard extends StatelessWidget {
 class _FaqList extends StatelessWidget {
   const _FaqList();
   static const items = [
-    ('Does SehatMate give medical advice?', 'No. It organizes instructions that a healthcare professional has already given, and helps you follow them at home.'),
-    ('What does the Care Readiness score mean?', 'It shows how practical the care plan is against your daily routine, help and transport. It is not a medical risk score.'),
-    ('Can family members use it?', 'Yes. Caregivers can be added with limited access and see only the tasks assigned to them.'),
-    ('Is my document data private?', 'Documents stay linked to your care plan and can be deleted at any time from Settings.'),
-    ('Which languages are supported?', 'English, Urdu and Roman Urdu, with a simplified low-literacy care mode.'),
+    ('landing_faq_medical_advice_q', 'landing_faq_medical_advice_a'),
+    ('landing_faq_readiness_q', 'landing_faq_readiness_a'),
+    ('landing_faq_family_q', 'landing_faq_family_a'),
+    ('landing_faq_privacy_q', 'landing_faq_privacy_a'),
+    ('landing_faq_languages_q', 'landing_faq_languages_a'),
   ];
 
   @override
@@ -654,11 +681,11 @@ class _FaqList extends StatelessWidget {
                   childrenPadding: const EdgeInsets.only(bottom: 16),
                   shape: const Border(bottom: BorderSide(color: AppColors.border)),
                   collapsedShape: const Border(bottom: BorderSide(color: AppColors.border)),
-                  title: Text(item.$1, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  title: Text(context.tr(item.$1), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   children: [
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(item.$2, style: const TextStyle(fontSize: 15, color: AppColors.muted, height: 1.5)),
+                      child: Text(context.tr(item.$2), style: const TextStyle(fontSize: 15, color: AppColors.muted, height: 1.5)),
                     ),
                   ],
                 ),
@@ -685,17 +712,17 @@ class _CallToAction extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    'Prepare the plan before the week begins.',
+                    context.tr('landing_cta_title'),
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: MediaQuery.sizeOf(context).width >= 640 ? 28 : 24, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
                   ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 580),
+                    constraints: const BoxConstraints(maxWidth: 580),
                     child: Text(
-                      'Upload the discharge documents, share the daily routine, and see where the care plan needs help.',
+                      context.tr('landing_cta_description'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.muted),
+                      style: const TextStyle(color: AppColors.muted),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -704,8 +731,8 @@ class _CallToAction extends StatelessWidget {
                     runSpacing: 12,
                     alignment: WrapAlignment.center,
                     children: [
-                      FilledButton(onPressed: () => onNavigate(AppRoutes.auth), child: const Text('Get Started')),
-                      OutlinedButton(onPressed: () => onNavigate(AppRoutes.dashboard), child: const Text('View Demo Dashboard')),
+                      FilledButton(onPressed: () => onNavigate(AppRoutes.auth), child: Text(context.tr('get_started'))),
+                      OutlinedButton(onPressed: () => onNavigate(AppRoutes.dashboard), child: Text(context.tr('view_demo_dashboard'))),
                     ],
                   ),
                 ],
@@ -738,16 +765,16 @@ class _Footer extends StatelessWidget {
                   spacing: 40,
                   runSpacing: 24,
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 390,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          BrandLogo(),
-                          SizedBox(height: 12),
+                          const BrandLogo(),
+                          const SizedBox(height: 12),
                           Text(
-                            'SehatMate helps organize and understand an existing care plan. It does not diagnose conditions or prescribe treatment.',
-                            style: TextStyle(fontSize: 13, color: AppColors.muted),
+                            context.tr('landing_footer_description'),
+                            style: const TextStyle(fontSize: 13, color: AppColors.muted),
                           ),
                         ],
                       ),
@@ -756,22 +783,22 @@ class _Footer extends StatelessWidget {
                       spacing: 24,
                       runSpacing: 10,
                       children: [
-                        ..._LandingScreenState.navLabels.map(
-                          (label) => InkWell(
-                            onTap: () => onSection(label),
+                        ..._LandingScreenState.navKeys.map(
+                          (labelKey) => InkWell(
+                            onTap: () => onSection(labelKey),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Text(label, style: const TextStyle(fontSize: 14, color: AppColors.muted)),
+                              child: Text(context.tr(labelKey), style: const TextStyle(fontSize: 14, color: AppColors.muted)),
                             ),
                           ),
                         ),
-                        TextButton(onPressed: () => onNavigate(AppRoutes.auth), child: const Text('Sign In')),
+                        TextButton(onPressed: () => onNavigate(AppRoutes.auth), child: Text(context.tr('sign_in'))),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 32),
-                const Text('© 2026 SehatMate AI. Demo product for presentation purposes.', style: TextStyle(fontSize: 13, color: AppColors.subtle)),
+                Text(context.tr('landing_footer_copyright'), style: const TextStyle(fontSize: 13, color: AppColors.subtle)),
               ],
             ),
           ),

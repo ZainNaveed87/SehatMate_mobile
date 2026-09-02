@@ -4,6 +4,7 @@ import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
 import '../localization/language_scope.dart';
+import '../localization/localized_errors.dart';
 import '../services/auth_service.dart';
 import '../services/care_plan_service.dart';
 import '../services/notification_service.dart';
@@ -60,7 +61,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = error.message;
+        _error = localizedCarePlanExceptionMessage(error, context.appLanguage);
       });
     } catch (_) {
       if (!mounted) return;
@@ -216,7 +217,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
       );
     } on CarePlanException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage))));
       }
     }
   }
@@ -259,7 +260,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
       setState(() { _plans = _plans.where((item) => !ids.contains(item.id)).toList(); _selectedIds.clear(); });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('selected_care_plans_deleted'))));
     } on CarePlanException catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage))));
     }
   }
 
@@ -286,7 +287,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
       await NotificationService.instance.cancelPlan(plan.id);
       await CarePlanService.instance.completePlan(plan.id);
       await _loadPlans();
-    } on CarePlanException catch (error) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message))); }
+    } on CarePlanException catch (error) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage)))); }
   }
 }
 
@@ -364,7 +365,7 @@ class _PlanCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Checkbox(value: selected, onChanged: (value) => onSelectionChanged(plan, value ?? false)),
-                  Expanded(child: Text(plan.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600))),
+                  Expanded(child: Text(demoPlanTitle(plan, context.appLanguage), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600))),
                   if (onDelete != null || (plan.status == PlanStatus.active && onComplete != null))
                     PopupMenuButton<String>(
                       tooltip: context.tr('plan_actions'),
@@ -384,7 +385,7 @@ class _PlanCard extends StatelessWidget {
               const SizedBox(height: 4),
               PlanStatusBadge(status: plan.status),
               const SizedBox(height: 8),
-              Text(context.tr('started_date', values: {'date': plan.startDate}), style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+              Text(context.tr('started_date', values: {'date': displayPlanStartDate(plan.startDate, context.appLanguage)}), style: const TextStyle(fontSize: 13, color: AppColors.muted)),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -410,7 +411,7 @@ class _PlanCard extends StatelessWidget {
                       text: '${context.tr('next_label')}: ',
                       style: const TextStyle(color: AppColors.muted),
                     ),
-                    TextSpan(text: plan.nextTask),
+                    TextSpan(text: demoPlanNextTask(plan, context.appLanguage)),
                   ],
                 ),
                 style: const TextStyle(fontSize: 14),
@@ -499,11 +500,11 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
     try {
       final selectedLabels = options
           .where((option) => selected.contains(option.$1))
-          .map((option) => option.$2)
+          .map((option) => _optionLabel(context, option.$1))
           .toList();
       final title = selectedLabels.length == 1
-          ? '${selectedLabels.first} Care Plan'
-          : 'Combined Care Plan';
+          ? context.tr('single_document_care_plan_title', values: {'document': selectedLabels.first})
+          : context.tr('combined_care_plan_title');
       final plan = await CarePlanService.instance.createPlan(title);
       if (!mounted) return;
       Navigator.pushNamed(
@@ -517,7 +518,7 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
     } on CarePlanException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
+        SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage))),
       );
     } catch (_) {
       if (!mounted) return;

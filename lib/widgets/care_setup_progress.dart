@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
 import '../core/care_setup_flow.dart';
+import '../localization/language_scope.dart';
 import '../services/care_plan_service.dart';
 import 'ui.dart';
 
@@ -17,19 +18,20 @@ class GuidedCareSetupProgress extends StatelessWidget {
   final String? planId;
   final String? saveState;
 
-  static const _labels = [
-    'Documents',
-    'Review',
-    'Schedule',
-    'Reality',
-    'Simulation',
-    'Care Gaps',
-    'Activate',
+  static const _labelKeys = [
+    'setup_label_documents',
+    'setup_label_review',
+    'setup_label_schedule',
+    'setup_label_reality',
+    'setup_label_simulation',
+    'setup_label_care_gaps',
+    'setup_label_activate',
   ];
 
   @override
   Widget build(BuildContext context) {
     final safeStep = currentStep.clamp(1, CareSetupProgress.totalSteps).toInt();
+    final label = context.tr(_labelKeys[safeStep - 1]);
     return AppCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -39,7 +41,14 @@ class GuidedCareSetupProgress extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Step $safeStep of ${CareSetupProgress.totalSteps} · ${_labels[safeStep - 1]}',
+                  context.tr(
+                    'setup_step_counter',
+                    values: {
+                      'current': safeStep,
+                      'total': CareSetupProgress.totalSteps,
+                      'label': label,
+                    },
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -60,13 +69,13 @@ class GuidedCareSetupProgress extends StatelessWidget {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: List.generate(_labels.length, (index) {
+              children: List.generate(_labelKeys.length, (index) {
                 final number = index + 1;
                 final complete = number < safeStep;
                 final current = number == safeStep;
                 final canReview = complete && planId != null;
                 return Padding(
-                  padding: EdgeInsets.only(right: index == _labels.length - 1 ? 0 : 8),
+                  padding: EdgeInsets.only(right: index == _labelKeys.length - 1 ? 0 : 8),
                   child: InkWell(
                     onTap: !canReview
                         ? null
@@ -113,7 +122,7 @@ class GuidedCareSetupProgress extends StatelessWidget {
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            _labels[index],
+                            context.tr(_labelKeys[index]),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: current || complete
@@ -132,9 +141,9 @@ class GuidedCareSetupProgress extends StatelessWidget {
           ),
           if (safeStep > 1) ...[
             const SizedBox(height: 10),
-            const Text(
-              'Completed steps can be opened again for review. Future steps unlock in order.',
-              style: TextStyle(fontSize: 12, color: AppColors.muted),
+            Text(
+              context.tr('setup_completed_steps_help'),
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
             ),
           ],
         ],
@@ -152,6 +161,13 @@ class _SaveStateLabel extends StatelessWidget {
     final lower = value.toLowerCase();
     final saving = lower.contains('saving');
     final failed = lower.contains('retry') || lower.contains('couldn');
+    final label = switch (lower) {
+      'saving…' || 'saving...' => context.tr('saving'),
+      'saved' => context.tr('saved'),
+      'retry needed' => context.tr('retry_needed'),
+      'unsaved changes' => context.tr('unsaved_changes'),
+      _ => value,
+    };
     final color = failed
         ? AppColors.criticalForeground
         : saving
@@ -173,7 +189,7 @@ class _SaveStateLabel extends StatelessWidget {
           ),
         const SizedBox(width: 5),
         Text(
-          value,
+          label,
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
         ),
       ],

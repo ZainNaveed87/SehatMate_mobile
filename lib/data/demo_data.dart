@@ -2,6 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../localization/app_language.dart';
+import '../localization/app_strings.dart';
+
 enum TaskStatus { ready, atRisk, blocked, unclear, resolved }
 enum TaskKind { medicine, lab, visit, dressing, caregiver }
 enum PlanStatus { draft, processing, needsReview, realityCheck, needsAttention, active, completed }
@@ -361,20 +364,273 @@ extension FirstOrNullExtension<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
 
-String taskStatusLabel(TaskStatus status) => switch (status) {
-      TaskStatus.ready => 'Ready',
-      TaskStatus.atRisk => 'At Risk',
-      TaskStatus.blocked => 'Blocked',
-      TaskStatus.unclear => 'Unclear',
-      TaskStatus.resolved => 'Resolved',
+String taskStatusLabel(
+  TaskStatus status, [
+  AppLanguage language = AppLanguage.english,
+]) =>
+    AppStrings.get(
+      switch (status) {
+        TaskStatus.ready => 'ready',
+        TaskStatus.atRisk => 'at_risk',
+        TaskStatus.blocked => 'blocked',
+        TaskStatus.unclear => 'unclear',
+        TaskStatus.resolved => 'resolved',
+      },
+      language,
+    );
+
+String planStatusLabel(
+  PlanStatus status, [
+  AppLanguage language = AppLanguage.english,
+]) =>
+    AppStrings.get(
+      switch (status) {
+        PlanStatus.draft => 'draft',
+        PlanStatus.processing => 'processing',
+        PlanStatus.needsReview => 'needs_review',
+        PlanStatus.realityCheck => 'reality_check_required',
+        PlanStatus.needsAttention => 'needs_attention',
+        PlanStatus.active => 'active',
+        PlanStatus.completed => 'completed',
+      },
+      language,
+    );
+
+String ageGroupLabel(
+  String value,
+  AppLanguage language,
+) {
+  final key = switch (value) {
+    'Under 18' => 'age_under_18',
+    '18 – 30' => 'age_18_30',
+    '31 – 45' => 'age_31_45',
+    '46 – 59' => 'age_46_59',
+    '60 – 70' => 'age_60_70',
+    '71 – 80' => 'age_71_80',
+    '81+' => 'age_81_plus',
+    _ => '',
+  };
+
+  return key.isEmpty ? value : AppStrings.get(key, language);
+}
+
+String routinePreferenceLabel(
+  String value,
+  AppLanguage language,
+) {
+  final key = switch (value) {
+    'Standard' => 'standard',
+    'Large Text' => 'large_text',
+    'Voice Guidance' => 'voice_guidance',
+    'Simple Care Mode' => 'simple_care_mode',
+    _ => '',
+  };
+
+  return key.isEmpty ? value : AppStrings.get(key, language);
+}
+
+String caregiverOptionLabel(
+  String value,
+  AppLanguage language,
+) {
+  final key = switch (value) {
+    'Medicine reminders' => 'medicine_reminders',
+    'Dressing' => 'dressing',
+    'Travel' => 'travel',
+    'Appointments' => 'appointments',
+    'Meals' => 'meals',
+    'Assigned tasks only' => 'assigned_tasks_only',
+    'Schedule' => 'schedule',
+    'Care gaps' => 'care_gaps',
+    'Documents' => 'documents',
+    _ => '',
+  };
+
+  return key.isEmpty ? value : AppStrings.get(key, language);
+}
+
+String demoLanguageLabel(
+  String value,
+) =>
+    switch (value) {
+      'Urdu' => 'اردو',
+      'Roman Urdu' => 'Roman Urdu',
+      _ => 'English',
     };
 
-String planStatusLabel(PlanStatus status) => switch (status) {
-      PlanStatus.draft => 'Draft',
-      PlanStatus.processing => 'Processing',
-      PlanStatus.needsReview => 'Needs Review',
-      PlanStatus.realityCheck => 'Reality Check Required',
-      PlanStatus.needsAttention => 'Needs Attention',
-      PlanStatus.active => 'Active',
-      PlanStatus.completed => 'Completed',
-    };
+String demoTaskTitle(
+  DemoTask task,
+  AppLanguage language,
+) {
+  final key = switch (task.title) {
+    'Morning Medicine' => 'demo_morning_medicine',
+    'Afternoon Medicine' => 'demo_afternoon_medicine',
+    'Evening Medicine' => 'demo_evening_medicine',
+    'Dressing' => 'demo_dressing',
+    'Blood Pressure Check' => 'demo_blood_pressure_check',
+    'Lab Visit' => 'demo_lab_visit',
+    'Hospital Follow-Up' => 'demo_hospital_follow_up',
+    _ => '',
+  };
+
+  return key.isEmpty ? task.title : AppStrings.get(key, language);
+}
+
+String demoTaskNote(
+  DemoTask task,
+  AppLanguage language,
+) {
+  final key = switch (task.note) {
+    'Patient is usually away from home' => 'demo_note_patient_away',
+    'Caregiver required' => 'demo_note_caregiver_required',
+    'Timing needs verification' => 'demo_note_timing_verification',
+    'Record reading in the app' => 'demo_note_record_reading',
+    'Usual caregiver unavailable' => 'demo_note_caregiver_unavailable',
+    'No transport confirmed' => 'demo_note_no_transport',
+    'Overlaps with time away from home' => 'demo_note_overlaps_away',
+    'Caregiver available' => 'demo_note_caregiver_available',
+    'Transport not arranged yet' => 'demo_note_transport_not_arranged',
+    _ => '',
+  };
+
+  return key.isEmpty ? task.note : AppStrings.get(key, language);
+}
+
+String demoPlanTitle(
+  DemoPlan plan,
+  AppLanguage language,
+) {
+  final key = switch (plan.title) {
+    'Post-Discharge Care Plan' => 'demo_plan_post_discharge',
+    'Wound Care Follow-Up' => 'demo_plan_wound_care_follow_up',
+    'Blood Pressure Review Plan' => 'demo_plan_blood_pressure_review',
+    'Post-Surgery Recovery Plan' => 'demo_plan_post_surgery_recovery',
+    _ => '',
+  };
+
+  return key.isEmpty ? plan.title : AppStrings.get(key, language);
+}
+
+String demoPlanNextTask(
+  DemoPlan plan,
+  AppLanguage language,
+) {
+  final value = plan.nextTask;
+  if (value == 'Afternoon Medicine — 1:00 PM') {
+    return '${AppStrings.get('demo_afternoon_medicine', language)} — 1:00 PM';
+  }
+  if (value == 'Dressing — Tomorrow 10:00 AM') {
+    return AppStrings.get('demo_plan_next_dressing_tomorrow', language);
+  }
+  final key = switch (value) {
+    'Upload documents to continue' => 'upload_documents_to_continue',
+    'Plan completed' => 'plan_completed',
+    _ => '',
+  };
+
+  return key.isEmpty ? value : AppStrings.get(key, language);
+}
+
+String displayPlanStartDate(String value, AppLanguage language) {
+  return value == 'Not started'
+      ? AppStrings.get('not_started', language)
+      : value;
+}
+
+String demoRealityQuestionText(
+  RealityQuestion question,
+  AppLanguage language,
+) {
+  final key = switch (question.id) {
+    'r1' => 'demo_reality_wake_question',
+    'r2' => 'demo_reality_leave_question',
+    'r3' => 'demo_reality_return_question',
+    'r4' => 'demo_reality_assistance_question',
+    'r5' => 'demo_reality_helper_question',
+    'r6' => 'demo_reality_helper_times_question',
+    'r7' => 'demo_reality_travel_question',
+    'r8' => 'demo_reality_medicines_question',
+    'r9' => 'demo_reality_reading_question',
+    _ => '',
+  };
+
+  return key.isEmpty ? question.question : AppStrings.get(key, language);
+}
+
+String demoRealityOptionText(
+  String option,
+  AppLanguage language,
+) {
+  final key = switch (option) {
+    'Before 6 AM' => 'demo_option_before_6_am',
+    '6 – 8 AM' => 'demo_option_6_8_am',
+    '8 – 10 AM' => 'demo_option_8_10_am',
+    'After 10 AM' => 'demo_option_after_10_am',
+    'I stay at home' => 'demo_option_stay_home',
+    'Before 9 AM' => 'demo_option_before_9_am',
+    '9 AM – 12 PM' => 'demo_option_9_12_pm',
+    'After 12 PM' => 'demo_option_after_12_pm',
+    'Before 3 PM' => 'demo_option_before_3_pm',
+    '3 – 6 PM' => 'demo_option_3_6_pm',
+    'After 6 PM' => 'demo_option_after_6_pm',
+    'Yes, dressing' => 'demo_option_yes_dressing',
+    'Yes, medicines' => 'demo_option_yes_medicines',
+    'Yes, travel' => 'demo_option_yes_travel',
+    'No assistance needed' => 'demo_option_no_assistance',
+    'Son' => 'son',
+    'Daughter' => 'daughter',
+    'Spouse' => 'spouse',
+    'Neighbour or friend' => 'neighbour_or_friend',
+    'Morning' => 'morning',
+    'Afternoon' => 'afternoon',
+    'Evening' => 'evening',
+    'Weekends only' => 'weekends_only',
+    'Family car' => 'family_car',
+    'Rickshaw or taxi' => 'rickshaw_or_taxi',
+    'Public transport' => 'public_transport',
+    'Walking' => 'walking',
+    'Yes, all of them' => 'reality_option_all_medicines',
+    'Some are missing' => 'demo_option_some_medicines_missing',
+    'None yet' => 'reality_option_none_yet',
+    'Yes, easily' => 'demo_option_yes_easily',
+    'With difficulty' => 'demo_option_with_difficulty',
+    'Someone reads them for me' => 'demo_option_someone_reads',
+    _ => '',
+  };
+
+  return key.isEmpty ? option : AppStrings.get(key, language);
+}
+
+String demoNotificationTitle(
+  DemoNotification notification,
+  AppLanguage language,
+) {
+  final key = switch (notification.title) {
+    'Medicine due soon' => 'demo_notification_medicine_due',
+    'Transport unresolved' => 'demo_notification_transport_unresolved',
+    'Ahmed completed a caregiver task' =>
+      'demo_notification_caregiver_completed',
+    'Teach-Back completed' => 'demo_notification_teach_back_completed',
+    _ => '',
+  };
+
+  return key.isEmpty ? notification.title : AppStrings.get(key, language);
+}
+
+String demoNotificationDetail(
+  DemoNotification notification,
+  AppLanguage language,
+) {
+  final key = switch (notification.detail) {
+    '30 minutes remaining' => 'demo_notification_30_minutes_remaining',
+    "Tomorrow's hospital visit has no confirmed transport" =>
+      'demo_notification_visit_no_transport',
+    'Dressing assistance marked completed' =>
+      'demo_notification_dressing_completed',
+    'Understanding score recorded at 76%' =>
+      'demo_notification_understanding_recorded',
+    _ => '',
+  };
+
+  return key.isEmpty ? notification.detail : AppStrings.get(key, language);
+}

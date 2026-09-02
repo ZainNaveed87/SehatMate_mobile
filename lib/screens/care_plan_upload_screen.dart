@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
+import '../localization/language_scope.dart';
+import '../localization/localized_errors.dart';
 import '../services/auth_service.dart';
 import '../services/care_plan_service.dart';
 import '../widgets/app_shell.dart';
@@ -47,11 +49,11 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
   bool processing = false;
   int step = 0;
   Timer? timer;
-  static const steps = [
-    'Uploading documents…',
-    'Reading your care instructions…',
-    'Extracting instructions…',
-    'Organizing the verified care plan…',
+  static const stepKeys = [
+    'upload_step_uploading_documents',
+    'upload_step_reading_instructions',
+    'upload_step_extracting_instructions',
+    'upload_step_organizing_verified_plan',
   ];
 
   @override
@@ -79,7 +81,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
               'server-${document.id}',
               document.name,
               document.type,
-              'Existing document',
+              context.tr('existing_document'),
               serverId: document.id,
             ),
           ),
@@ -126,7 +128,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
       if (byteLength > 20 * 1024 * 1024) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${file.name} exceeds the 20 MB limit.')),
+          SnackBar(content: Text(context.tr('file_exceeds_20_mb_limit', values: {'file': file.name}))),
         );
         continue;
       }
@@ -184,7 +186,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
               file.name,
               extension,
               _formatSize(byteLength),
-              error: error.message,
+              error: localizedCarePlanExceptionMessage(error, context.appLanguage),
             );
           });
         }
@@ -198,7 +200,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
               file.name,
               extension,
               _formatSize(byteLength),
-              error: 'Upload failed. Please try again.',
+              error: context.tr('error_upload_failed_try_again'),
             );
           });
         }
@@ -220,7 +222,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
       if (byteLength > 20 * 1024 * 1024) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('The captured photo exceeds the 20 MB limit.')),
+          SnackBar(content: Text(context.tr('captured_photo_exceeds_20_mb_limit'))),
         );
         return;
       }
@@ -271,21 +273,26 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
         });
       } on CarePlanException catch (error) {
         if (!mounted) return;
-        _markCameraUploadFailed(localId, fileName, byteLength, error.message);
+        _markCameraUploadFailed(
+          localId,
+          fileName,
+          byteLength,
+          localizedCarePlanExceptionMessage(error, context.appLanguage),
+        );
       } catch (_) {
         if (!mounted) return;
         _markCameraUploadFailed(
           localId,
           fileName,
           byteLength,
-          'Upload failed. Please try again.',
+          context.tr('error_upload_failed_try_again'),
         );
       }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not open the camera. Please allow camera access and try again.'),
+        SnackBar(
+          content: Text(context.tr('camera_open_failed')),
         ),
       );
     }
@@ -323,7 +330,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
       } on CarePlanException catch (error) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
+          SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage))),
         );
         return;
       }
@@ -346,7 +353,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
     if (AuthSession.instance.isGuest || widget.draft == null) {
       timer = Timer.periodic(const Duration(milliseconds: 900), (value) {
         if (!mounted) return;
-        if (step >= steps.length - 1) {
+        if (step >= stepKeys.length - 1) {
           value.cancel();
           Navigator.pushReplacementNamed(context, AppRoutes.carePlanReview);
         } else {
@@ -363,7 +370,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
       await CarePlanService.instance.extractInstructions(widget.draft!.planId);
       timer?.cancel();
       if (!mounted) return;
-      setState(() => step = steps.length - 1);
+      setState(() => step = stepKeys.length - 1);
       await CarePlanService.instance.updateSetupStep(
         widget.draft!.planId,
         CareSetupStep.review,
@@ -381,17 +388,17 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
       );
     } on CarePlanException catch (error) {
       timer?.cancel();
-      if (!mounted) return;
-      setState(() => processing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
-    } catch (_) {
+        if (!mounted) return;
+        setState(() => processing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage))),
+        );
+      } catch (_) {
       timer?.cancel();
       if (!mounted) return;
-      setState(() => processing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document extraction failed. Please retry.')),
+        setState(() => processing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('document_extraction_failed_retry'))),
       );
     }
   }
@@ -401,7 +408,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
     if (processing) return _processing();
     return AppShell(
       currentRoute: AppRoutes.carePlanUpload,
-      title: 'Upload Documents',
+      title: context.tr('upload_documents'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -421,10 +428,10 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
                   );
                 },
               icon: const Icon(Icons.arrow_back, size: 17),
-              label: const Text('Back'),
+              label: Text(context.tr('back')),
             ),
           ),
-          const PageHeader(title: 'Upload your documents', subtitle: 'PDF, JPG or PNG. You can add several documents to the same care plan.'),
+          PageHeader(title: context.tr('upload_your_documents'), subtitle: context.tr('upload_documents_subtitle')),
           if (widget.draft?.guidedSetup == true) ...[
             GuidedCareSetupProgress(
               currentStep: 1,
@@ -444,20 +451,20 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
               children: [
                 const CircleAvatar(radius: 24, backgroundColor: AppColors.primaryLight, child: Icon(Icons.upload_outlined, size: 21, color: AppColors.primary)),
                 const SizedBox(height: 14),
-                const Text('Drag and drop your documents here', textAlign: TextAlign.center, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                Text(context.tr('drag_drop_documents_here'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
-                const Text('PDF, JPG or PNG up to 20 MB each.', style: TextStyle(fontSize: 14, color: AppColors.muted)),
+                Text(context.tr('document_file_limits'), style: const TextStyle(fontSize: 14, color: AppColors.muted)),
                 const SizedBox(height: 20),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
                   alignment: WrapAlignment.center,
                   children: [
-                    FilledButton(onPressed: _pickFiles, child: const Text('Choose files')),
+                    FilledButton(onPressed: _pickFiles, child: Text(context.tr('choose_files'))),
                     OutlinedButton.icon(
                       onPressed: _capturePhoto,
                       icon: const Icon(Icons.camera_alt_outlined, size: 17),
-                      label: const Text('Use camera'),
+                      label: Text(context.tr('use_camera')),
                     ),
                   ],
                 ),
@@ -487,7 +494,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
                         children: [
                           Text(file.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
                           Text(
-                            '${file.type} · ${file.size} · ${file.error ?? (file.uploading ? 'Uploading…' : 'Uploaded')}',
+                            '${file.type} · ${file.size} · ${file.error ?? (file.uploading ? context.tr('uploading') : context.tr('uploaded'))}',
                             style: TextStyle(
                               fontSize: 13,
                               color: file.error == null ? AppColors.muted : AppColors.critical,
@@ -503,7 +510,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
                     IconButton(
                       onPressed: file.uploading ? null : () => _removeFile(file),
                       icon: const Icon(Icons.delete_outline, size: 19),
-                      tooltip: 'Remove ${file.name}',
+                      tooltip: context.tr('remove_file', values: {'file': file.name}),
                     ),
                   ],
                 ),
@@ -511,7 +518,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          const SafetyNote(text: 'Always verify extracted information against the original document. Nothing is added to your care plan automatically.'),
+          SafetyNote(text: context.tr('upload_documents_safety_note')),
           const SizedBox(height: 24),
           Align(
             alignment: Alignment.centerRight,
@@ -519,7 +526,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
               onPressed: files.isEmpty || files.any((file) => file.uploading || file.error != null)
                   ? null
                   : _startProcessing,
-              child: const Text('Continue'),
+              child: Text(context.tr('continue')),
             ),
           ),
         ],
@@ -529,7 +536,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
 
   Widget _processing() => AppShell(
         currentRoute: AppRoutes.carePlanUpload,
-        title: 'Processing documents',
+        title: context.tr('processing_documents'),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
@@ -541,16 +548,16 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
                   children: [
                     const CircleAvatar(radius: 28, backgroundColor: AppColors.primaryLight, child: Icon(Icons.description_outlined, size: 24, color: AppColors.primary)),
                     const SizedBox(height: 20),
-                    Text(steps[step], textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                    Text(context.tr(stepKeys[step]), textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
-                    const Text('This usually takes a few moments. Nothing is activated until you verify it.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: AppColors.muted)),
+                    Text(context.tr('processing_documents_description'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: AppColors.muted)),
                     const SizedBox(height: 24),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(99),
-                      child: LinearProgressIndicator(value: (step + 1) / steps.length, minHeight: 8, color: AppColors.primary, backgroundColor: AppColors.secondary),
+                      child: LinearProgressIndicator(value: (step + 1) / stepKeys.length, minHeight: 8, color: AppColors.primary, backgroundColor: AppColors.secondary),
                     ),
                     const SizedBox(height: 24),
-                    ...List.generate(steps.length, (index) {
+                    ...List.generate(stepKeys.length, (index) {
                       final complete = index <= step;
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 9),
@@ -558,7 +565,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
                           children: [
                             Icon(Icons.check_circle_outline, size: 17, color: complete ? AppColors.success : AppColors.border),
                             const SizedBox(width: 8),
-                            Expanded(child: Text(steps[index], style: TextStyle(fontSize: 14, color: complete ? AppColors.foreground : AppColors.subtle))),
+                            Expanded(child: Text(context.tr(stepKeys[index]), style: TextStyle(fontSize: 14, color: complete ? AppColors.foreground : AppColors.subtle))),
                           ],
                         ),
                       );
