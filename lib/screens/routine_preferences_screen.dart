@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
+import '../localization/language_scope.dart';
 import '../services/care_plan_service.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/page_header.dart';
@@ -84,14 +85,14 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
         _saving = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Routine preferences saved.')),
+        SnackBar(content: Text(context.tr('routine_save_success'))),
       );
     } on CarePlanException catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
 
@@ -99,18 +100,16 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Reset learned routine?'),
-        content: const Text(
-          'This removes activity-based learning such as accepted suggestions and timing choices. Your manually written routine notes stay saved.',
-        ),
+        title: Text(context.tr('routine_reset_title')),
+        content: Text(context.tr('routine_reset_content')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Reset learning'),
+            child: Text(context.tr('routine_reset_confirm')),
           ),
         ],
       ),
@@ -122,23 +121,23 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
       if (!mounted) return;
       setState(() => _profile = profile);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Learned routine history reset.')),
+        SnackBar(content: Text(context.tr('routine_reset_success'))),
       );
     } on CarePlanException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
 
   String _periodTitle(String period) => switch (period) {
-        'morning' => 'Morning',
-        'afternoon' => 'Afternoon',
-        'evening' => 'Evening',
-        'night' => 'Night',
-        _ => period,
-      };
+    'morning' => context.tr('routine_period_morning'),
+    'afternoon' => context.tr('routine_period_afternoon'),
+    'evening' => context.tr('routine_period_evening'),
+    'night' => context.tr('routine_period_night'),
+    _ => period,
+  };
 
   String _displayTime(String value) {
     final parts = value.split(':');
@@ -155,193 +154,198 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
   Widget build(BuildContext context) {
     return AppShell(
       currentRoute: AppRoutes.routinePreferences,
-      title: 'My Routine & Preferences',
+      title: context.tr('routine_title'),
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_error!, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: _load,
+                    child: Text(context.tr('retry')),
+                  ),
+                ],
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PageHeader(
+                  title: context.tr('routine_title'),
+                  subtitle: context.tr('routine_subtitle'),
+                ),
+                AppCard(
+                  padding: const EdgeInsets.all(18),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(_error!, textAlign: TextAlign.center),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: _load,
-                        child: const Text('Try again'),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _learningEnabled,
+                        onChanged: (value) {
+                          setState(() => _learningEnabled = value);
+                        },
+                        title: Text(
+                          context.tr('routine_learn_from_activity'),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        subtitle: Text(context.tr('routine_learn_subtitle')),
+                      ),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text(
+                        context.tr('routine_reminder_style'),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        initialValue: _reminderStyle,
+                        items: [
+                          DropdownMenuItem(
+                            value: 'Gentle',
+                            child: Text(context.tr('routine_style_gentle')),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Balanced',
+                            child: Text(context.tr('routine_style_balanced')),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Persistent',
+                            child: Text(context.tr('routine_style_persistent')),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _reminderStyle = value);
+                          }
+                        },
                       ),
                     ],
                   ),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const PageHeader(
-                      title: 'My Routine & Preferences',
-                      subtitle:
-                          'Tell SehatMate what usually works for you and control what it learns from your activity.',
-                    ),
-                    AppCard(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            value: _learningEnabled,
-                            onChanged: (value) {
-                              setState(() => _learningEnabled = value);
-                            },
-                            title: const Text(
-                              'Learn from my activity',
-                              style: TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                            subtitle: const Text(
-                              'Accepted or rejected suggestions, schedule edits and Reality Check answers can improve future reminder suggestions.',
-                            ),
-                          ),
-                          const Divider(),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Preferred reminder style',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            initialValue: _reminderStyle,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'Gentle',
-                                child: Text('Gentle'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Balanced',
-                                child: Text('Balanced'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Persistent',
-                                child: Text('Persistent'),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() => _reminderStyle = value);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Your routine',
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'These are explicit preferences you control. You can write a time, a range, or a short routine note.',
-                      style: TextStyle(color: AppColors.muted),
-                    ),
-                    const SizedBox(height: 12),
-                    for (final period
-                        in const ['morning', 'afternoon', 'evening', 'night'])
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: AppCard(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                _periodTitle(period),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              TextField(
-                                controller: _controllers[period],
-                                minLines: 2,
-                                maxLines: 3,
-                                decoration: InputDecoration(
-                                  hintText: switch (period) {
-                                    'morning' =>
-                                      'Example: Usually free after 9:30 AM',
-                                    'afternoon' =>
-                                      'Example: Work is flexible after 2 PM',
-                                    'evening' =>
-                                      'Example: Dinner time changes',
-                                    _ =>
-                                      'Example: Prefer reminders around 10:30 PM',
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 8),
-                    AppCard(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Learned from your activity',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '${_profile?.totalSignals ?? 0} signals',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.muted,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          for (final period
-                              in const ['morning', 'afternoon', 'evening', 'night'])
-                            _learnedPeriod(period),
-                          const SizedBox(height: 8),
-                          OutlinedButton.icon(
-                            onPressed: _resetLearning,
-                            icon: const Icon(Icons.restart_alt, size: 18),
-                            label: const Text('Reset learned routine'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const SafetyNote(
-                      text:
-                          'Medical instructions are separate from routine learning. SehatMate may suggest a reminder that fits your routine, but it will not automatically move an explicit clinician-specified time.',
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _saving ? null : _save,
-                      icon: _saving
-                          ? const SizedBox.square(
-                              dimension: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_outlined, size: 18),
-                      label: Text(
-                        _saving ? 'Saving…' : 'Save preferences',
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                  ],
                 ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('routine_your_routine'),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  context.tr('routine_your_routine_desc'),
+                  style: const TextStyle(color: AppColors.muted),
+                ),
+                const SizedBox(height: 12),
+                for (final period in const [
+                  'morning',
+                  'afternoon',
+                  'evening',
+                  'night',
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: AppCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            _periodTitle(period),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _controllers[period],
+                            minLines: 2,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              hintText: switch (period) {
+                                'morning' => context.tr('routine_hint_morning'),
+                                'afternoon' => context.tr(
+                                  'routine_hint_afternoon',
+                                ),
+                                'evening' => context.tr('routine_hint_evening'),
+                                _ => context.tr('routine_hint_night'),
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                AppCard(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              context.tr('routine_learned_from_activity'),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            context.tr(
+                              'routine_signals_count',
+                              values: {
+                                'count': '${_profile?.totalSignals ?? 0}',
+                              },
+                            ),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      for (final period in const [
+                        'morning',
+                        'afternoon',
+                        'evening',
+                        'night',
+                      ])
+                        _learnedPeriod(period),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _resetLearning,
+                        icon: const Icon(Icons.restart_alt, size: 18),
+                        label: Text(context.tr('routine_reset_learned')),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SafetyNote(text: context.tr('routine_safety_note')),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: _saving
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_outlined, size: 18),
+                  label: Text(
+                    _saving
+                        ? context.tr('routine_saving')
+                        : context.tr('routine_save_preferences'),
+                  ),
+                ),
+                const SizedBox(height: 28),
+              ],
+            ),
     );
   }
 
@@ -360,10 +364,7 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.psychology_alt_outlined,
-              color: AppColors.primary,
-            ),
+            Icon(Icons.psychology_alt_outlined, color: AppColors.primary),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -376,7 +377,8 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
                   const SizedBox(height: 3),
                   Text(
                     preferredTime.isEmpty
-                        ? learned?.confidence ?? 'No pattern yet'
+                        ? learned?.confidence ??
+                              context.tr('routine_no_pattern_yet')
                         : '${_displayTime(preferredTime)} · ${learned?.confidence ?? ''}',
                   ),
                   if ((learned?.reason ?? '').isNotEmpty) ...[

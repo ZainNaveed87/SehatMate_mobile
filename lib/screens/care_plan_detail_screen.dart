@@ -16,6 +16,16 @@ import '../widgets/status_badge.dart';
 import '../widgets/ui.dart';
 import 'simulation_screen.dart';
 
+String _localizedPeriod(BuildContext context, String value) {
+  return switch (value.trim().toLowerCase()) {
+    'morning' => context.tr('morning'),
+    'afternoon' => context.tr('afternoon'),
+    'evening' => context.tr('evening'),
+    'night' => context.tr('night'),
+    _ => value,
+  };
+}
+
 class CarePlanDetailScreen extends StatefulWidget {
   const CarePlanDetailScreen({
     required this.planId,
@@ -49,7 +59,6 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   final Set<String> _outcomeSavingIds = {};
   bool _lifecycleSaving = false;
 
-
   @override
   void initState() {
     super.initState();
@@ -81,13 +90,17 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     }
 
     try {
-      final detail = await CarePlanService.instance.fetchPlanDetail(widget.planId);
+      final detail = await CarePlanService.instance.fetchPlanDetail(
+        widget.planId,
+      );
       var occurrences = const <CareTaskOccurrence>[];
       CareTaskDaySummary? daySummary;
       if (detail.plan.status == PlanStatus.active ||
           detail.plan.status == PlanStatus.completed) {
         try {
-          final day = await CarePlanService.instance.fetchTaskOccurrences(widget.planId);
+          final day = await CarePlanService.instance.fetchTaskOccurrences(
+            widget.planId,
+          );
           occurrences = day.occurrences;
           daySummary = day.summary;
         } on CarePlanException {
@@ -125,103 +138,132 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     return AnimatedBuilder(
       animation: CareDemoState.instance,
       builder: (context, _) => AppShell(
-      currentRoute: AppRoutes.carePlan(plan.id),
-      title: context.tr('care_plan'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () {
-                if (widget.returnToPrevious && Navigator.canPop(context)) {
-                  Navigator.pop(context);
-                  return;
-                }
-                if (widget.guidedSetup && tab == 1) {
-                  Navigator.pushReplacementNamed(
-                    context,
-                    AppRoutes.carePlanReview,
-                    arguments: CarePlanReviewArgs(
-                      planId: widget.planId,
-                      guidedSetup: true,
-                    ),
-                  );
-                  return;
-                }
-                Navigator.pushReplacementNamed(context, AppRoutes.carePlans);
-              },
-              icon: const Icon(Icons.arrow_back, size: 17),
-              label: Text(
-                widget.guidedSetup && tab == 1
-                    ? context.tr('back_to_review')
-                    : widget.returnToPrevious
-                        ? context.tr('back')
-                        : context.tr('care_plans'),
-              ),
-            ),
-          ),
-          PageHeader(
-            title: demoPlanTitle(plan, context.appLanguage),
-            subtitle: context.tr('care_plan_header_subtitle', values: {'date': displayPlanStartDate(plan.startDate, context.appLanguage), 'next': demoPlanNextTask(plan, context.appLanguage)}),
-            action: PlanStatusBadge(status: plan.status),
-          ),
-          if (!widget.guidedSetup &&
-              !AuthSession.instance.isGuest &&
-              (plan.status == PlanStatus.active ||
-                  plan.status == PlanStatus.completed)) ...[
-            const SizedBox(height: 12),
-            _planLifecycleActions(plan),
-          ],
-          if (widget.guidedSetup) ...[
-            GuidedCareSetupProgress(
-              currentStep: 3,
-              planId: widget.planId,
-              saveState: _scheduleSaveState,
-            ),
-            const SizedBox(height: 16),
-          ],
-          AppCard(
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(child: Text(context.tr('care_readiness'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
-                    Text('${plan.readiness}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.primary)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(value: plan.readiness / 100, minHeight: 10, color: AppColors.primary, backgroundColor: AppColors.secondary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          if (!widget.guidedSetup) ...[
+        currentRoute: AppRoutes.carePlan(plan.id),
+        title: context.tr('care_plan'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             Align(
               alignment: Alignment.centerLeft,
-              child: AppTabs<int>(
-                tabs: [
-                  AppTab(0, context.tr('instructions')),
-                  AppTab(1, context.tr('schedule')),
-                  AppTab(2, context.tr('simulation')),
-                  AppTab(3, context.tr('care_gaps')),
-                  AppTab(4, context.tr('documents')),
-                ],
-                selected: tab,
-                onChanged: (value) => setState(() => tab = value),
+              child: TextButton.icon(
+                onPressed: () {
+                  if (widget.returnToPrevious && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                    return;
+                  }
+                  if (widget.guidedSetup && tab == 1) {
+                    Navigator.pushReplacementNamed(
+                      context,
+                      AppRoutes.carePlanReview,
+                      arguments: CarePlanReviewArgs(
+                        planId: widget.planId,
+                        guidedSetup: true,
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.pushReplacementNamed(context, AppRoutes.carePlans);
+                },
+                icon: const Icon(Icons.arrow_back, size: 17),
+                label: Text(
+                  widget.guidedSetup && tab == 1
+                      ? context.tr('back_to_review')
+                      : widget.returnToPrevious
+                      ? context.tr('back')
+                      : context.tr('care_plans'),
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            PageHeader(
+              title: demoPlanTitle(plan, context.appLanguage),
+              subtitle: context.tr(
+                'care_plan_header_subtitle',
+                values: {
+                  'date': displayPlanStartDate(
+                    plan.startDate,
+                    context.appLanguage,
+                  ),
+                  'next': demoPlanNextTask(plan, context.appLanguage),
+                },
+              ),
+              action: PlanStatusBadge(status: plan.status),
+            ),
+            if (!widget.guidedSetup &&
+                !AuthSession.instance.isGuest &&
+                (plan.status == PlanStatus.active ||
+                    plan.status == PlanStatus.completed)) ...[
+              const SizedBox(height: 12),
+              _planLifecycleActions(plan),
+            ],
+            if (widget.guidedSetup) ...[
+              GuidedCareSetupProgress(
+                currentStep: 3,
+                planId: widget.planId,
+                saveState: _scheduleSaveState,
+              ),
+              const SizedBox(height: 16),
+            ],
+            AppCard(
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          context.tr('care_readiness'),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${plan.readiness}%',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: plan.readiness / 100,
+                      minHeight: 10,
+                      color: AppColors.primary,
+                      backgroundColor: AppColors.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (!widget.guidedSetup) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: AppTabs<int>(
+                  tabs: [
+                    AppTab(0, context.tr('instructions')),
+                    AppTab(1, context.tr('schedule')),
+                    AppTab(2, context.tr('simulation')),
+                    AppTab(3, context.tr('care_gaps')),
+                    AppTab(4, context.tr('documents')),
+                  ],
+                  selected: tab,
+                  onChanged: (value) => setState(() => tab = value),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+            _tabContent(detail),
+            const SizedBox(height: 32),
+            SafetyNote(text: context.tr('care_plan_detail_safety_note')),
           ],
-          _tabContent(detail),
-          const SizedBox(height: 32),
-          SafetyNote(text: context.tr('care_plan_detail_safety_note')),
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -241,7 +283,9 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                completed ? context.tr('plan_completed') : context.tr('plan_actions'),
+                completed
+                    ? context.tr('plan_completed')
+                    : context.tr('plan_actions'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -272,7 +316,9 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                         )
                       : const Icon(Icons.restart_alt_outlined, size: 18),
                   label: Text(
-                    _lifecycleSaving ? context.tr('reactivating') : context.tr('reactivate_plan'),
+                    _lifecycleSaving
+                        ? context.tr('reactivating')
+                        : context.tr('reactivate_plan'),
                   ),
                 )
               : OutlinedButton.icon(
@@ -287,18 +333,16 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                         )
                       : const Icon(Icons.check_circle_outline, size: 18),
                   label: Text(
-                    _lifecycleSaving ? context.tr('completing') : context.tr('complete_plan'),
+                    _lifecycleSaving
+                        ? context.tr('completing')
+                        : context.tr('complete_plan'),
                   ),
                 );
 
           if (constraints.maxWidth < 520) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                text,
-                const SizedBox(height: 14),
-                action,
-              ],
+              children: [text, const SizedBox(height: 14), action],
             );
           }
 
@@ -350,12 +394,18 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       await _loadPlan();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('care_plan_completed_reminders_stopped'))),
+        SnackBar(
+          content: Text(context.tr('care_plan_completed_reminders_stopped')),
+        ),
       );
     } on CarePlanException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage))),
+          SnackBar(
+            content: Text(
+              localizedCarePlanExceptionMessage(error, context.appLanguage),
+            ),
+          ),
         );
       }
     } finally {
@@ -386,14 +436,12 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
     setState(() => _lifecycleSaving = true);
     try {
-      final reactivated =
-          await CarePlanService.instance.reactivatePlan(plan.id);
-
-      final notificationResult =
-          await NotificationService.instance.scheduleNextOccurrences(
-        planId: plan.id,
-        tasks: reactivated.tasks,
+      final reactivated = await CarePlanService.instance.reactivatePlan(
+        plan.id,
       );
+
+      final notificationResult = await NotificationService.instance
+          .scheduleNextOccurrences(planId: plan.id, tasks: reactivated.tasks);
 
       await _loadPlan();
       if (!mounted) return;
@@ -401,22 +449,31 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       final message = !notificationResult.permissionGranted
           ? context.tr('care_plan_reactivated_no_notification_permission')
           : !notificationResult.exactAlarmGranted
-              ? context.tr('care_plan_reactivated_exact_alarm_missing')
-              : context.tr('care_plan_reactivated_reminders_restored', values: {'count': notificationResult.scheduledCount});
+          ? context.tr('care_plan_reactivated_exact_alarm_missing')
+          : context.tr(
+              'care_plan_reactivated_reminders_restored',
+              values: {'count': notificationResult.scheduledCount},
+            );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } on CarePlanException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(localizedCarePlanExceptionMessage(error, context.appLanguage))),
+          SnackBar(
+            content: Text(
+              localizedCarePlanExceptionMessage(error, context.appLanguage),
+            ),
+          ),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('plan_reactivation_device_failed'))),
+          SnackBar(
+            content: Text(context.tr('plan_reactivation_device_failed')),
+          ),
         );
       }
     } finally {
@@ -471,13 +528,23 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           return EmptyState(
             icon: Icons.calendar_today_outlined,
             title: context.tr('no_scheduled_tasks_yet'),
-            description: context.tr('generate_schedule_from_verified_instructions'),
+            description: context.tr(
+              'generate_schedule_from_verified_instructions',
+            ),
             action: FilledButton.icon(
               onPressed: _generatingSchedule ? null : _generateSchedule,
               icon: _generatingSchedule
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Icon(Icons.auto_awesome, size: 18),
-              label: Text(_generatingSchedule ? context.tr('generating') : context.tr('generate_schedule')),
+              label: Text(
+                _generatingSchedule
+                    ? context.tr('generating')
+                    : context.tr('generate_schedule'),
+              ),
             ),
           );
         }
@@ -494,7 +561,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                 Expanded(
                   child: Text(
                     context.tr('schedule_ai_copied_timings_help'),
-                    style: const TextStyle(fontSize: 13, color: AppColors.muted),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.muted,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -509,7 +579,9 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             ...detail.tasks.map(
               (task) => _ScheduleRow(
                 task: task,
-                period: _periodOverrides[task.id] ?? _periodFrom('${task.time} ${task.note}'),
+                period:
+                    _periodOverrides[task.id] ??
+                    _periodFrom('${task.time} ${task.note}'),
                 displayTime: _timeOverrides[task.id] ?? task.time,
                 periodChanged: _unsavedPeriodChanges.contains(task.id),
                 onEditPeriod: () => _editSchedulePeriod(task),
@@ -518,16 +590,24 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: detail.tasks.any((task) => task.status == TaskStatus.atRisk) || _unsavedPeriodChanges.isNotEmpty
+              onPressed:
+                  detail.tasks.any(
+                        (task) => task.status == TaskStatus.atRisk,
+                      ) ||
+                      _unsavedPeriodChanges.isNotEmpty
                   ? null
                   : _continueFromSchedule,
-              icon: Icon(widget.returnToPrevious ? Icons.check : Icons.arrow_forward, size: 18),
+              icon: Icon(
+                widget.returnToPrevious ? Icons.check : Icons.arrow_forward,
+                size: 18,
+              ),
               label: Text(
-                detail.tasks.any((task) => task.status == TaskStatus.atRisk) || _unsavedPeriodChanges.isNotEmpty
+                detail.tasks.any((task) => task.status == TaskStatus.atRisk) ||
+                        _unsavedPeriodChanges.isNotEmpty
                     ? context.tr('confirm_schedule_items_first')
                     : widget.returnToPrevious
-                        ? context.tr('done')
-                        : context.tr('continue_to_reality_check'),
+                    ? context.tr('done')
+                    : context.tr('continue_to_reality_check'),
               ),
             ),
           ],
@@ -576,7 +656,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: InkWell(
                     onTap: () async {
-                      await Navigator.pushNamed(context, AppRoutes.careGap(gap.id));
+                      await Navigator.pushNamed(
+                        context,
+                        AppRoutes.careGap(gap.id),
+                      );
                       if (mounted) await _loadPlan();
                     },
                     borderRadius: BorderRadius.circular(AppRadii.xxl),
@@ -586,9 +669,21 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                         children: [
                           StatusBadge(status: gap.status),
                           const SizedBox(height: 8),
-                          Text(gap.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          Text(
+                            gap.title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           const SizedBox(height: 3),
-                          Text(gap.summary, style: const TextStyle(fontSize: 14, color: AppColors.muted)),
+                          Text(
+                            gap.summary,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.muted,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -641,35 +736,59 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            ...documents
-              .map(
-                (document) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: AppCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.description_outlined, size: 21, color: AppColors.primary),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(document.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                              Text(context.tr(document.pages == 1 ? 'document_meta_page' : 'document_meta_pages', values: {'type': document.type, 'pages': document.pages, 'date': document.date}), style: const TextStyle(fontSize: 13, color: AppColors.muted)),
-                            ],
-                          ),
+            ...documents.map(
+              (document) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: AppCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.description_outlined,
+                        size: 21,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              document.name,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              context.tr(
+                                document.pages == 1
+                                    ? 'document_meta_page'
+                                    : 'document_meta_pages',
+                                values: {
+                                  'type': document.type,
+                                  'pages': document.pages,
+                                  'date': document.date,
+                                },
+                              ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          onPressed: () => _deleteDocument(document.id),
-                          icon: const Icon(Icons.delete_outline, size: 19),
-                          tooltip: context.tr('remove_document'),
-                        ),
-                      ],
-                    ),
+                      ),
+                      IconButton(
+                        onPressed: () => _deleteDocument(document.id),
+                        icon: const Icon(Icons.delete_outline, size: 19),
+                        tooltip: context.tr('remove_document'),
+                      ),
+                    ],
                   ),
                 ),
               ),
+            ),
           ],
         );
     }
@@ -715,18 +834,16 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Record this reminder as skipped?'),
-          content: const Text(
-            'This only records what happened. SehatMate does not advise skipping or changing treatment. If you are unsure what to do next, check the verified instruction or ask a qualified healthcare professional.',
-          ),
+          title: Text(context.tr('cpd_record_skip_title')),
+          content: Text(context.tr('cpd_record_skip_body')),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: Text(context.tr('cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Record skipped'),
+              child: Text(context.tr('cpd_record_skipped')),
             ),
           ],
         ),
@@ -736,8 +853,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
     setState(() => _outcomeSavingIds.add(item.id));
     try {
-      final result =
-          await CareReliabilityService.instance.setOutcome(
+      final result = await CareReliabilityService.instance.setOutcome(
         item,
         outcome,
       );
@@ -747,8 +863,12 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         _todayOccurrences = _todayOccurrences
             .map((entry) => entry.id == updated.id ? updated : entry)
             .toList();
-        final completed = _todayOccurrences.where((entry) => entry.completed).length;
-        final skipped = _todayOccurrences.where((entry) => entry.skipped).length;
+        final completed = _todayOccurrences
+            .where((entry) => entry.completed)
+            .length;
+        final skipped = _todayOccurrences
+            .where((entry) => entry.skipped)
+            .length;
         final missed = _todayOccurrences.where((entry) => entry.missed).length;
         _todaySummary = CareTaskDaySummary(
           total: _todayOccurrences.length,
@@ -762,35 +882,27 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         SnackBar(
           content: Text(
             outcome == 'completed'
-                ? 'Task marked completed.'
+                ? context.tr('cpd_task_marked_completed')
                 : outcome == 'skipped'
-                    ? 'Task recorded as skipped.'
-                    : 'Task outcome cleared.',
+                ? context.tr('cpd_task_recorded_skipped')
+                : context.tr('cpd_task_outcome_cleared'),
           ),
         ),
       );
       if (result.queued) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Saved offline. This task outcome will sync automatically.',
-            ),
-          ),
+          SnackBar(content: Text(context.tr('cpd_outcome_saved_offline'))),
         );
       } else if (result.conflictRecovered) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Latest server status restored because this task changed elsewhere.',
-            ),
-          ),
+          SnackBar(content: Text(context.tr('cpd_outcome_conflict_recovered'))),
         );
       }
     } on CarePlanException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
       if (mounted) setState(() => _outcomeSavingIds.remove(item.id));
@@ -799,7 +911,8 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
   Widget _todayTaskOutcomesSection(DemoPlan plan) {
     final summary = _todaySummary;
-    final completed = summary?.completed ??
+    final completed =
+        summary?.completed ??
         _todayOccurrences.where((item) => item.completed).length;
     final total = summary?.total ?? _todayOccurrences.length;
 
@@ -810,31 +923,43 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Today's task outcomes",
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                      context.tr('cpd_today_outcomes_title'),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    SizedBox(height: 3),
+                    const SizedBox(height: 3),
                     Text(
-                      'Each reminder is tracked separately for today.',
-                      style: TextStyle(fontSize: 13, color: AppColors.muted),
+                      context.tr('cpd_today_outcomes_subtitle'),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.muted,
+                      ),
                     ),
                   ],
                 ),
               ),
               if (total > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryLight,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    '$completed / $total done',
+                    context.tr(
+                      'cpd_outcomes_progress',
+                      values: {'completed': completed, 'total': total},
+                    ),
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,
@@ -848,18 +973,15 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           if (_todayOccurrences.isEmpty)
             Text(
               plan.status == PlanStatus.completed
-                  ? 'No task occurrences were recorded for today.'
-                  : 'No tasks are scheduled for today.',
+                  ? context.tr('cpd_no_occurrences_recorded')
+                  : context.tr('cpd_no_tasks_scheduled_today'),
               style: const TextStyle(color: AppColors.muted),
             )
           else
             ..._todayOccurrences.map(_todayOccurrenceCard),
           if (_todayOccurrences.isNotEmpty) ...[
             const SizedBox(height: 4),
-            const SafetyNote(
-              text:
-                  'Task outcomes record what happened. They do not change the verified medical instruction or tell you to skip, repeat, or change treatment.',
-            ),
+            SafetyNote(text: context.tr('cpd_outcomes_safety_note')),
           ],
         ],
       ),
@@ -873,14 +995,18 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     final isSkipped = item.skipped;
     final isMissed = item.missed;
     final statusLabel = switch (visual) {
-      'completed' => item.completedTime.isEmpty
-          ? 'Completed'
-          : 'Completed ${_displayClock(item.completedTime)}',
-      'skipped' => 'Skipped',
-      'missed' => 'Missed',
-      'overdue' => 'Overdue',
-      'due' => 'Due now',
-      _ => 'Upcoming',
+      'completed' =>
+        item.completedTime.isEmpty
+            ? context.tr('cpd_status_completed')
+            : context.tr(
+                'cpd_status_completed_at',
+                values: {'time': _displayClock(item.completedTime)},
+              ),
+      'skipped' => context.tr('cpd_status_skipped'),
+      'missed' => context.tr('cpd_status_missed'),
+      'overdue' => context.tr('cpd_status_overdue'),
+      'due' => context.tr('cpd_status_due_now'),
+      _ => context.tr('cpd_status_upcoming'),
     };
     final statusColor = switch (visual) {
       'completed' => AppColors.successForeground,
@@ -905,7 +1031,11 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.checklist_rounded, color: AppColors.primary, size: 21),
+              const Icon(
+                Icons.checklist_rounded,
+                color: AppColors.primary,
+                size: 21,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -917,8 +1047,11 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${_displayClock(item.scheduledTime)}${item.period.isEmpty ? '' : ' · ${item.period[0].toUpperCase()}${item.period.substring(1)}'}',
-                      style: const TextStyle(fontSize: 13, color: AppColors.muted),
+                      '${_displayClock(item.scheduledTime)}${item.period.isEmpty ? '' : ' · ${_localizedPeriod(context, item.period)}'}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.muted,
+                      ),
                     ),
                   ],
                 ),
@@ -941,16 +1074,23 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                 onPressed: saving
                     ? null
                     : isMissed
-                        ? () => _setOccurrenceOutcome(item, 'completed')
-                        : () => _setOccurrenceOutcome(item, 'pending'),
+                    ? () => _setOccurrenceOutcome(item, 'completed')
+                    : () => _setOccurrenceOutcome(item, 'pending'),
                 icon: saving
                     ? const SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Icon(isMissed ? Icons.check_circle_outline : Icons.undo, size: 17),
-                label: Text(isMissed ? 'Correct as completed' : 'Undo'),
+                    : Icon(
+                        isMissed ? Icons.check_circle_outline : Icons.undo,
+                        size: 17,
+                      ),
+                label: Text(
+                  isMissed
+                      ? context.tr('cpd_correct_as_completed')
+                      : context.tr('cpd_undo'),
+                ),
               ),
             )
           else
@@ -962,7 +1102,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                         ? null
                         : () => _setOccurrenceOutcome(item, 'completed'),
                     icon: const Icon(Icons.check_circle_outline, size: 18),
-                    label: const Text('Completed'),
+                    label: Text(context.tr('cpd_mark_completed')),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -970,7 +1110,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   onPressed: saving
                       ? null
                       : () => _setOccurrenceOutcome(item, 'skipped'),
-                  child: const Text('Record skipped'),
+                  child: Text(context.tr('cpd_record_skipped')),
                 ),
               ],
             ),
@@ -986,14 +1126,14 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       await _loadPlan();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Document removed.')),
+          SnackBar(content: Text(context.tr('cpd_document_removed'))),
         );
       }
     } on CarePlanException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     }
   }
@@ -1004,24 +1144,24 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove medicine from SehatMate?'),
+        title: Text(context.tr('cpd_remove_medicine_title')),
         content: Text(
-          'This removes "${task.title}" from this care plan, including its '
-          'future SehatMate tasks and reminders. It does not mean the medicine '
-          'should be stopped. Continue following the healthcare professional’s '
-          'instructions unless they tell you otherwise.',
+          context.tr(
+            'cpd_remove_medicine_body',
+            values: {'medicine': task.title},
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.criticalForeground,
             ),
-            child: const Text('Remove from SehatMate'),
+            child: Text(context.tr('cpd_remove_from_sehatmate')),
           ),
         ],
       ),
@@ -1036,8 +1176,9 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       // Android notification behind.
       await NotificationService.instance.cancelPlan(widget.planId);
 
-      final updated =
-          await CarePlanService.instance.fetchPlanDetail(widget.planId);
+      final updated = await CarePlanService.instance.fetchPlanDetail(
+        widget.planId,
+      );
       if (updated.plan.status == PlanStatus.active &&
           updated.tasks.isNotEmpty) {
         await NotificationService.instance.scheduleNextOccurrences(
@@ -1057,27 +1198,20 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Medicine removed from SehatMate and local reminders rebuilt.',
-            ),
-          ),
+          SnackBar(content: Text(context.tr('cpd_medicine_removed_rebuilt'))),
         );
       }
     } on CarePlanException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'The medicine was changed on the server, but local reminders '
-              'could not be fully rebuilt. Reopen the app to reconcile them.',
-            ),
+          SnackBar(
+            content: Text(context.tr('cpd_medicine_removed_rebuild_failed')),
           ),
         );
       }
@@ -1086,16 +1220,22 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
   Future<void> _generateSchedule() async {
     if (AuthSession.instance.isGuest) {
-      showDemoMessage(context, 'AI schedule generation is available after sign in.');
+      showDemoMessage(context, context.tr('cpd_schedule_sign_in_required'));
       return;
     }
     setState(() => _generatingSchedule = true);
     try {
       await CarePlanService.instance.generateSchedule(widget.planId);
       await _loadPlan();
-      if (mounted) showDemoMessage(context, 'Schedule draft generated from verified instructions.');
+      if (mounted) {
+        showDemoMessage(context, context.tr('cpd_schedule_generated'));
+      }
     } on CarePlanException catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
     } finally {
       if (mounted) setState(() => _generatingSchedule = false);
     }
@@ -1118,9 +1258,9 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       } on CarePlanException catch (error) {
         if (!mounted) return;
         setState(() => _scheduleSaveState = 'Retry needed');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
         return;
       }
     }
@@ -1138,17 +1278,15 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   bool _taskHasVerifiedExactTimeLock(DemoTask task) {
     final note = task.note.toLowerCase();
     final hasVerifiedExactReason =
-        note.contains('exact clock time') && note.contains('verified instruction');
+        note.contains('exact clock time') &&
+        note.contains('verified instruction');
     return task.timeLocked ||
         task.grounding.trim().toLowerCase() == 'explicit' ||
         hasVerifiedExactReason;
   }
 
   void _showVerifiedExactTimeLockedMessage() {
-    showDemoMessage(
-      context,
-      'This exact time comes from the verified instruction and cannot be edited here.',
-    );
+    showDemoMessage(context, context.tr('cpd_exact_time_locked_message'));
   }
 
   Future<void> _confirmScheduleItem(DemoTask task) async {
@@ -1156,11 +1294,15 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       _showVerifiedExactTimeLockedMessage();
       return;
     }
-    final period = _periodOverrides[task.id] ?? _periodFrom('${task.time} ${task.note}');
+    final period =
+        _periodOverrides[task.id] ?? _periodFrom('${task.time} ${task.note}');
 
     if (_periodAlreadyUsed(task, period)) {
       _showScheduleConflict(
-        '$period is already used for another reminder for this instruction. Choose a different period.',
+        context.tr(
+          'cpd_period_already_used',
+          values: {'period': _localizedPeriod(context, period)},
+        ),
       );
       return;
     }
@@ -1173,7 +1315,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
     if (_timeAlreadyUsed(task, scheduleTime)) {
       _showScheduleConflict(
-        '${selected.format(context)} is already used for another reminder for this instruction. Choose a different time.',
+        context.tr(
+          'cpd_time_already_used',
+          values: {'time': selected.format(context)},
+        ),
       );
       return;
     }
@@ -1183,7 +1328,8 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       await CarePlanService.instance.confirmScheduleItem(
         task.id,
         scheduleTime: scheduleTime,
-        displayTime: '$period · Confirmed reminder at ${selected.format(context)}',
+        displayTime:
+            '$period · Confirmed reminder at ${selected.format(context)}',
       );
 
       if (!mounted) return;
@@ -1195,7 +1341,16 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       await _loadPlan();
       if (mounted) {
         setState(() => _scheduleSaveState = 'Saved');
-        showDemoMessage(context, '$period reminder set for ${selected.format(context)}.');
+        showDemoMessage(
+          context,
+          context.tr(
+            'cpd_reminder_set_for_time',
+            values: {
+              'period': _localizedPeriod(context, period),
+              'time': selected.format(context),
+            },
+          ),
+        );
       }
     } on CarePlanException catch (error) {
       if (mounted) {
@@ -1203,9 +1358,9 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         if (error.data?['medicalTimingConflict'] == true) {
           await _showMedicalTimingConflict(error);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error.message)));
         }
       }
     }
@@ -1216,8 +1371,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     final originalInstruction =
         data['originalInstruction']?.toString().trim() ?? '';
     final originalTiming = data['originalTiming']?.toString().trim() ?? '';
-    final recommendation =
-        data['recommendation']?.toString().trim() ?? '';
+    final recommendation = data['recommendation']?.toString().trim() ?? '';
 
     await showDialog<void>(
       context: context,
@@ -1227,7 +1381,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           color: AppColors.criticalForeground,
           size: 34,
         ),
-        title: const Text('Medical timing conflict'),
+        title: Text(context.tr('cpd_medical_timing_conflict')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1235,9 +1389,9 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             Text(error.message),
             if (originalInstruction.isNotEmpty) ...[
               const SizedBox(height: 14),
-              const Text(
-                'Verified instruction',
-                style: TextStyle(fontWeight: FontWeight.w700),
+              Text(
+                context.tr('cpd_verified_instruction_label'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
               Text(
@@ -1251,16 +1405,13 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               const SizedBox(height: 14),
               Text(
                 recommendation,
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  height: 1.4,
-                ),
+                style: const TextStyle(color: AppColors.muted, height: 1.4),
               ),
             ],
             const SizedBox(height: 12),
-            const Text(
-              'The prescription instruction was not changed.',
-              style: TextStyle(
+            Text(
+              context.tr('cpd_prescription_not_changed'),
+              style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 color: AppColors.primary,
               ),
@@ -1270,7 +1421,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Choose a safe time'),
+            child: Text(context.tr('cpd_choose_safe_time')),
           ),
         ],
       ),
@@ -1283,24 +1434,37 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       return;
     }
 
-    final current = _periodOverrides[task.id] ?? _periodFrom('${task.time} ${task.note}');
+    final current =
+        _periodOverrides[task.id] ?? _periodFrom('${task.time} ${task.note}');
     final period = await showDialog<String>(
       context: context,
       builder: (dialogContext) => SimpleDialog(
-        title: const Text('Edit time period'),
-        children: ['Morning', 'Afternoon', 'Evening', 'Night'].map((value) => ListTile(
-          leading: Icon(value == current ? Icons.radio_button_checked : Icons.radio_button_off, color: AppColors.primary),
-          title: Text(value),
-          subtitle: Text(_periodDescription(value)),
-          onTap: () => Navigator.pop(dialogContext, value),
-        )).toList(),
+        title: Text(context.tr('cpd_edit_time_period')),
+        children: ['Morning', 'Afternoon', 'Evening', 'Night']
+            .map(
+              (value) => ListTile(
+                leading: Icon(
+                  value == current
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  color: AppColors.primary,
+                ),
+                title: Text(_localizedPeriod(context, value)),
+                subtitle: Text(_periodDescription(value)),
+                onTap: () => Navigator.pop(dialogContext, value),
+              ),
+            )
+            .toList(),
       ),
     );
     if (period == null || !mounted) return;
 
     if (_periodAlreadyUsed(task, period)) {
       _showScheduleConflict(
-        '$period is already used for another reminder for this instruction. Choose a different period.',
+        context.tr(
+          'cpd_period_already_used',
+          values: {'period': _localizedPeriod(context, period)},
+        ),
       );
       return;
     }
@@ -1337,7 +1501,8 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     return detail.tasks.any((other) {
       if (!_sameScheduleGroup(task, other)) return false;
       final otherPeriod =
-          _periodOverrides[other.id] ?? _periodFrom('${other.time} ${other.note}');
+          _periodOverrides[other.id] ??
+          _periodFrom('${other.time} ${other.note}');
       return otherPeriod == period;
     });
   }
@@ -1373,12 +1538,15 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
   void _showScheduleConflict(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<TimeOfDay?> _showRestrictedTimePicker(String period, TimeOfDay initial) async {
+  Future<TimeOfDay?> _showRestrictedTimePicker(
+    String period,
+    TimeOfDay initial,
+  ) async {
     final hours = switch (period) {
       'Morning' => List<int>.generate(8, (index) => index + 4),
       'Afternoon' => List<int>.generate(5, (index) => index + 12),
@@ -1386,45 +1554,91 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       'Night' => <int>[21, 22, 23, 0, 1, 2, 3],
       _ => List<int>.generate(8, (index) => index + 4),
     };
-    var hour = hours.contains(initial.hour) ? initial.hour : _defaultTime(period).hour;
+    var hour = hours.contains(initial.hour)
+        ? initial.hour
+        : _defaultTime(period).hour;
     var minute = initial.minute;
     return showDialog<TimeOfDay>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Set $period time'),
+          title: Text(
+            context.tr(
+              'cpd_set_period_time',
+              values: {'period': _localizedPeriod(context, period)},
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Allowed: ${_periodDescription(period)}', style: const TextStyle(color: AppColors.muted)),
+              Text(
+                context.tr(
+                  'cpd_allowed_time_range',
+                  values: {'range': _periodDescription(period)},
+                ),
+                style: const TextStyle(color: AppColors.muted),
+              ),
               const SizedBox(height: 16),
-              Row(children: [
-                Expanded(child: DropdownButtonFormField<int>(
-                  initialValue: hour,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Hour'),
-                  items: hours.map((value) => DropdownMenuItem(value: value, child: Text(_formatHour(value)))).toList(),
-                  onChanged: (value) {
-                    if (value != null) setDialogState(() => hour = value);
-                  },
-                )),
-                const SizedBox(width: 10),
-                Expanded(child: DropdownButtonFormField<int>(
-                  initialValue: minute,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Minute'),
-                  items: List<int>.generate(60, (index) => index).map((value) => DropdownMenuItem(value: value, child: Text(value.toString().padLeft(2, '0')))).toList(),
-                  onChanged: (value) {
-                    if (value != null) setDialogState(() => minute = value);
-                  },
-                )),
-              ]),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      initialValue: hour,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: context.tr('cpd_label_hour'),
+                      ),
+                      items: hours
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(_formatHour(value)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) setDialogState(() => hour = value);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      initialValue: minute,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: context.tr('cpd_label_minute'),
+                      ),
+                      items: List<int>.generate(60, (index) => index)
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(value.toString().padLeft(2, '0')),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) setDialogState(() => minute = value);
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, TimeOfDay(hour: hour, minute: minute)), child: const Text('Use this time')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(context.tr('cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                TimeOfDay(hour: hour, minute: minute),
+              ),
+              child: Text(context.tr('cpd_use_this_time')),
+            ),
           ],
         ),
       ),
@@ -1462,11 +1676,11 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   }
 
   String _periodDescription(String period) => switch (period) {
-    'Morning' => '4:00 AM – 11:59 AM',
-    'Afternoon' => '12:00 PM – 4:59 PM',
-    'Evening' => '5:00 PM – 8:59 PM',
-    'Night' => '9:00 PM – 3:59 AM',
-    _ => '4:00 AM – 11:59 AM',
+    'Morning' => context.tr('cpd_period_morning_range'),
+    'Afternoon' => context.tr('cpd_period_afternoon_range'),
+    'Evening' => context.tr('cpd_period_evening_range'),
+    'Night' => context.tr('cpd_period_night_range'),
+    _ => context.tr('cpd_period_morning_range'),
   };
 
   TimeOfDay _defaultTime(String period) => switch (period) {
@@ -1504,86 +1718,105 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     return TimeOfDay(hour: hour, minute: minute);
   }
 
-  Widget _loadingView() => const AppShell(
-        currentRoute: AppRoutes.carePlans,
-        title: 'Care Plan',
-        child: Center(child: CircularProgressIndicator()),
-      );
+  Widget _loadingView() => AppShell(
+    currentRoute: AppRoutes.carePlans,
+    title: context.tr('care_plan'),
+    child: const Center(child: CircularProgressIndicator()),
+  );
 
   Widget _notFound(String? message) => AppShell(
-        currentRoute: AppRoutes.carePlans,
-        title: 'Care Plan',
-        child: AppCard(
-          child: Column(
-            children: [
-              const Text('Care plan not found', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(message ?? 'This plan may have been removed.', style: const TextStyle(color: AppColors.muted)),
-              const SizedBox(height: 16),
-              FilledButton(onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.carePlans), child: const Text('Back to Care Plans')),
-            ],
+    currentRoute: AppRoutes.carePlans,
+    title: context.tr('care_plan'),
+    child: AppCard(
+      child: Column(
+        children: [
+          Text(
+            context.tr('cpd_care_plan_not_found'),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
           ),
-        ),
-      );
+          const SizedBox(height: 4),
+          Text(
+            message ?? context.tr('cpd_plan_removed'),
+            style: const TextStyle(color: AppColors.muted),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pushReplacementNamed(context, AppRoutes.carePlans),
+            child: Text(context.tr('cpd_back_to_care_plans')),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _InstructionRow extends StatelessWidget {
-  const _InstructionRow({
-    required this.task,
-    this.onRemove,
-  });
+  const _InstructionRow({required this.task, this.onRemove});
 
   final DemoTask task;
   final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: AppCard(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(AppRadii.xl)),
-                child: Icon(task.icon, size: 18, color: AppColors.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    Text('${task.note} · ${task.time}', style: const TextStyle(fontSize: 14, color: AppColors.muted)),
-                  ],
+    padding: const EdgeInsets.only(bottom: 12),
+    child: AppCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(AppRadii.xl),
+            ),
+            child: Icon(task.icon, size: 18, color: AppColors.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  StatusBadge(status: task.status),
-                  if (onRemove != null) ...[
-                    const SizedBox(height: 6),
-                    IconButton(
-                      onPressed: onRemove,
-                      tooltip: 'Remove medicine from SehatMate',
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        size: 20,
-                        color: AppColors.criticalForeground,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+                Text(
+                  '${task.note} · ${task.time}',
+                  style: const TextStyle(fontSize: 14, color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              StatusBadge(status: task.status),
+              if (onRemove != null) ...[
+                const SizedBox(height: 6),
+                IconButton(
+                  onPressed: onRemove,
+                  tooltip: context.tr('cpd_remove_medicine_tooltip'),
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 20,
+                    color: AppColors.criticalForeground,
+                  ),
+                ),
+              ],
             ],
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class _ScheduleRow extends StatelessWidget {
@@ -1634,12 +1867,12 @@ class _ScheduleRow extends StatelessWidget {
   }
 
   IconData _periodIcon() => switch (period) {
-        'Morning' => Icons.wb_sunny_outlined,
-        'Afternoon' => Icons.light_mode_outlined,
-        'Evening' => Icons.wb_twilight_outlined,
-        'Night' => Icons.nightlight_outlined,
-        _ => Icons.schedule_outlined,
-      };
+    'Morning' => Icons.wb_sunny_outlined,
+    'Afternoon' => Icons.light_mode_outlined,
+    'Evening' => Icons.wb_twilight_outlined,
+    'Night' => Icons.nightlight_outlined,
+    _ => Icons.schedule_outlined,
+  };
 
   Widget _infoChip({
     required IconData icon,
@@ -1647,7 +1880,9 @@ class _ScheduleRow extends StatelessWidget {
     bool warning = false,
   }) {
     final background = warning ? AppColors.warningSoft : AppColors.primaryLight;
-    final foreground = warning ? AppColors.warningForeground : AppColors.primary;
+    final foreground = warning
+        ? AppColors.warningForeground
+        : AppColors.primary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
@@ -1707,13 +1942,18 @@ class _ScheduleRow extends StatelessWidget {
     final formattedTime = _formattedTime(displayTime);
     final note = task.note.toLowerCase();
     final hasVerifiedExactReason =
-        note.contains('exact clock time') && note.contains('verified instruction');
-    final exactTimeLocked = formattedTime != null &&
+        note.contains('exact clock time') &&
+        note.contains('verified instruction');
+    final exactTimeLocked =
+        formattedTime != null &&
         (task.timeLocked ||
             task.grounding.trim().toLowerCase() == 'explicit' ||
             hasVerifiedExactReason);
-    final needsTime = !exactTimeLocked &&
-        (task.status == TaskStatus.atRisk || periodChanged || formattedTime == null);
+    final needsTime =
+        !exactTimeLocked &&
+        (task.status == TaskStatus.atRisk ||
+            periodChanged ||
+            formattedTime == null);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -1773,25 +2013,36 @@ class _ScheduleRow extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _infoChip(icon: _periodIcon(), label: period),
                 _infoChip(
-                  icon: needsTime ? Icons.schedule_outlined : Icons.alarm_outlined,
-                  label: needsTime ? 'Choose exact time' : formattedTime,
+                  icon: _periodIcon(),
+                  label: _localizedPeriod(context, period),
+                ),
+                _infoChip(
+                  icon: needsTime
+                      ? Icons.schedule_outlined
+                      : Icons.alarm_outlined,
+                  label: needsTime
+                      ? context.tr('cpd_choose_exact_time')
+                      : formattedTime,
                   warning: needsTime,
                 ),
               ],
             ),
             if (exactTimeLocked) ...[
               const SizedBox(height: 10),
-              const Row(
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.lock_outline, size: 16, color: AppColors.primary),
-                  SizedBox(width: 7),
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 7),
                   Expanded(
                     child: Text(
-                      'Exact time copied from the verified instruction. Reality Check can flag practical conflicts, but SehatRoute will not change this medical timing.',
-                      style: TextStyle(
+                      context.tr('cpd_exact_time_locked_note'),
+                      style: const TextStyle(
                         fontSize: 12,
                         height: 1.35,
                         color: AppColors.muted,
@@ -1803,15 +2054,19 @@ class _ScheduleRow extends StatelessWidget {
             ],
             if (periodChanged) ...[
               const SizedBox(height: 10),
-              const Row(
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, size: 16, color: AppColors.warningForeground),
-                  SizedBox(width: 7),
+                  const Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: AppColors.warningForeground,
+                  ),
+                  const SizedBox(width: 7),
                   Expanded(
                     child: Text(
-                      'Period changed. Choose an exact time inside this period to save it.',
-                      style: TextStyle(
+                      context.tr('cpd_period_changed_note'),
+                      style: const TextStyle(
                         fontSize: 12,
                         height: 1.35,
                         color: AppColors.warningForeground,
@@ -1832,14 +2087,18 @@ class _ScheduleRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.lock_outline, size: 17, color: AppColors.muted),
-                    SizedBox(width: 8),
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 17,
+                      color: AppColors.muted,
+                    ),
+                    const SizedBox(width: 8),
                     Text(
-                      'Verified exact time',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      context.tr('cpd_verified_exact_time'),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -1850,12 +2109,14 @@ class _ScheduleRow extends StatelessWidget {
                   final stackActions = constraints.maxWidth < 300;
                   final editPeriod = _actionButton(
                     icon: Icons.edit_outlined,
-                    label: 'Edit period',
+                    label: context.tr('cpd_edit_period'),
                     onPressed: onEditPeriod,
                   );
                   final editTime = _actionButton(
                     icon: Icons.schedule_outlined,
-                    label: needsTime ? 'Set time' : 'Edit time',
+                    label: needsTime
+                        ? context.tr('cpd_set_time')
+                        : context.tr('cpd_edit_time'),
                     onPressed: onSetTime,
                     primary: needsTime,
                   );

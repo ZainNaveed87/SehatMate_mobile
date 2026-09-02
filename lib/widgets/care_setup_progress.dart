@@ -75,7 +75,9 @@ class GuidedCareSetupProgress extends StatelessWidget {
                 final current = number == safeStep;
                 final canReview = complete && planId != null;
                 return Padding(
-                  padding: EdgeInsets.only(right: index == _labelKeys.length - 1 ? 0 : 8),
+                  padding: EdgeInsets.only(
+                    right: index == _labelKeys.length - 1 ? 0 : 8,
+                  ),
                   child: InkWell(
                     onTap: !canReview
                         ? null
@@ -92,13 +94,16 @@ class GuidedCareSetupProgress extends StatelessWidget {
                           },
                     borderRadius: BorderRadius.circular(99),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
                       decoration: BoxDecoration(
                         color: current
                             ? AppColors.primaryLight
                             : complete
-                                ? AppColors.successSoft
-                                : AppColors.secondary,
+                            ? AppColors.successSoft
+                            : AppColors.secondary,
                         borderRadius: BorderRadius.circular(99),
                         border: Border.all(
                           color: current ? AppColors.primary : AppColors.border,
@@ -111,14 +116,14 @@ class GuidedCareSetupProgress extends StatelessWidget {
                             complete
                                 ? Icons.check_circle_outline
                                 : current
-                                    ? Icons.radio_button_checked
-                                    : Icons.radio_button_unchecked,
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_unchecked,
                             size: 15,
                             color: current
                                 ? AppColors.primary
                                 : complete
-                                    ? AppColors.successForeground
-                                    : AppColors.muted,
+                                ? AppColors.successForeground
+                                : AppColors.muted,
                           ),
                           const SizedBox(width: 5),
                           Text(
@@ -166,13 +171,14 @@ class _SaveStateLabel extends StatelessWidget {
       'saved' => context.tr('saved'),
       'retry needed' => context.tr('retry_needed'),
       'unsaved changes' => context.tr('unsaved_changes'),
+      'choose time' => context.tr('cpd_save_state_choose_time'),
       _ => value,
     };
     final color = failed
         ? AppColors.criticalForeground
         : saving
-            ? AppColors.muted
-            : AppColors.successForeground;
+        ? AppColors.muted
+        : AppColors.successForeground;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -190,7 +196,11 @@ class _SaveStateLabel extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
         ),
       ],
     );

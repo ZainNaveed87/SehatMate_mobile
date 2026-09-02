@@ -235,9 +235,7 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
 
       setState(() {
         loading = false;
-        error = context.tr(
-  'care_gaps_load_failed',
-);
+        error = context.tr('care_gaps_load_failed');
       });
     }
   }
@@ -296,55 +294,33 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
                 },
                 icon: const Icon(Icons.arrow_back, size: 17),
                 label: Text(
-  widget.returnToPrevious
-      ? context.tr('back')
-      : context.tr(
-          'back_to_simulation',
-        ),
-),
+                  widget.returnToPrevious
+                      ? context.tr('back')
+                      : context.tr('back_to_simulation'),
+                ),
               ),
             ),
 
           PageHeader(
-  title: context.tr(
-    'care_gaps',
-  ),
-  subtitle: loading
-      ? context.tr(
-          'care_gaps_checking',
-        )
-      : context.tr(
-          'care_gaps_counts',
-          values: {
-            'open': openCount,
-            'blocking':
-                blockingCount,
-          },
-        ),
-  action: OutlinedButton.icon(
-    onPressed: loading
-        ? null
-        : () => _load(
-              forceRefresh: true,
+            title: context.tr('care_gaps'),
+            subtitle: loading
+                ? context.tr('care_gaps_checking')
+                : context.tr(
+                    'care_gaps_counts',
+                    values: {'open': openCount, 'blocking': blockingCount},
+                  ),
+            action: OutlinedButton.icon(
+              onPressed: loading ? null : () => _load(forceRefresh: true),
+              icon: const Icon(Icons.refresh, size: 17),
+              label: Text(context.tr('refresh')),
             ),
-    icon: const Icon(
-      Icons.refresh,
-      size: 17,
-    ),
-    label: Text(
-      context.tr('refresh'),
-    ),
-  ),
-),
+          ),
 
           if (widget.guidedSetup && widget.planId != null) ...[
             GuidedCareSetupProgress(
               currentStep: 6,
               planId: widget.planId!,
-             saveState:
-    loading
-        ? context.tr('saving')
-        : context.tr('saved'),
+              saveState: loading ? context.tr('saving') : context.tr('saved'),
             ),
             const SizedBox(height: 16),
           ],
@@ -369,15 +345,11 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (visibleGaps.isEmpty)
-           EmptyState(
-  icon: Icons.shield_outlined,
-  title: context.tr(
-    'care_gaps_ready_title',
-  ),
-  description: context.tr(
-    'care_gaps_empty_filter',
-  ),
-)
+            EmptyState(
+              icon: Icons.shield_outlined,
+              title: context.tr('care_gaps_ready_title'),
+              description: context.tr('care_gaps_empty_filter'),
+            )
           else
             ..._groupedGapSections(),
 
@@ -393,25 +365,17 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
                     : _continueToFinalSimulation,
                 icon: const Icon(Icons.refresh, size: 17),
                 label: Text(
-  blockingCount > 0
-      ? context.tr(
-          'resolve_blockers_first',
-        )
-      : context.tr(
-          'run_final_simulation',
-        ),
-),
+                  blockingCount > 0
+                      ? context.tr('resolve_blockers_first')
+                      : context.tr('run_final_simulation'),
+                ),
               ),
             ),
           ],
 
           const SizedBox(height: 12),
 
-          SafetyNote(
-  text: context.tr(
-    'care_gaps_safety_note',
-  ),
-),
+          SafetyNote(text: context.tr('care_gaps_safety_note')),
         ],
       ),
     );
@@ -444,30 +408,21 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
     }
   }
 
-String _groupKey(
-  CareGapItemData gap,
-) =>
-    switch (gap.gapType) {
-      'schedule_gap' =>
-        'schedule_issues',
+  String _groupKey(CareGapItemData gap) => switch (gap.gapType) {
+    'schedule_gap' => 'schedule_issues',
 
-      'missing_information' =>
-        'missing_information',
+    'missing_information' => 'missing_information',
 
-      'document_gap' =>
-        'document_issues',
+    'document_gap' => 'document_issues',
 
-      'verification' =>
-        'verification',
+    'verification' => 'verification',
 
-      'overdue' =>
-        'overdue',
+    'overdue' => 'overdue',
 
-      'care_coordination' =>
-        'care_coordination',
+    'care_coordination' => 'care_coordination',
 
-      _ => gap.typeLabel,
-    };
+    _ => gap.typeLabel,
+  };
 
   Map<String, List<CareGapItemData>> get _visibleGroups {
     final grouped = <String, List<CareGapItemData>>{};
@@ -479,58 +434,38 @@ String _groupKey(
     return grouped;
   }
 
- Widget _groupedSummaryCard() {
-  final groups = _visibleGroups;
+  Widget _groupedSummaryCard() {
+    final groups = _visibleGroups;
 
-  return AppCard(
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          context.tr(
-            'current_issues_by_type',
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            context.tr('current_issues_by_type'),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
           ),
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
+
+          const SizedBox(height: 4),
+
+          Text(
+            context.tr('care_gap_group_help'),
+            style: const TextStyle(fontSize: 13, color: AppColors.muted),
           ),
-        ),
 
-        const SizedBox(height: 4),
+          const SizedBox(height: 12),
 
-        Text(
-          context.tr(
-            'care_gap_group_help',
-          ),
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.muted,
-          ),
-        ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: groups.entries.map((entry) {
+              final blocking = entry.value.where((gap) => gap.blocking).length;
 
-        const SizedBox(height: 12),
-
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: groups.entries.map(
-            (entry) {
-              final blocking = entry.value
-                  .where(
-                    (gap) => gap.blocking,
-                  )
-                  .length;
-
-              final groupLabel =
-                  context.tr(
-                entry.key,
-              );
+              final groupLabel = context.tr(entry.key);
 
               return Container(
-                padding:
-                    const EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 9,
                 ),
@@ -538,50 +473,40 @@ String _groupKey(
                   color: blocking > 0
                       ? AppColors.criticalSoft
                       : AppColors.warningSoft,
-                  borderRadius:
-                      BorderRadius.circular(99),
+                  borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(
                   blocking > 0
                       ? context.tr(
                           'care_gap_group_chip_blocking',
                           values: {
-                            'count':
-                                entry.value.length,
-                            'type':
-                                groupLabel,
-                            'blocking':
-                                blocking,
+                            'count': entry.value.length,
+                            'type': groupLabel,
+                            'blocking': blocking,
                           },
                         )
                       : context.tr(
                           'care_gap_group_chip',
                           values: {
-                            'count':
-                                entry.value.length,
-                            'type':
-                                groupLabel,
+                            'count': entry.value.length,
+                            'type': groupLabel,
                           },
                         ),
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                     color: blocking > 0
-                        ? AppColors
-                            .criticalForeground
-                        : AppColors
-                            .warningForeground,
+                        ? AppColors.criticalForeground
+                        : AppColors.warningForeground,
                   ),
                 ),
               );
-            },
-          ).toList(),
-        ),
-      ],
-    ),
-  );
-}
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
 
   List<Widget> _groupedGapSections() {
     final groups = _visibleGroups;
@@ -622,32 +547,24 @@ String _groupKey(
                   ),
                 ),
               ),
-             title: Text(
-  context.tr(
-    entry.key,
-  ),
+              title: Text(
+                context.tr(entry.key),
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               subtitle: Text(
-  blocking > 0
-      ? context.tr(
-          'care_gap_group_blocking_attention',
-          values: {
-            'blocking':
-                blocking,
-            'attention':
-                entry.value.length -
-                    blocking,
-          },
-        )
-      : context.tr(
-          'care_gap_current_issues_count',
-          values: {
-            'count':
-                entry.value.length,
-          },
-        ),
-),
+                blocking > 0
+                    ? context.tr(
+                        'care_gap_group_blocking_attention',
+                        values: {
+                          'blocking': blocking,
+                          'attention': entry.value.length - blocking,
+                        },
+                      )
+                    : context.tr(
+                        'care_gap_current_issues_count',
+                        values: {'count': entry.value.length},
+                      ),
+              ),
               children: entry.value.map(_gapCard).toList(),
             ),
           ),
@@ -658,30 +575,19 @@ String _groupKey(
     return widgets;
   }
 
-  String _filterLabel(
-  BuildContext context,
-  String value,
-) {
-  return switch (value) {
-    'All' =>
-      context.tr('care_gap_all'),
+  String _filterLabel(BuildContext context, String value) {
+    return switch (value) {
+      'All' => context.tr('care_gap_all'),
 
-    'Blocking' =>
-      context.tr('care_gap_blocking'),
+      'Blocking' => context.tr('care_gap_blocking'),
 
-    'Needs attention' =>
-      context.tr(
-        'care_gap_needs_attention',
-      ),
+      'Needs attention' => context.tr('care_gap_needs_attention'),
 
-    'In Progress' =>
-      context.tr(
-        'care_gap_in_progress',
-      ),
+      'In Progress' => context.tr('care_gap_in_progress'),
 
-    _ => value,
-  };
-}
+      _ => value,
+    };
+  }
 
   Widget _filterBar() {
     return Wrap(
@@ -708,10 +614,7 @@ String _groupKey(
               borderRadius: BorderRadius.circular(99),
             ),
             child: Text(
-  _filterLabel(
-    context,
-    value,
-  ),
+              _filterLabel(context, value),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -725,9 +628,7 @@ String _groupKey(
   }
 
   Widget _gapCard(CareGapItemData gap) {
-    final planTitle =
-    planTitles[gap.carePlanId] ??
-        context.tr('care_plan');
+    final planTitle = planTitles[gap.carePlanId] ?? context.tr('care_plan');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -829,9 +730,7 @@ String _groupKey(
                         await _load();
                       }
                     },
-                   child: Text(
-  context.tr('open'),
-),
+                    child: Text(context.tr('open')),
                   ),
 
                   if (!gap.isResolved)
@@ -893,167 +792,108 @@ String _groupKey(
     }
   }
 
-Widget _guestScreen() {
-  final state = CareDemoState.instance;
+  Widget _guestScreen() {
+    final state = CareDemoState.instance;
 
-  return AnimatedBuilder(
-    animation: state,
-    builder: (context, _) {
-      final visible =
-          filter == 'All'
-              ? state.gaps
-                  .where(
-                    (gap) =>
-                        gap.status !=
-                        TaskStatus.resolved,
-                  )
+    return AnimatedBuilder(
+      animation: state,
+      builder: (context, _) {
+        final visible = filter == 'All'
+            ? state.gaps
+                  .where((gap) => gap.status != TaskStatus.resolved)
                   .toList()
-              : state.gaps
+            : state.gaps
                   .where(
                     (gap) =>
-                        gap.status !=
-                            TaskStatus.resolved &&
-                        taskStatusLabel(
-                              gap.status,
-                            ) ==
-                            filter,
+                        gap.status != TaskStatus.resolved &&
+                        taskStatusLabel(gap.status) == filter,
                   )
                   .toList();
 
-      return AppShell(
-        currentRoute:
-            AppRoutes.careGaps,
+        return AppShell(
+          currentRoute: AppRoutes.careGaps,
 
-        title: context.tr(
-          'care_gaps',
-        ),
+          title: context.tr('care_gaps'),
 
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-            PageHeader(
-              title: context.tr(
-                'care_gaps',
-              ),
-              subtitle: context.tr(
-                'demo_care_gaps',
-              ),
-              action:
-                  OutlinedButton(
-                onPressed: () =>
-                    Navigator
-                        .pushReplacementNamed(
-                  context,
-                  AppRoutes.simulation,
-                ),
-                child: Text(
-                  context.tr(
-                    'back_to_simulation',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PageHeader(
+                title: context.tr('care_gaps'),
+                subtitle: context.tr('demo_care_gaps'),
+                action: OutlinedButton(
+                  onPressed: () => Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.simulation,
                   ),
+                  child: Text(context.tr('back_to_simulation')),
                 ),
               ),
-            ),
 
-            if (visible.isEmpty)
-              EmptyState(
-                icon:
-                    Icons.shield_outlined,
-                title: context.tr(
-                  'care_gaps_ready_title',
-                ),
-                description:
-                    context.tr(
-                  'care_gaps_empty_filter',
-                ),
-              )
-            else
-              ...visible.map(
-                (gap) => Padding(
-                  padding:
-                      const EdgeInsets.only(
-                    bottom: 12,
-                  ),
-                  child: AppCard(
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
-                      children: [
-                        StatusBadge(
-                          status:
-                              gap.status,
-                        ),
+              if (visible.isEmpty)
+                EmptyState(
+                  icon: Icons.shield_outlined,
+                  title: context.tr('care_gaps_ready_title'),
+                  description: context.tr('care_gaps_empty_filter'),
+                )
+              else
+                ...visible.map(
+                  (gap) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          StatusBadge(status: gap.status),
 
-                        const SizedBox(
-                          height: 9,
-                        ),
+                          const SizedBox(height: 9),
 
-                        Text(
-                          gap.title,
-                          style:
-                              const TextStyle(
-                            fontSize: 17,
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-
-                        Text(
-                          '${gap.category} · ${gap.when}',
-                          style:
-                              const TextStyle(
-                            fontSize: 13,
-                            color:
-                                AppColors.muted,
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 8,
-                        ),
-
-                        Text(
-                          gap.summary,
-                          style:
-                              const TextStyle(
-                            fontSize: 14,
-                            color:
-                                AppColors.muted,
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 15,
-                        ),
-
-                        FilledButton(
-                          onPressed: () =>
-                              Navigator
-                                  .pushNamed(
-                            context,
-                            AppRoutes
-                                .careGap(
-                              gap.id,
+                          Text(
+                            gap.title,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          child: Text(
-                            context.tr(
-                              'open',
+
+                          Text(
+                            '${gap.category} · ${gap.when}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.muted,
                             ),
                           ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 8),
+
+                          Text(
+                            gap.summary,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.muted,
+                            ),
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          FilledButton(
+                            onPressed: () => Navigator.pushNamed(
+                              context,
+                              AppRoutes.careGap(gap.id),
+                            ),
+                            child: Text(context.tr('open')),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
-        ),
-      );
-    },
-  );
-}
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class CareGapDetailScreen extends StatefulWidget {
@@ -1154,7 +994,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
 
       setState(() {
         loading = false;
-        error = 'Care gap could not be loaded.';
+        error = context.tr('gap_load_failed');
       });
     }
   }
@@ -1197,7 +1037,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
 
     value = value.trim();
 
-    return value.isEmpty ? 'Care instruction' : value;
+    return value.isEmpty ? context.tr('gap_care_instruction_fallback') : value;
   }
 
   String _friendlyClockTime(String value) {
@@ -1267,10 +1107,10 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     }
 
     if (loading) {
-      return const AppShell(
+      return AppShell(
         currentRoute: AppRoutes.careGaps,
-        title: 'Care Gap',
-        child: Center(child: CircularProgressIndicator()),
+        title: context.tr('gap_detail_title'),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -1279,13 +1119,13 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     if (detail == null) {
       return AppShell(
         currentRoute: AppRoutes.careGaps,
-        title: 'Care Gap',
+        title: context.tr('gap_detail_title'),
         child: EmptyState(
-          title: 'Care gap unavailable',
-          description: error ?? 'This care gap could not be loaded.',
+          title: context.tr('gap_unavailable'),
+          description: error ?? context.tr('gap_unavailable_desc'),
           action: FilledButton(
             onPressed: _load,
-            child: const Text('Try again'),
+            child: Text(context.tr('retry')),
           ),
         ),
       );
@@ -1332,32 +1172,36 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
 
               const SizedBox(height: 16),
 
-              _detail('Problem', gap.summary),
+              _detail(context.tr('gap_problem_label'), gap.summary),
 
               _detailIfPresent(
-                'Related care instruction',
+                context.tr('gap_related_instruction_label'),
                 gap.instructionSnapshot,
               ),
 
-              _detailIfPresent('Why it was flagged', gap.reason),
+              _detailIfPresent(context.tr('gap_why_flagged_label'), gap.reason),
 
               _detailIfPresent(
-                'Patient information causing the conflict',
+                context.tr('gap_patient_reality_label'),
                 gap.patientReality,
               ),
 
-              _detailIfPresent('What needs to happen', gap.nextStep),
+              _detailIfPresent(context.tr('gap_next_step_label'), gap.nextStep),
 
-              _detailIfPresent('When / due', _dueText(gap)),
+              _detailIfPresent(context.tr('gap_when_due_label'), _dueText(gap)),
 
               _detail(
-                'Gap type',
+                context.tr('gap_type_label'),
                 gap.typeLabel,
                 bottom: gap.resolutionNote.isEmpty,
               ),
 
               if (gap.resolutionNote.isNotEmpty)
-                _detail('Resolution note', gap.resolutionNote, bottom: false),
+                _detail(
+                  context.tr('gap_resolution_note_label'),
+                  gap.resolutionNote,
+                  bottom: false,
+                ),
             ],
           ),
         ),
@@ -1426,9 +1270,9 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                       color: AppColors.infoSoft,
                       borderRadius: BorderRadius.circular(AppRadii.xl),
                     ),
-                    child: const Text(
-                      'After you fix the underlying item and return here, SehatMate will re-check this gap automatically.',
-                      style: TextStyle(
+                    child: Text(
+                      context.tr('gap_auto_recheck_note'),
+                      style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.infoForeground,
                       ),
@@ -1449,8 +1293,8 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
               children: [
                 Text(
                   _savedResolutionNote.isEmpty
-                      ? 'Add information'
-                      : 'Update information',
+                      ? context.tr('gap_add_information')
+                      : context.tr('gap_update_information'),
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
@@ -1461,8 +1305,8 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
 
                 Text(
                   gap.autoManaged
-                      ? 'Add a note while you work on the underlying item. The gap will resolve automatically when that item is fixed.'
-                      : 'Add information about how this gap is being handled.',
+                      ? context.tr('gap_note_auto_managed_hint')
+                      : context.tr('gap_add_information_hint'),
                   style: const TextStyle(fontSize: 14, color: AppColors.muted),
                 ),
 
@@ -1478,8 +1322,8 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                           info.text.trim() != _savedResolutionNote.trim();
                     });
                   },
-                  decoration: const InputDecoration(
-                    hintText: 'Add an update or resolution note',
+                  decoration: InputDecoration(
+                    hintText: context.tr('gap_resolution_note_hint'),
                   ),
                 ),
 
@@ -1495,10 +1339,10 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                       : () => _saveProgress(gap),
                   child: Text(
                     saving
-                        ? 'Saving…'
+                        ? context.tr('saving')
                         : _savedResolutionNote.isEmpty
-                        ? 'Save information'
-                        : 'Save changes',
+                        ? context.tr('gap_save_information')
+                        : context.tr('gap_save_changes'),
                   ),
                 ),
               ],
@@ -1512,16 +1356,19 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Healthcare-professional questions',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                Text(
+                  context.tr('gap_doctor_questions_title'),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
 
                 const SizedBox(height: 4),
 
-                const Text(
-                  'Questions created for professional clarification are kept here.',
-                  style: TextStyle(fontSize: 13, color: AppColors.muted),
+                Text(
+                  context.tr('gap_doctor_questions_subtitle'),
+                  style: const TextStyle(fontSize: 13, color: AppColors.muted),
                 ),
 
                 const SizedBox(height: 12),
@@ -1564,8 +1411,8 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                                 ),
                                 child: Text(
                                   question.answered
-                                      ? 'Answered'
-                                      : 'Waiting for answer',
+                                      ? context.tr('gap_answered')
+                                      : context.tr('gap_waiting_for_answer'),
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -1588,9 +1435,9 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                           if (!question.answered) ...[
                             const SizedBox(height: 14),
 
-                            const Text(
-                              'Healthcare-professional response',
-                              style: TextStyle(
+                            Text(
+                              context.tr('gap_doctor_response_label'),
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.muted,
@@ -1606,17 +1453,16 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                               onChanged: (_) {
                                 setState(() {});
                               },
-                              decoration: const InputDecoration(
-                                hintText:
-                                    'Enter the answer you received from your healthcare professional',
+                              decoration: InputDecoration(
+                                hintText: context.tr('gap_doctor_answer_hint'),
                               ),
                             ),
 
                             const SizedBox(height: 8),
 
-                            const Text(
-                              'Only record the guidance you actually received from a qualified healthcare professional.',
-                              style: TextStyle(
+                            Text(
+                              context.tr('gap_doctor_answer_disclaimer'),
+                              style: const TextStyle(
                                 fontSize: 12,
                                 height: 1.35,
                                 color: AppColors.muted,
@@ -1640,7 +1486,9 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                                   size: 17,
                                 ),
                                 label: Text(
-                                  saving ? 'Saving…' : 'Mark Answered',
+                                  saving
+                                      ? context.tr('saving')
+                                      : context.tr('gap_mark_answered'),
                                 ),
                               ),
                             ),
@@ -1662,9 +1510,9 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Verified response',
-                                    style: TextStyle(
+                                  Text(
+                                    context.tr('gap_verified_response'),
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.successForeground,
@@ -1702,9 +1550,12 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Resolution options',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              Text(
+                context.tr('gap_resolution_options'),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
 
               const SizedBox(height: 12),
@@ -1727,7 +1578,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                     child: OutlinedButton.icon(
                       onPressed: saving ? null : () => _markResolved(gap),
                       icon: const Icon(Icons.check_circle_outline, size: 17),
-                      label: const Text('Mark Resolved'),
+                      label: Text(context.tr('gap_mark_resolved')),
                     ),
                   )
                 else
@@ -1738,9 +1589,9 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                       color: AppColors.infoSoft,
                       borderRadius: BorderRadius.circular(AppRadii.xl),
                     ),
-                    child: const Text(
-                      'This gap is checked automatically. Fix the underlying item, then refresh the status.',
-                      style: TextStyle(
+                    child: Text(
+                      context.tr('gap_auto_managed_note'),
+                      style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.infoForeground,
                       ),
@@ -1763,18 +1614,18 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                     ),
                     label: Text(
                       hasPendingDoctorQuestion
-                          ? 'Question already created'
-                          : 'Create Doctor Question',
+                          ? context.tr('gap_question_already_created')
+                          : context.tr('gap_create_doctor_question'),
                     ),
                   ),
                 ),
 
                 if (hasPendingDoctorQuestion) ...[
                   const SizedBox(height: 7),
-                  const Text(
-                    'A healthcare-professional question is already waiting for an answer.',
+                  Text(
+                    context.tr('gap_question_pending_hint'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.muted,
                       height: 1.35,
@@ -1782,9 +1633,9 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                   ),
                 ],
               ] else ...[
-                const Text(
-                  'This care gap is resolved.',
-                  style: TextStyle(color: AppColors.successForeground),
+                Text(
+                  context.tr('gap_resolved_message'),
+                  style: const TextStyle(color: AppColors.successForeground),
                 ),
 
                 if (gap.actionLabel.isNotEmpty) ...[
@@ -1807,7 +1658,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                 child: TextButton.icon(
                   onPressed: saving ? null : _load,
                   icon: const Icon(Icons.refresh, size: 17),
-                  label: const Text('Refresh status'),
+                  label: Text(context.tr('gap_refresh_status')),
                 ),
               ),
             ],
@@ -1816,23 +1667,20 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
 
         const SizedBox(height: 16),
 
-        const SafetyNote(
-          text:
-              'Confirm treatment-related decisions with a qualified healthcare professional. SehatMate only helps resolve practical care-plan gaps.',
-        ),
+        SafetyNote(text: context.tr('gap_detail_safety_note')),
       ],
     );
 
     return AppShell(
       currentRoute: AppRoutes.careGap(widget.gapId),
-      title: 'Care Gap',
+      title: context.tr('gap_detail_title'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.arrow_back, size: 18),
-            label: const Text('Care Gaps'),
+            label: Text(context.tr('care_gaps')),
           ),
 
           PageHeader(
@@ -1890,7 +1738,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
       await _load();
 
       if (mounted) {
-        showDemoMessage(context, 'Progress saved.');
+        showDemoMessage(context, context.tr('gap_progress_saved'));
       }
     } on CarePlanException catch (exception) {
       if (mounted) {
@@ -1917,7 +1765,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
         gap.id,
         lifecycleStatus: 'resolved',
         resolutionNote: info.text.trim().isEmpty
-            ? 'Resolved by the user.'
+            ? context.tr('gap_resolved_default_note')
             : info.text.trim(),
       );
 
@@ -1926,7 +1774,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
       await _load();
 
       if (mounted) {
-        showDemoMessage(context, 'Care gap resolved.');
+        showDemoMessage(context, context.tr('gap_resolved_snackbar'));
       }
     } on CarePlanException catch (exception) {
       if (mounted) {
@@ -1953,10 +1801,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     if (currentDetail != null &&
         currentDetail.doctorQuestions.any((question) => !question.answered)) {
       if (mounted) {
-        showDemoMessage(
-          context,
-          'A healthcare-professional question already exists for this care gap.',
-        );
+        showDemoMessage(context, context.tr('gap_question_already_exists'));
       }
 
       return;
@@ -1979,10 +1824,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
       await _load();
 
       if (mounted) {
-        showDemoMessage(
-          context,
-          'Question saved for healthcare-professional verification.',
-        );
+        showDemoMessage(context, context.tr('gap_question_saved'));
       }
     } on CarePlanException catch (exception) {
       if (mounted) {
@@ -2025,7 +1867,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
       await _load();
 
       if (mounted) {
-        showDemoMessage(context, 'Healthcare-professional answer saved.');
+        showDemoMessage(context, context.tr('gap_answer_saved'));
       }
     } on CarePlanException catch (exception) {
       if (mounted) {
@@ -2095,7 +1937,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            value.trim().isEmpty ? 'Not provided' : value,
+            value.trim().isEmpty ? context.tr('gap_not_provided') : value,
             style: const TextStyle(fontSize: 15),
           ),
         ],
@@ -2139,14 +1981,14 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
         if (gap == null) {
           return AppShell(
             currentRoute: AppRoutes.careGaps,
-            title: 'Care Gap',
+            title: context.tr('gap_detail_title'),
             child: EmptyState(
-              title: 'Care gap not found',
-              description: 'This demo care gap no longer exists.',
+              title: context.tr('gap_not_found_title'),
+              description: context.tr('gap_not_found_desc'),
               action: FilledButton(
                 onPressed: () =>
                     Navigator.pushReplacementNamed(context, AppRoutes.careGaps),
-                child: const Text('Back to Care Gaps'),
+                child: Text(context.tr('gap_back_to_care_gaps')),
               ),
             ),
           );
@@ -2154,14 +1996,14 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
 
         return AppShell(
           currentRoute: AppRoutes.careGap(widget.gapId),
-          title: 'Care Gap',
+          title: context.tr('gap_detail_title'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back, size: 18),
-                label: const Text('Care Gaps'),
+                label: Text(context.tr('care_gaps')),
               ),
 
               PageHeader(
@@ -2175,14 +2017,21 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                   children: [
                     StatusBadge(status: gap.status),
                     const SizedBox(height: 16),
-                    _detail('Problem', gap.summary),
-                    _detail('Related care instruction', gap.instruction),
-                    _detail('Why it was flagged', gap.reason),
+                    _detail(context.tr('gap_problem_label'), gap.summary),
                     _detail(
-                      'Patient information causing the conflict',
+                      context.tr('gap_related_instruction_label'),
+                      gap.instruction,
+                    ),
+                    _detail(context.tr('gap_why_flagged_label'), gap.reason),
+                    _detail(
+                      context.tr('gap_patient_reality_label'),
                       gap.reality,
                     ),
-                    _detail('Suggested next step', gap.nextStep, bottom: false),
+                    _detail(
+                      context.tr('gap_suggested_next_step'),
+                      gap.nextStep,
+                      bottom: false,
+                    ),
                   ],
                 ),
               ),
@@ -2208,6 +2057,18 @@ class _DoctorQuestionsScreenState extends State<DoctorQuestionsScreen> {
     return drafts.putIfAbsent(id, TextEditingController.new);
   }
 
+  // Group names are internal demo-data values; only their
+  // display is localized here.
+  String _groupLabel(BuildContext context, String group) {
+    return switch (group) {
+      'Medicines' => context.tr('gap_group_medicines'),
+      'Follow-Up' => context.tr('gap_group_follow_up'),
+      'Tests' => context.tr('gap_group_tests'),
+      'Care Instructions' => context.tr('gap_group_care_instructions'),
+      _ => group,
+    };
+  }
+
   @override
   void dispose() {
     for (final controller in drafts.values) {
@@ -2226,13 +2087,13 @@ class _DoctorQuestionsScreenState extends State<DoctorQuestionsScreen> {
       builder: (context, _) {
         return AppShell(
           currentRoute: AppRoutes.doctorQuestions,
-          title: 'Doctor Questions',
+          title: context.tr('gap_doctor_questions_screen_title'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PageHeader(
-                title: 'Questions to verify with your healthcare professional',
-                subtitle: 'Take these to your next appointment or phone call.',
+              PageHeader(
+                title: context.tr('gap_doctor_questions_header'),
+                subtitle: context.tr('gap_doctor_questions_header_sub'),
               ),
 
               for (final group in const [
@@ -2245,7 +2106,7 @@ class _DoctorQuestionsScreenState extends State<DoctorQuestionsScreen> {
                   (question) => question.group == group,
                 )) ...[
                   Text(
-                    group,
+                    _groupLabel(context, group),
                     style: const TextStyle(
                       fontSize: 19,
                       fontWeight: FontWeight.w600,
@@ -2301,19 +2162,19 @@ class _DoctorQuestionsScreenState extends State<DoctorQuestionsScreen> {
                                             99,
                                           ),
                                         ),
-                                        child: const Row(
+                                        child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(
+                                            const Icon(
                                               Icons.check,
                                               size: 14,
                                               color:
                                                   AppColors.successForeground,
                                             ),
-                                            SizedBox(width: 4),
+                                            const SizedBox(width: 4),
                                             Text(
-                                              'Answered',
-                                              style: TextStyle(
+                                              context.tr('gap_answered'),
+                                              style: const TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
                                                 color:
@@ -2343,9 +2204,9 @@ class _DoctorQuestionsScreenState extends State<DoctorQuestionsScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Verified response',
-                                          style: TextStyle(
+                                        Text(
+                                          context.tr('gap_verified_response'),
+                                          style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
                                             color: AppColors.successForeground,
@@ -2366,9 +2227,10 @@ class _DoctorQuestionsScreenState extends State<DoctorQuestionsScreen> {
                                         onChanged: (_) {
                                           setState(() {});
                                         },
-                                        decoration: const InputDecoration(
-                                          hintText:
-                                              'Add the answer you received',
+                                        decoration: InputDecoration(
+                                          hintText: context.tr(
+                                            'gap_add_answer_hint',
+                                          ),
                                         ),
                                       );
 
@@ -2388,10 +2250,14 @@ class _DoctorQuestionsScreenState extends State<DoctorQuestionsScreen> {
 
                                                 showDemoMessage(
                                                   context,
-                                                  'Answer saved. Simulation will use the verified timing.',
+                                                  context.tr(
+                                                    'gap_answer_saved_simulation',
+                                                  ),
                                                 );
                                               },
-                                        child: const Text('Mark Answered'),
+                                        child: Text(
+                                          context.tr('gap_mark_answered'),
+                                        ),
                                       );
 
                                       if (constraints.maxWidth >= 600) {
@@ -2424,13 +2290,16 @@ class _DoctorQuestionsScreenState extends State<DoctorQuestionsScreen> {
                                       ClipboardData(text: question.question),
                                     );
 
-                                    showDemoMessage(context, 'Question copied');
+                                    showDemoMessage(
+                                      context,
+                                      context.tr('gap_question_copied'),
+                                    );
                                   },
                                   icon: const Icon(
                                     Icons.copy_outlined,
                                     size: 17,
                                   ),
-                                  label: const Text('Copy'),
+                                  label: Text(context.tr('gap_copy')),
                                 ),
                               ],
                             ),
@@ -2442,10 +2311,7 @@ class _DoctorQuestionsScreenState extends State<DoctorQuestionsScreen> {
                 ],
               ],
 
-              const SafetyNote(
-                text:
-                    'SehatMate does not generate or modify medical treatment. These questions help you clarify the existing care plan with a qualified healthcare professional.',
-              ),
+              SafetyNote(text: context.tr('gap_doctor_questions_safety')),
             ],
           ),
         );

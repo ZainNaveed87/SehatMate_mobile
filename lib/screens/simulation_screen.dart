@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../localization/language_scope.dart';
+
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../core/schedule_time.dart';
@@ -27,7 +29,7 @@ class SimulationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppShell(
     currentRoute: AppRoutes.simulation,
-    title: 'Care Simulation',
+    title: context.tr('care_simulation'),
     child: SimulationView(
       planId: planId,
       guidedSetup: guidedSetup,
@@ -70,16 +72,28 @@ class _SimulationViewState extends State<SimulationView> {
   CareSetupProgress? setupProgress;
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _load();
+    });
+  }
 
   Future<void> _load() async {
     if (widget.planId == null) {
-      setState(() { loading = false; error = 'Open a care plan to view its real simulation.'; });
+      setState(() {
+        loading = false;
+        error = context.tr('sim_error_no_plan');
+      });
       return;
     }
     try {
-      final result = await CarePlanService.instance.fetchSimulation(widget.planId!);
-      final detail = await CarePlanService.instance.fetchPlanDetail(widget.planId!);
+      final result = await CarePlanService.instance.fetchSimulation(
+        widget.planId!,
+      );
+      final detail = await CarePlanService.instance.fetchPlanDetail(
+        widget.planId!,
+      );
       final gapResult = widget.guidedSetup
           ? await CarePlanService.instance.fetchCareGaps(widget.planId!)
           : null;
@@ -93,19 +107,25 @@ class _SimulationViewState extends State<SimulationView> {
           setupProgress = progress;
           plan = detail.plan;
           durationMode = detail.plan.durationMode;
-          endDate = DateTime.tryParse(detail.plan.plannedEndDate) ??
+          endDate =
+              DateTime.tryParse(detail.plan.plannedEndDate) ??
               DateTime.tryParse(detail.plan.suggestedEndDate) ??
               DateTime.now().add(const Duration(days: 7));
           loading = false;
         });
       }
     } on CarePlanException catch (exception) {
-      if (mounted) setState(() { loading = false; error = exception.message; });
+      if (mounted) {
+        setState(() {
+          loading = false;
+          error = exception.message;
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
           loading = false;
-          error = 'The simulation could not be refreshed.';
+          error = context.tr('sim_error_refresh_failed');
         });
       }
     }
@@ -122,315 +142,510 @@ class _SimulationViewState extends State<SimulationView> {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return const Padding(padding: EdgeInsets.all(48), child: Center(child: CircularProgressIndicator()));
-    if (error != null || data == null) return EmptyState(icon: Icons.route_outlined, title: 'Simulation unavailable', description: error ?? 'No simulation data found.', action: FilledButton(onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.carePlans), child: const Text('Open Care Plans')));
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.all(48),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (error != null || data == null) {
+      return EmptyState(
+        icon: Icons.route_outlined,
+        title: context.tr('sim_unavailable'),
+        description: error ?? context.tr('sim_no_data'),
+        action: FilledButton(
+          onPressed: () =>
+              Navigator.pushReplacementNamed(context, AppRoutes.carePlans),
+          child: Text(context.tr('sim_open_care_plans')),
+        ),
+      );
+    }
     final value = data!;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      if (widget.guidedSetup && widget.planId != null) ...[
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.guidedSetup && widget.planId != null) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () {
+                if (widget.returnToPrevious && Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                  return;
+                }
+                Navigator.pushReplacementNamed(
+                  context,
+                  AppRoutes.realityCheck,
+                  arguments: CareFlowArgs(
+                    planId: widget.planId!,
+                    guidedSetup: true,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.arrow_back, size: 17),
+              label: Text(
+                widget.returnToPrevious
+                    ? context.tr('back')
+                    : context.tr('sim_back_to_reality_check'),
+              ),
+            ),
+          ),
+        ],
+        if (!widget.compact) ...[
+          PageHeader(
+            title: context.tr('care_simulation'),
+            subtitle: context.tr('sim_header_subtitle'),
+          ),
+        ],
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
-            onPressed: () {
-              if (widget.returnToPrevious && Navigator.canPop(context)) {
-                Navigator.pop(context);
-                return;
-              }
-              Navigator.pushReplacementNamed(
-                context,
-                AppRoutes.realityCheck,
-                arguments: CareFlowArgs(
-                  planId: widget.planId!,
-                  guidedSetup: true,
-                ),
-              );
-            },
-            icon: const Icon(Icons.arrow_back, size: 17),
-            label: Text(
-              widget.returnToPrevious ? 'Back' : 'Back to Reality Check',
-            ),
+            onPressed: () =>
+                Navigator.pushNamed(context, AppRoutes.routinePreferences),
+            icon: const Icon(Icons.psychology_alt_outlined, size: 17),
+            label: Text(context.tr('sim_my_routine_preferences')),
           ),
         ),
-      ],
-      if (!widget.compact) ...[
-        const PageHeader(
-          title: 'Care Simulation',
-          subtitle:
-              'A real view built from this plan’s verified schedule and routine answers.',
-        ),
-      ],
-      Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          onPressed: () =>
-              Navigator.pushNamed(context, AppRoutes.routinePreferences),
-          icon: const Icon(Icons.psychology_alt_outlined, size: 17),
-          label: const Text('My Routine & Preferences'),
-        ),
-      ),
-      const SizedBox(height: 8),
-      if (widget.guidedSetup && widget.planId != null) ...[
-        GuidedCareSetupProgress(
-          currentStep: setupProgress?.step == CareSetupStep.activate ? 7 : 5,
-          planId: widget.planId!,
-          saveState: applyingSuggestionIds.isNotEmpty ? 'Saving…' : 'Saved',
-        ),
-        const SizedBox(height: 16),
-      ],
-      AppCard(padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        LayoutBuilder(builder: (context, constraints) {
-          final score = Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            const Text('Care Feasibility Score', style: TextStyle(fontSize: 13, color: AppColors.muted)),
-            Text('${value.readiness} / 100', style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w700, color: AppColors.primary)),
-            StatusBadge(
-              status: value.blocked > 0 || value.atRisk > 0 || value.unclear > 0 || value.unanswered > 0
-                  ? TaskStatus.atRisk
-                  : TaskStatus.ready,
-              label: value.blocked > 0 || value.atRisk > 0 || value.unclear > 0 || value.unanswered > 0
-                  ? 'Needs Attention'
-                  : 'On Track',
-            ),
-          ]);
-          const copy = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Plan-specific simulation', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)), SizedBox(height: 4), Text('Calculated from verified tasks and your saved practical answers.', style: TextStyle(fontSize: 14, color: AppColors.muted))]);
-          return constraints.maxWidth < 600 ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [copy, const SizedBox(height: 16), score]) : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Expanded(child: copy), score]);
-        }),
-        const SizedBox(height: 20),
-        LayoutBuilder(builder: (context, constraints) {
-          const gap = 12.0;
-          final width = (constraints.maxWidth - gap) / 2;
-          final metrics = [
-            ('${value.blocked}', 'Blocked', AppColors.criticalSoft, AppColors.criticalForeground),
-            ('${value.atRisk}', 'At Risk', AppColors.warningSoft, AppColors.warningForeground),
-            ('${value.ready}', 'Ready', AppColors.successSoft, AppColors.successForeground),
-            ('${value.unclear}', 'Unclear', AppColors.infoSoft, AppColors.infoForeground),
-          ];
-          return Wrap(spacing: gap, runSpacing: gap, children: metrics.map((metric) => Container(width: width, padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: metric.$3, borderRadius: BorderRadius.circular(AppRadii.xl)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(metric.$1, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: metric.$4)), Text(metric.$2, style: TextStyle(color: metric.$4))]))).toList());
-        }),
-        const SizedBox(height: 20),
-        const SafetyNote(text: 'Care Feasibility measures practical fit only. It is not a medical-risk or clinical-outcome score.'),
-      ])),
-      if (value.unanswered > 0) ...[
-        const SizedBox(height: 16),
-        SafetyNote(text: '${value.unanswered} relevant question${value.unanswered == 1 ? '' : 's'} still need an answer, so the score is provisional.'),
-      ],
-      if (_applicableAdaptations(value).isNotEmpty) ...[
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
+        if (widget.guidedSetup && widget.planId != null) ...[
+          GuidedCareSetupProgress(
+            currentStep: setupProgress?.step == CareSetupStep.activate ? 7 : 5,
+            planId: widget.planId!,
+            saveState: applyingSuggestionIds.isNotEmpty
+                ? context.tr('saving')
+                : context.tr('saved'),
+          ),
+          const SizedBox(height: 16),
+        ],
         AppCard(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 20,
-                    backgroundColor: AppColors.primaryLight,
-                    child: Icon(
-                      Icons.auto_awesome_outlined,
-                      color: AppColors.primary,
-                      size: 20,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final score = Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        context.tr('sim_score_title'),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                      Text(
+                        '${value.readiness} / 100',
+                        style: const TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      StatusBadge(
+                        status:
+                            value.blocked > 0 ||
+                                value.atRisk > 0 ||
+                                value.unclear > 0 ||
+                                value.unanswered > 0
+                            ? TaskStatus.atRisk
+                            : TaskStatus.ready,
+                        label:
+                            value.blocked > 0 ||
+                                value.atRisk > 0 ||
+                                value.unclear > 0 ||
+                                value.unanswered > 0
+                            ? context.tr('sim_status_needs_attention')
+                            : context.tr('sim_status_on_track'),
+                      ),
+                    ],
+                  );
+                  final copy = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('sim_score_card_title'),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        context.tr('sim_score_card_subtitle'),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ],
+                  );
+                  return constraints.maxWidth < 600
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [copy, const SizedBox(height: 16), score],
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: copy),
+                            score,
+                          ],
+                        );
+                },
+              ),
+              const SizedBox(height: 20),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  const gap = 12.0;
+                  final width = (constraints.maxWidth - gap) / 2;
+                  final metrics = [
+                    (
+                      '${value.blocked}',
+                      context.tr('sim_metric_blocked'),
+                      AppColors.criticalSoft,
+                      AppColors.criticalForeground,
                     ),
+                    (
+                      '${value.atRisk}',
+                      context.tr('sim_metric_at_risk'),
+                      AppColors.warningSoft,
+                      AppColors.warningForeground,
+                    ),
+                    (
+                      '${value.ready}',
+                      context.tr('sim_metric_ready'),
+                      AppColors.successSoft,
+                      AppColors.successForeground,
+                    ),
+                    (
+                      '${value.unclear}',
+                      context.tr('sim_metric_unclear'),
+                      AppColors.infoSoft,
+                      AppColors.infoForeground,
+                    ),
+                  ];
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: metrics
+                        .map(
+                          (metric) => Container(
+                            width: width,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: metric.$3,
+                              borderRadius: BorderRadius.circular(AppRadii.xl),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  metric.$1,
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    color: metric.$4,
+                                  ),
+                                ),
+                                Text(
+                                  metric.$2,
+                                  style: TextStyle(color: metric.$4),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              SafetyNote(text: context.tr('sim_score_disclaimer')),
+            ],
+          ),
+        ),
+        if (value.unanswered > 0) ...[
+          const SizedBox(height: 16),
+          SafetyNote(
+            text: context.tr(
+              'sim_unanswered_provisional',
+              values: {'count': value.unanswered},
+            ),
+          ),
+        ],
+        if (_applicableAdaptations(value).isNotEmpty) ...[
+          const SizedBox(height: 20),
+          AppCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 20,
+                      backgroundColor: AppColors.primaryLight,
+                      child: Icon(
+                        Icons.auto_awesome_outlined,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr('sim_adapt_title'),
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            context.tr(
+                              'sim_adapt_subtitle',
+                              values: {
+                                'count': _applicableAdaptations(value).length,
+                              },
+                            ),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  context.tr('sim_adapt_description'),
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  onPressed: adaptingPlan
+                      ? null
+                      : () => _openAdaptMyPlan(value),
+                  icon: adaptingPlan
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.tune, size: 18),
+                  label: Text(
+                    adaptingPlan
+                        ? context.tr('sim_applying')
+                        : context.tr('sim_adapt_title'),
                   ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (value.atRisk > 0 &&
+            _applicableAdaptations(value).isEmpty &&
+            value.findings.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          SafetyNote(text: context.tr('sim_no_auto_adapt_note')),
+        ],
+        if (value.contextInsights.isNotEmpty) ...[
+          const SizedBox(height: 24),
+
+          Row(
+            children: [
+              const Icon(
+                Icons.auto_awesome_outlined,
+                size: 21,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                context.tr('sim_insights_title'),
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            context.tr('sim_insights_intro'),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.muted,
+              height: 1.4,
+            ),
+          ),
+
+          const SizedBox(height: 5),
+
+          Text(
+            context.tr('sim_insights_disclaimer'),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.muted,
+              height: 1.4,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          ...value.contextInsights.map(_contextInsightCard),
+        ],
+        if (value.findings.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          Text(
+            context.tr('sim_findings_title'),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            context.tr('sim_findings_description'),
+            style: const TextStyle(fontSize: 13, color: AppColors.muted),
+          ),
+          const SizedBox(height: 12),
+          ...value.findings.map((finding) => _findingCard(finding)),
+        ],
+        const SizedBox(height: 20),
+        _activationBlockersCard(value),
+        const SizedBox(height: 24),
+        Text(
+          context.tr('sim_tasks_title'),
+          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        ...value.tasks.map(
+          (task) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: AppCard(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(task.icon, color: AppColors.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Adapt My Plan',
-                          style: TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
                         Text(
-                          '${_applicableAdaptations(value).length} practical routine adjustment${_applicableAdaptations(value).length == 1 ? '' : 's'} can be reviewed together.',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.muted,
-                          ),
+                          task.title,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          '${task.time}${task.note.isEmpty ? '' : ' · ${task.note}'}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: AppColors.muted),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  StatusBadge(status: task.status),
                 ],
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'Review all flexible reminder suggestions at once. You can accept, change, or keep each current time before anything is saved.',
-                style: TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: adaptingPlan ? null : () => _openAdaptMyPlan(value),
-                icon: adaptingPlan
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.tune, size: 18),
-                label: Text(adaptingPlan ? 'Applying…' : 'Adapt My Plan'),
-              ),
-            ],
+            ),
           ),
         ),
-      ],
-      if (value.atRisk > 0 &&
-          _applicableAdaptations(value).isEmpty &&
-          value.findings.isNotEmpty) ...[
-        const SizedBox(height: 20),
-        const SafetyNote(
-          text:
-              'Routine differences were found, but none can be safely moved automatically right now. Review the findings below; explicit verified timings stay protected.',
-        ),
-      ],
-      if (value.contextInsights.isNotEmpty) ...[
-  const SizedBox(height: 24),
-
-  const Row(
-    children: [
-      Icon(
-        Icons.auto_awesome_outlined,
-        size: 21,
-        color: AppColors.primary,
-      ),
-      SizedBox(width: 8),
-      Text(
-        'AI Context Insights',
-        style: TextStyle(
-          fontSize: 19,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    ],
-  ),
-
-  const SizedBox(height: 6),
-
-  const Text(
-    'SehatMate has reviewed new practical information or healthcare-professional responses connected to this care plan.',
-    style: TextStyle(
-      fontSize: 13,
-      color: AppColors.muted,
-      height: 1.4,
-    ),
-  ),
-
-  const SizedBox(height: 5),
-
-  const Text(
-    'These insights can guide the next practical step, but they never automatically change verified treatment instructions.',
-    style: TextStyle(
-      fontSize: 12,
-      color: AppColors.muted,
-      height: 1.4,
-    ),
-  ),
-
-  const SizedBox(height: 12),
-
-  ...value.contextInsights.map(
-    _contextInsightCard,
-  ),
-],
-      if (value.findings.isNotEmpty) ...[
-        const SizedBox(height: 24),
-        const Text(
-          'Practical findings',
-          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'These are the routine answers used by the simulation. Any reason or recommendation returned by the server is shown here too.',
-          style: TextStyle(fontSize: 13, color: AppColors.muted),
-        ),
-        const SizedBox(height: 12),
-        ...value.findings.map((finding) => _findingCard(finding)),
-      ],
-      const SizedBox(height: 20),
-      _activationBlockersCard(value),
-      const SizedBox(height: 24),
-      const Text('Scheduled tasks', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 12),
-      ...value.tasks.map((task) => Padding(padding: const EdgeInsets.only(bottom: 10), child: AppCard(padding: const EdgeInsets.all(16), child: Row(children: [
-        Icon(task.icon, color: AppColors.primary), const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(task.title, style: const TextStyle(fontWeight: FontWeight.w600)), Text('${task.time}${task.note.isEmpty ? '' : ' · ${task.note}'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted))])),
-        const SizedBox(width: 8), StatusBadge(status: task.status),
-      ])))),
-      if (widget.guidedSetup &&
-          widget.planId != null &&
-          setupProgress?.step != CareSetupStep.activate) ...[
-        const SizedBox(height: 6),
-        AppCard(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                (careGaps?.summary.open ?? 0) == 0
-                    ? 'Care Gaps check is ready'
-                    : '${careGaps?.summary.open ?? 0} care gap${(careGaps?.summary.open ?? 0) == 1 ? '' : 's'} need review',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                (careGaps?.summary.open ?? 0) == 0
-                    ? 'Continue through Care Gaps once so the guided setup confirms there are no required unresolved issues.'
-                    : 'Continue to the plan-specific Care Gaps step. Review open practical issues and resolve required blockers, then run the final simulation before activation.',
-                style: const TextStyle(fontSize: 14, color: AppColors.muted),
-              ),
-              const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: _continueToCareGaps,
-                icon: const Icon(Icons.arrow_forward, size: 17),
-                label: const Text('Continue to Care Gaps'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-      if (!widget.guidedSetup ||
-          setupProgress?.step == CareSetupStep.activate) ...[
-        const SizedBox(height: 16),
-        _durationCard(),
-        const SizedBox(height: 16),
-        AppCard(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                _canActivate(value) ? 'Ready to activate?' : 'Activation requirements',
-                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                _activationMessage(value),
-                style: const TextStyle(color: AppColors.muted),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: !_canActivate(value) || activating ? null : _activate,
-                icon: activating
-                    ? const SizedBox(
-                        width: 17,
-                        height: 17,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(
-                        Icons.notifications_active_outlined,
-                        size: 18,
-                      ),
-                label: Text(
-                  activating ? 'Activating…' : 'Activate Care Plan',
+        if (widget.guidedSetup &&
+            widget.planId != null &&
+            setupProgress?.step != CareSetupStep.activate) ...[
+          const SizedBox(height: 6),
+          AppCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  (careGaps?.summary.open ?? 0) == 0
+                      ? context.tr('sim_care_gaps_ready')
+                      : context.tr(
+                          'sim_care_gaps_needs_review',
+                          values: {'count': careGaps?.summary.open ?? 0},
+                        ),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 6),
+                Text(
+                  (careGaps?.summary.open ?? 0) == 0
+                      ? context.tr('sim_care_gaps_ready_desc')
+                      : context.tr('sim_care_gaps_action_desc'),
+                  style: const TextStyle(fontSize: 14, color: AppColors.muted),
+                ),
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  onPressed: _continueToCareGaps,
+                  icon: const Icon(Icons.arrow_forward, size: 17),
+                  label: Text(context.tr('sim_continue_to_care_gaps')),
+                ),
+              ],
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+        ],
+        if (!widget.guidedSetup ||
+            setupProgress?.step == CareSetupStep.activate) ...[
+          const SizedBox(height: 16),
+          _durationCard(),
+          const SizedBox(height: 16),
+          AppCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  _canActivate(value)
+                      ? context.tr('sim_activation_ready')
+                      : context.tr('sim_activation_requirements'),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _activationMessage(value),
+                  style: const TextStyle(color: AppColors.muted),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: !_canActivate(value) || activating
+                      ? null
+                      : _activate,
+                  icon: activating
+                      ? const SizedBox(
+                          width: 17,
+                          height: 17,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(
+                          Icons.notifications_active_outlined,
+                          size: 18,
+                        ),
+                  label: Text(
+                    activating
+                        ? context.tr('sim_activating')
+                        : context.tr('sim_activate_care_plan'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
-    ]);
+    );
   }
 
   Future<void> _continueToCareGaps() async {
@@ -449,421 +664,284 @@ class _SimulationViewState extends State<SimulationView> {
       );
     } on CarePlanException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     }
   }
-  Widget _contextInsightCard(
-  Map insight,
-) {
-  final signal =
-      _findingValue(
-        insight,
-        const ['signal'],
-      ) ??
-      'neutral';
 
-  final summary =
-      _findingValue(
-        insight,
-        const ['summary'],
-      ) ??
-      'New care context has been recorded.';
+  Widget _contextInsightCard(Map insight) {
+    final signal = _findingValue(insight, const ['signal']) ?? 'neutral';
 
-  final nextAction =
-      _findingValue(
-        insight,
-        const [
-          'nextAction',
-          'next_action',
-        ],
-      ) ??
-      'no_change';
+    final summary =
+        _findingValue(insight, const ['summary']) ??
+        context.tr('sim_insight_default_summary');
 
-  final followUpQuestion =
-      _findingValue(
-        insight,
-        const [
-          'followUpQuestion',
-          'follow_up_question',
-        ],
-      );
+    final nextAction =
+        _findingValue(insight, const ['nextAction', 'next_action']) ??
+        'no_change';
 
-  final rawRequiresReview =
-      insight[
-          'requiresInstructionReview'] ??
-      insight[
-          'requires_instruction_review'];
+    final followUpQuestion = _findingValue(insight, const [
+      'followUpQuestion',
+      'follow_up_question',
+    ]);
 
-  final requiresInstructionReview =
-      rawRequiresReview == true ||
-      rawRequiresReview == 1 ||
-      rawRequiresReview
-              ?.toString()
-              .toLowerCase() ==
-          'true';
+    final rawRequiresReview =
+        insight['requiresInstructionReview'] ??
+        insight['requires_instruction_review'];
 
-  final String title;
-  final IconData icon;
-  final Color foreground;
-  final Color background;
+    final requiresInstructionReview =
+        rawRequiresReview == true ||
+        rawRequiresReview == 1 ||
+        rawRequiresReview?.toString().toLowerCase() == 'true';
 
-  if (requiresInstructionReview ||
-      signal ==
-          'possible_instruction_change') {
-    title =
-        'Professional instruction review needed';
+    final String title;
+    final IconData icon;
+    final Color foreground;
+    final Color background;
 
-    icon =
-        Icons.medical_information_outlined;
+    if (requiresInstructionReview || signal == 'possible_instruction_change') {
+      title = context.tr('sim_insight_review_needed');
 
-    foreground =
-        AppColors.criticalForeground;
+      icon = Icons.medical_information_outlined;
 
-    background =
-        AppColors.criticalSoft;
-  } else if (signal ==
-      'practical_support') {
-    title =
-        'New practical support detected';
+      foreground = AppColors.criticalForeground;
 
-    icon =
-        Icons.support_agent_outlined;
+      background = AppColors.criticalSoft;
+    } else if (signal == 'practical_support') {
+      title = context.tr('sim_insight_support');
 
-    foreground =
-        AppColors.successForeground;
+      icon = Icons.support_agent_outlined;
 
-    background =
-        AppColors.successSoft;
-  } else if (signal ==
-      'practical_constraint') {
-    title =
-        'Practical constraint detected';
+      foreground = AppColors.successForeground;
 
-    icon =
-        Icons.warning_amber_rounded;
+      background = AppColors.successSoft;
+    } else if (signal == 'practical_constraint') {
+      title = context.tr('sim_insight_constraint');
 
-    foreground =
-        AppColors.warningForeground;
+      icon = Icons.warning_amber_rounded;
 
-    background =
-        AppColors.warningSoft;
-  } else if (signal ==
-      'professional_guidance') {
-    title =
-        'Professional guidance added';
+      foreground = AppColors.warningForeground;
 
-    icon =
-        Icons.fact_check_outlined;
+      background = AppColors.warningSoft;
+    } else if (signal == 'professional_guidance') {
+      title = context.tr('sim_insight_guidance');
 
-    foreground =
-        AppColors.infoForeground;
+      icon = Icons.fact_check_outlined;
 
-    background =
-        AppColors.infoSoft;
-  } else {
-    title =
-        'New care context';
+      foreground = AppColors.infoForeground;
 
-    icon =
-        Icons.auto_awesome_outlined;
+      background = AppColors.infoSoft;
+    } else {
+      title = context.tr('sim_insight_default');
 
-    foreground =
-        AppColors.infoForeground;
+      icon = Icons.auto_awesome_outlined;
 
-    background =
-        AppColors.infoSoft;
-  }
+      foreground = AppColors.infoForeground;
 
-  final String action;
+      background = AppColors.infoSoft;
+    }
 
-  if (requiresInstructionReview ||
-      nextAction ==
-          'review_verified_instruction') {
-    action =
-        'review_instruction';
-  } else if (nextAction ==
-          'recheck_reality' ||
-      nextAction ==
-          'keep_at_risk') {
-    action =
-        'reality_check';
-  } else {
-    action = '';
-  }
+    final String action;
 
-  return Padding(
-    padding:
-        const EdgeInsets.only(
-      bottom: 10,
-    ),
-    child: AppCard(
-      padding:
-          const EdgeInsets.all(
-        16,
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration:
-                    BoxDecoration(
-                  color: background,
-                  borderRadius:
-                      BorderRadius.circular(
-                    12,
-                  ),
-                ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: foreground,
-                ),
-              ),
+    if (requiresInstructionReview ||
+        nextAction == 'review_verified_instruction') {
+      action = 'review_instruction';
+    } else if (nextAction == 'recheck_reality' ||
+        nextAction == 'keep_at_risk') {
+      action = 'reality_check';
+    } else {
+      action = '';
+    }
 
-              const SizedBox(
-                width: 11,
-              ),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style:
-                          const TextStyle(
-                        fontSize: 15,
-                        fontWeight:
-                            FontWeight.w700,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 3,
-                    ),
-
-                    Text(
-                      _contextSignalLabel(
-                        signal,
-                      ),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight:
-                            FontWeight.w600,
-                        color: foreground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(
-            height: 12,
-          ),
-
-          Text(
-            summary,
-            style:
-                const TextStyle(
-              fontSize: 14,
-              height: 1.45,
-            ),
-          ),
-
-          if (followUpQuestion !=
-              null) ...[
-            const SizedBox(
-              height: 12,
-            ),
-
-            const Text(
-              'What to confirm next',
-              style:
-                  TextStyle(
-                fontSize: 12,
-                fontWeight:
-                    FontWeight.w700,
-                color:
-                    AppColors.muted,
-              ),
-            ),
-
-            const SizedBox(
-              height: 4,
-            ),
-
-            Text(
-              followUpQuestion,
-              style:
-                  const TextStyle(
-                fontSize: 14,
-                height: 1.4,
-              ),
-            ),
-          ],
-
-          const SizedBox(
-            height: 12,
-          ),
-
-          Container(
-            width:
-                double.infinity,
-            padding:
-                const EdgeInsets.all(
-              10,
-            ),
-            decoration:
-                BoxDecoration(
-              color:
-                  AppColors.infoSoft,
-              borderRadius:
-                  BorderRadius.circular(
-                AppRadii.xl,
-              ),
-            ),
-            child:
-                const Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: AppCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.lock_outline,
-                  size: 16,
-                  color: AppColors
-                      .infoForeground,
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: background,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 20, color: foreground),
                 ),
-                SizedBox(
-                  width: 7,
-                ),
+
+                const SizedBox(width: 11),
+
                 Expanded(
-                  child: Text(
-                    'Verified treatment instructions are protected. This insight does not automatically change dose, frequency, treatment, or an explicit verified time.',
-                    style:
-                        TextStyle(
-                      fontSize: 12,
-                      height: 1.4,
-                      color: AppColors
-                          .infoForeground,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+
+                      const SizedBox(height: 3),
+
+                      Text(
+                        _contextSignalLabel(signal),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: foreground,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
 
-          if (action
-              .isNotEmpty) ...[
-            const SizedBox(
-              height: 10,
-            ),
+            const SizedBox(height: 12),
 
-            TextButton.icon(
-              onPressed: () =>
-                  _openFindingAction(
-                action,
-              ),
-              style:
-                  TextButton.styleFrom(
-                padding:
-                    EdgeInsets.zero,
-                foregroundColor:
-                    foreground,
-              ),
-              icon:
-                  const Icon(
-                Icons.arrow_forward,
-                size: 16,
-              ),
-              label: Text(
-                _findingActionLabel(
-                  action,
+            Text(summary, style: const TextStyle(fontSize: 14, height: 1.45)),
+
+            if (followUpQuestion != null) ...[
+              const SizedBox(height: 12),
+
+              Text(
+                context.tr('sim_insight_follow_up'),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.muted,
                 ),
               ),
+
+              const SizedBox(height: 4),
+
+              Text(
+                followUpQuestion,
+                style: const TextStyle(fontSize: 14, height: 1.4),
+              ),
+            ],
+
+            const SizedBox(height: 12),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.infoSoft,
+                borderRadius: BorderRadius.circular(AppRadii.xl),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 16,
+                    color: AppColors.infoForeground,
+                  ),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      context.tr('sim_insight_protected_note'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        color: AppColors.infoForeground,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
+
+            if (action.isNotEmpty) ...[
+              const SizedBox(height: 10),
+
+              TextButton.icon(
+                onPressed: () => _openFindingAction(action),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  foregroundColor: foreground,
+                ),
+                icon: const Icon(Icons.arrow_forward, size: 16),
+                label: Text(_findingActionLabel(action)),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
+  String _contextSignalLabel(String signal) => switch (signal) {
+    'practical_support' => context.tr('sim_signal_support'),
 
-String _contextSignalLabel(
-  String signal,
-) =>
-    switch (signal) {
-      'practical_support' =>
-        'Practical support',
+    'practical_constraint' => context.tr('sim_signal_constraint'),
 
-      'practical_constraint' =>
-        'Practical constraint',
+    'professional_guidance' => context.tr('sim_signal_professional'),
 
-      'professional_guidance' =>
-        'Healthcare-professional context',
+    'possible_instruction_change' => context.tr('sim_signal_needs_review'),
 
-      'possible_instruction_change' =>
-        'Needs verified instruction review',
-
-      _ =>
-        'Care context',
-    };
+    _ => context.tr('sim_signal_care_context'),
+  };
 
   Widget _findingCard(Map finding) {
-    final category = _findingValue(finding, const ['category']) ?? 'Routine';
-    final question = _findingValue(
-          finding,
-          const ['question', 'title', 'name'],
-        ) ??
-        'Routine finding';
-    final answer = _findingValue(
-      finding,
-      const ['answer', 'value', 'response'],
-    );
-    final reason = _findingValue(
-      finding,
-      const ['reason', 'issue', 'explanation', 'message'],
-    );
-    final recommendation = _findingValue(
-      finding,
-      const [
-        'recommendation',
-        'suggestion',
-        'resolution',
-        'fix',
-        'how_to_fix',
-      ],
-    );
+    final category =
+        _findingValue(finding, const ['category']) ??
+        context.tr('sim_finding_default_category');
+    final question =
+        _findingValue(finding, const ['question', 'title', 'name']) ??
+        context.tr('sim_finding_default_question');
+    final answer = _findingValue(finding, const [
+      'answer',
+      'value',
+      'response',
+    ]);
+    final reason = _findingValue(finding, const [
+      'reason',
+      'issue',
+      'explanation',
+      'message',
+    ]);
+    final recommendation = _findingValue(finding, const [
+      'recommendation',
+      'suggestion',
+      'resolution',
+      'fix',
+      'how_to_fix',
+    ]);
     final action = _findingValue(finding, const ['action']) ?? '';
-    final actionLabel =
-        _findingValue(finding, const ['actionLabel', 'action_label']);
+    final actionLabel = _findingValue(finding, const [
+      'actionLabel',
+      'action_label',
+    ]);
     final taskId = _findingValue(finding, const ['taskId', 'task_id']);
-    final currentTime =
-        _findingValue(finding, const ['currentTime', 'current_time']);
-    final suggestedTime =
-        _findingValue(finding, const ['suggestedTime', 'suggested_time']);
-    final suggestedPeriod =
-        _findingValue(finding, const ['suggestedPeriod', 'suggested_period']);
-    final canApply = finding['canApply'] == true ||
-        finding['can_apply'] == true;
+    final currentTime = _findingValue(finding, const [
+      'currentTime',
+      'current_time',
+    ]);
+    final suggestedTime = _findingValue(finding, const [
+      'suggestedTime',
+      'suggested_time',
+    ]);
+    final suggestedPeriod = _findingValue(finding, const [
+      'suggestedPeriod',
+      'suggested_period',
+    ]);
+    final canApply =
+        finding['canApply'] == true || finding['can_apply'] == true;
     final why = finding['why'] is List
         ? (finding['why'] as List)
-            .map((item) => item.toString().trim())
-            .where((item) => item.isNotEmpty)
-            .toList()
+              .map((item) => item.toString().trim())
+              .where((item) => item.isNotEmpty)
+              .toList()
         : const <String>[];
     final suggestionKey =
         '${finding['key'] ?? taskId ?? question}:$suggestedTime';
@@ -888,9 +966,9 @@ String _contextSignalLabel(
                     ),
                   ),
                 ),
-                const Text(
-                  'Routine adjustment',
-                  style: TextStyle(
+                Text(
+                  context.tr('sim_finding_badge'),
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: AppColors.warningForeground,
@@ -899,22 +977,22 @@ String _contextSignalLabel(
               ],
             ),
             const SizedBox(height: 4),
-            Text(
-              question,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
+            Text(question, style: const TextStyle(fontWeight: FontWeight.w600)),
             if (answer != null) ...[
               const SizedBox(height: 5),
               Text(
-                'Your answer: $answer',
+                context.tr(
+                  'sim_finding_your_answer',
+                  values: {'answer': answer},
+                ),
                 style: const TextStyle(color: AppColors.muted),
               ),
             ],
             if (reason != null) ...[
               const SizedBox(height: 12),
-              const Text(
-                'What this means',
-                style: TextStyle(
+              Text(
+                context.tr('sim_finding_what_this_means'),
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -924,9 +1002,9 @@ String _contextSignalLabel(
             ],
             if (recommendation != null) ...[
               const SizedBox(height: 10),
-              const Text(
-                'Suggested adjustment',
-                style: TextStyle(
+              Text(
+                context.tr('sim_finding_suggested_adjustment'),
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: AppColors.primary,
@@ -939,8 +1017,21 @@ String _contextSignalLabel(
               const SizedBox(height: 10),
               Text(
                 currentTime != null && currentTime.isNotEmpty
-                    ? 'Reminder: ${_displayScheduleTime(currentTime)} → ${_displayScheduleTime(suggestedTime)} · $suggestedPeriod'
-                    : 'Suggested reminder: ${_displayScheduleTime(suggestedTime)} · $suggestedPeriod',
+                    ? context.tr(
+                        'sim_finding_reminder_change',
+                        values: {
+                          'current': _displayScheduleTime(currentTime),
+                          'suggested': _displayScheduleTime(suggestedTime),
+                          'period': suggestedPeriod,
+                        },
+                      )
+                    : context.tr(
+                        'sim_finding_reminder_suggested',
+                        values: {
+                          'suggested': _displayScheduleTime(suggestedTime),
+                          'period': suggestedPeriod,
+                        },
+                      ),
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: AppColors.primary,
@@ -949,9 +1040,9 @@ String _contextSignalLabel(
             ],
             if (why.isNotEmpty) ...[
               const SizedBox(height: 10),
-              const Text(
-                'Why this suggestion?',
-                style: TextStyle(
+              Text(
+                context.tr('sim_finding_why'),
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -983,10 +1074,10 @@ String _contextSignalLabel(
                     onPressed: applying || rejected
                         ? null
                         : () => _applyScheduleSuggestion(
-                              taskId: taskId,
-                              scheduleTime: suggestedTime,
-                              period: suggestedPeriod,
-                            ),
+                            taskId: taskId,
+                            scheduleTime: suggestedTime,
+                            period: suggestedPeriod,
+                          ),
                     icon: applying
                         ? const SizedBox.square(
                             dimension: 16,
@@ -995,26 +1086,30 @@ String _contextSignalLabel(
                         : const Icon(Icons.auto_fix_high_outlined, size: 17),
                     label: Text(
                       applying
-                          ? 'Applying…'
-                          : actionLabel ?? 'Apply suggestion',
+                          ? context.tr('sim_applying')
+                          : actionLabel ?? context.tr('sim_finding_apply'),
                     ),
                   ),
                   OutlinedButton.icon(
                     onPressed: applying || rejected
                         ? null
                         : () => _keepCurrentSuggestion(
-                              suggestionKey: suggestionKey,
-                              taskId: taskId,
-                              scheduleTime: suggestedTime,
-                              period: suggestedPeriod,
-                            ),
+                            suggestionKey: suggestionKey,
+                            taskId: taskId,
+                            scheduleTime: suggestedTime,
+                            period: suggestedPeriod,
+                          ),
                     icon: Icon(
                       rejected
                           ? Icons.check_circle_outline
                           : Icons.undo_outlined,
                       size: 17,
                     ),
-                    label: Text(rejected ? 'Kept current' : 'Keep current'),
+                    label: Text(
+                      rejected
+                          ? context.tr('sim_finding_kept_current')
+                          : context.tr('sim_finding_keep_current'),
+                    ),
                   ),
                 ],
               ),
@@ -1032,23 +1127,30 @@ String _contextSignalLabel(
     );
   }
 
-  List<Map<String, dynamic>> _applicableAdaptations(
-    CareSimulationData value,
-  ) {
-    final source =
-        value.adaptations.isNotEmpty ? value.adaptations : value.findings;
-    return source.where((finding) {
-      final taskId = _findingValue(finding, const ['taskId', 'task_id']);
-      final suggestedTime =
-          _findingValue(finding, const ['suggestedTime', 'suggested_time']);
-      final suggestedPeriod =
-          _findingValue(finding, const ['suggestedPeriod', 'suggested_period']);
-      final canApply = finding['canApply'] == true || finding['can_apply'] == true;
-      return canApply &&
-          taskId != null &&
-          suggestedTime != null &&
-          suggestedPeriod != null;
-    }).map((finding) => Map<String, dynamic>.from(finding)).toList();
+  List<Map<String, dynamic>> _applicableAdaptations(CareSimulationData value) {
+    final source = value.adaptations.isNotEmpty
+        ? value.adaptations
+        : value.findings;
+    return source
+        .where((finding) {
+          final taskId = _findingValue(finding, const ['taskId', 'task_id']);
+          final suggestedTime = _findingValue(finding, const [
+            'suggestedTime',
+            'suggested_time',
+          ]);
+          final suggestedPeriod = _findingValue(finding, const [
+            'suggestedPeriod',
+            'suggested_period',
+          ]);
+          final canApply =
+              finding['canApply'] == true || finding['can_apply'] == true;
+          return canApply &&
+              taskId != null &&
+              suggestedTime != null &&
+              suggestedPeriod != null;
+        })
+        .map((finding) => Map<String, dynamic>.from(finding))
+        .toList();
   }
 
   Future<void> _openAdaptMyPlan(CareSimulationData value) async {
@@ -1077,17 +1179,20 @@ String _contextSignalLabel(
         SnackBar(
           content: Text(
             applied.appliedCount > 0
-                ? '${applied.appliedCount} routine adjustment${applied.appliedCount == 1 ? '' : 's'} applied. Simulation and Care Gaps were re-checked.'
-                : 'Current reminders kept. SehatMate saved your choices for future suggestions.',
+                ? context.tr(
+                    'sim_adapt_applied_snackbar',
+                    values: {'count': applied.appliedCount},
+                  )
+                : context.tr('sim_adapt_kept_snackbar'),
           ),
         ),
       );
       await _refreshSimulation();
     } on CarePlanException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     } finally {
       if (mounted) setState(() => adaptingPlan = false);
     }
@@ -1111,16 +1216,19 @@ String _contextSignalLabel(
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Reminder moved to ${_displayScheduleTime(scheduleTime)}. Your Reality Check answer was kept unchanged.',
+            context.tr(
+              'sim_apply_moved_snackbar',
+              values: {'time': _displayScheduleTime(scheduleTime)},
+            ),
           ),
         ),
       );
       await _refreshSimulation();
     } on CarePlanException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
       if (mounted) {
@@ -1147,17 +1255,13 @@ String _contextSignalLabel(
       if (!mounted) return;
       setState(() => rejectedSuggestionKeys.add(suggestionKey));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Current reminder kept. SehatMate will use this choice as a learning signal.',
-          ),
-        ),
+        SnackBar(content: Text(context.tr('sim_keep_current_snackbar'))),
       );
     } on CarePlanException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
 
@@ -1172,116 +1276,82 @@ String _contextSignalLabel(
     return '$hour12:${minute.toString().padLeft(2, '0')} $suffix';
   }
 
-String _findingActionLabel(
-  String action,
-) =>
+  String _findingActionLabel(String action) => switch (action) {
+    'schedule' => context.tr('sim_action_review_schedule'),
+
+    'family_care' => context.tr('sim_action_open_family_care'),
+
+    'calendar' => context.tr('sim_action_open_calendar'),
+
+    'care_plan' => context.tr('sim_action_review_care_plan'),
+
+    'reality_check' => context.tr('sim_action_recheck_fit'),
+
+    'review_instruction' => context.tr('sim_action_review_instruction'),
+
+    _ => context.tr('sim_action_review'),
+  };
+
+  void _openFindingAction(String action) {
+    final planId = widget.planId;
+
     switch (action) {
-      'schedule' =>
-        'Review schedule',
+      case 'schedule':
+        if (planId == null) {
+          return;
+        }
 
-      'family_care' =>
-        'Open Family Care',
-
-      'calendar' =>
-        'Open Calendar',
-
-      'care_plan' =>
-        'Review care plan',
-
-      'reality_check' =>
-        'Re-check practical fit',
-
-      'review_instruction' =>
-        'Review verified instruction',
-
-      _ =>
-        'Review',
-    };
-
- void _openFindingAction(
-  String action,
-) {
-  final planId =
-      widget.planId;
-
-  switch (action) {
-    case 'schedule':
-      if (planId == null) {
-        return;
-      }
-
-      Navigator.pushNamed(
-        context,
-        AppRoutes.carePlan(
-          planId,
-        ),
-        arguments:
-            const CarePlanDetailArgs(
-          initialTab: 1,
-          returnToPrevious:
-              true,
-        ),
-      );
-
-      return;
-
-    case 'family_care':
-      Navigator.pushNamed(
-        context,
-        AppRoutes.family,
-      );
-
-      return;
-
-    case 'calendar':
-      Navigator.pushNamed(
-        context,
-        AppRoutes.calendar,
-      );
-
-      return;
-
-    case 'care_plan':
-      if (planId != null) {
         Navigator.pushNamed(
           context,
-          AppRoutes.carePlan(
-            planId,
+          AppRoutes.carePlan(planId),
+          arguments: const CarePlanDetailArgs(
+            initialTab: 1,
+            returnToPrevious: true,
           ),
         );
-      }
 
-      return;
-
-    // NEW
-    case 'reality_check':
-      _openRealityCheck();
-      return;
-
-    // NEW
-    case 'review_instruction':
-      if (planId == null) {
         return;
-      }
 
-      Navigator.pushNamed(
-        context,
-        AppRoutes
-            .carePlanReview,
-        arguments:
-            CarePlanReviewArgs(
-          planId: planId,
-          returnToPrevious:
-              true,
-        ),
-      );
+      case 'family_care':
+        Navigator.pushNamed(context, AppRoutes.family);
 
-      return;
+        return;
 
-    default:
-      _openRealityCheck();
+      case 'calendar':
+        Navigator.pushNamed(context, AppRoutes.calendar);
+
+        return;
+
+      case 'care_plan':
+        if (planId != null) {
+          Navigator.pushNamed(context, AppRoutes.carePlan(planId));
+        }
+
+        return;
+
+      // NEW
+      case 'reality_check':
+        _openRealityCheck();
+        return;
+
+      // NEW
+      case 'review_instruction':
+        if (planId == null) {
+          return;
+        }
+
+        Navigator.pushNamed(
+          context,
+          AppRoutes.carePlanReview,
+          arguments: CarePlanReviewArgs(planId: planId, returnToPrevious: true),
+        );
+
+        return;
+
+      default:
+        _openRealityCheck();
+    }
   }
-}
 
   String? _findingValue(Map finding, List<String> keys) {
     for (final key in keys) {
@@ -1302,9 +1372,7 @@ String _findingActionLabel(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              hasAdjustments
-                  ? Icons.tune_outlined
-                  : Icons.check_circle_outline,
+              hasAdjustments ? Icons.tune_outlined : Icons.check_circle_outline,
               color: hasAdjustments
                   ? AppColors.warningForeground
                   : AppColors.successForeground,
@@ -1316,8 +1384,8 @@ String _findingActionLabel(
                 children: [
                   Text(
                     hasAdjustments
-                        ? 'Plan can activate with routine adjustments'
-                        : 'All required activation checks passed',
+                        ? context.tr('sim_activation_with_adjustments')
+                        : context.tr('sim_activation_all_passed'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -1326,8 +1394,11 @@ String _findingActionLabel(
                   const SizedBox(height: 4),
                   Text(
                     hasAdjustments
-                        ? '${value.atRisk} practical suggestion${value.atRisk == 1 ? '' : 's'} ${value.atRisk == 1 ? 'is' : 'are'} shown above. They are recommendations, not blockers. Keep your honest Reality Check answers and apply only the adjustments that fit your routine.'
-                        : 'The required instruction, schedule, and Reality Check information is complete.',
+                        ? context.tr(
+                            'sim_activation_adjustments_note',
+                            values: {'count': value.atRisk},
+                          )
+                        : context.tr('sim_activation_complete_info'),
                     style: const TextStyle(color: AppColors.muted),
                   ),
                 ],
@@ -1345,29 +1416,29 @@ String _findingActionLabel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
+              const Icon(
                 Icons.error_outline,
                 color: AppColors.criticalForeground,
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Required items before activation',
-                      style: TextStyle(
+                      context.tr('sim_blockers_title'),
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: 3),
+                    const SizedBox(height: 3),
                     Text(
-                      'Only required missing or unverified items block activation. Routine mismatches are shown separately as suggestions.',
-                      style: TextStyle(
+                      context.tr('sim_blockers_description'),
+                      style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.muted,
                       ),
@@ -1393,12 +1464,12 @@ String _findingActionLabel(
               OutlinedButton.icon(
                 onPressed: _openCarePlan,
                 icon: const Icon(Icons.edit_calendar_outlined, size: 18),
-                label: const Text('Review care plan'),
+                label: Text(context.tr('sim_action_review_care_plan')),
               ),
               OutlinedButton.icon(
                 onPressed: _refreshSimulation,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Refresh check'),
+                label: Text(context.tr('sim_refresh_check')),
               ),
             ],
           ),
@@ -1409,23 +1480,20 @@ String _findingActionLabel(
 
   Widget _serverBlockerIssueBox(Map blocker) {
     final title =
-        _findingValue(blocker, const ['title']) ?? 'Required care-plan item';
-    final reason = _findingValue(
-          blocker,
-          const ['reason', 'summary', 'message'],
-        ) ??
-        'This required item is not complete yet.';
-    final fix = _findingValue(
-          blocker,
-          const ['recommendation', 'next_step', 'fix'],
-        ) ??
-        'Review this item and complete the required information.';
+        _findingValue(blocker, const ['title']) ??
+        context.tr('sim_blocker_default_title');
+    final reason =
+        _findingValue(blocker, const ['reason', 'summary', 'message']) ??
+        context.tr('sim_blocker_default_reason');
+    final fix =
+        _findingValue(blocker, const ['recommendation', 'next_step', 'fix']) ??
+        context.tr('sim_blocker_default_fix');
     final action = _findingValue(blocker, const ['action']) ?? 'care_plan';
 
     return _issueBox(
       icon: Icons.block_outlined,
       title: title,
-      statusText: 'Required',
+      statusText: context.tr('sim_blocker_required'),
       reason: reason,
       fix: fix,
       foreground: AppColors.criticalForeground,
@@ -1443,7 +1511,10 @@ String _findingActionLabel(
         borderRadius: BorderRadius.circular(AppRadii.xl),
       ),
       child: Text(
-        '${value.hardBlockerCount} required item${value.hardBlockerCount == 1 ? '' : 's'} must be completed before activation.',
+        context.tr(
+          'sim_blocker_summary',
+          values: {'count': value.hardBlockerCount},
+        ),
         style: const TextStyle(
           fontWeight: FontWeight.w600,
           color: AppColors.criticalForeground,
@@ -1502,25 +1573,19 @@ String _findingActionLabel(
             const SizedBox(height: 7),
             Text(
               details,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.muted,
-              ),
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
             ),
           ],
           const SizedBox(height: 10),
-          const Text(
-            'Why',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+          Text(
+            context.tr('sim_issue_why'),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 2),
           Text(reason),
           const SizedBox(height: 9),
           Text(
-            'How to fix',
+            context.tr('sim_issue_how_to_fix'),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -1565,16 +1630,19 @@ String _findingActionLabel(
 
   String _activationMessage(CareSimulationData value) {
     if (widget.guidedSetup && setupProgress?.step != CareSetupStep.activate) {
-      return 'Continue to Care Gaps before activation. After that step, SehatMate will bring you back here for the final simulation.';
+      return context.tr('sim_activation_msg_care_gaps');
     }
     if (_canActivate(value)) {
       if (value.atRisk > 0) {
-        return 'The required checks are complete. You can activate now and keep the current routine, or apply any practical suggestions above first.';
+        return context.tr('sim_activation_msg_with_suggestions');
       }
-      return 'All required activation checks passed. Confirmed exact times will be used for reminders on this device.';
+      return context.tr('sim_activation_msg_ready');
     }
 
-    return 'Activation is waiting for ${value.hardBlockerCount} required item${value.hardBlockerCount == 1 ? '' : 's'}. Routine suggestions do not block activation.';
+    return context.tr(
+      'sim_activation_msg_waiting',
+      values: {'count': value.hardBlockerCount},
+    );
   }
 
   bool _canActivate(CareSimulationData value) => value.activationAllowed;
@@ -1593,43 +1661,44 @@ String _findingActionLabel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Plan duration',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+          Text(
+            context.tr('sim_duration_title'),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Medicine-specific durations remain unchanged.',
-            style: TextStyle(color: AppColors.muted),
+          Text(
+            context.tr('sim_duration_note'),
+            style: const TextStyle(color: AppColors.muted),
           ),
           const SizedBox(height: 12),
           RadioListTile<String>(
             contentPadding: EdgeInsets.zero,
             value: 'prescription',
-            title: const Text('Use prescription duration'),
+            title: Text(context.tr('sim_duration_prescription')),
             subtitle: Text(
               plan?.suggestedEndDate.isNotEmpty == true
-                  ? 'Suggested end: ${plan!.suggestedEndDate}'
-                  : 'Uses the latest verified instruction end date',
+                  ? context.tr(
+                      'sim_duration_suggested_end',
+                      values: {'date': plan!.suggestedEndDate},
+                    )
+                  : context.tr('sim_duration_prescription_hint'),
             ),
           ),
           RadioListTile<String>(
             contentPadding: EdgeInsets.zero,
             value: 'custom',
-            title: const Text('Choose end date'),
+            title: Text(context.tr('sim_duration_choose_end')),
             subtitle: Text(
               endDate == null
-                  ? 'No date selected'
+                  ? context.tr('sim_duration_no_date')
                   : '${endDate!.year}-${endDate!.month.toString().padLeft(2, '0')}-${endDate!.day.toString().padLeft(2, '0')}',
             ),
           ),
-          const RadioListTile<String>(
+          RadioListTile<String>(
             contentPadding: EdgeInsets.zero,
             value: 'ongoing',
-            title: Text('Ongoing plan'),
-            subtitle: Text(
-              'The plan stays active; fixed medicine durations still stop as prescribed.',
-            ),
+            title: Text(context.tr('sim_duration_ongoing')),
+            subtitle: Text(context.tr('sim_duration_ongoing_hint')),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
@@ -1640,7 +1709,7 @@ String _findingActionLabel(
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.event_available_outlined),
-            label: const Text('Save duration'),
+            label: Text(context.tr('sim_duration_save')),
           ),
         ],
       ),
@@ -1648,21 +1717,47 @@ String _findingActionLabel(
   );
 
   Future<void> _pickEndDate() async {
-    final selected = await showDatePicker(context: context, initialDate: endDate ?? DateTime.now().add(const Duration(days: 7)), firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 3650)));
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: endDate ?? DateTime.now().add(const Duration(days: 7)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+    );
     if (selected != null && mounted) setState(() => endDate = selected);
   }
 
-  String? get _endDateText => durationMode == 'ongoing' ? null : endDate == null ? null : '${endDate!.year}-${endDate!.month.toString().padLeft(2, '0')}-${endDate!.day.toString().padLeft(2, '0')}';
+  String? get _endDateText => durationMode == 'ongoing'
+      ? null
+      : endDate == null
+      ? null
+      : '${endDate!.year}-${endDate!.month.toString().padLeft(2, '0')}-${endDate!.day.toString().padLeft(2, '0')}';
 
   Future<void> _saveDuration() async {
-    if (durationMode != 'ongoing' && endDate == null) { await _pickEndDate(); if (endDate == null) return; }
+    if (durationMode != 'ongoing' && endDate == null) {
+      await _pickEndDate();
+      if (endDate == null) return;
+    }
     setState(() => savingDuration = true);
     try {
-      await CarePlanService.instance.savePlanDuration(widget.planId!, mode: durationMode, endDate: _endDateText);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan duration saved.')));
+      await CarePlanService.instance.savePlanDuration(
+        widget.planId!,
+        mode: durationMode,
+        endDate: _endDateText,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('sim_duration_saved_snackbar'))),
+        );
+      }
     } on CarePlanException catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
-    } finally { if (mounted) setState(() => savingDuration = false); }
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) setState(() => savingDuration = false);
+    }
   }
 
   Future<void> _activate() async {
@@ -1670,26 +1765,41 @@ String _findingActionLabel(
     if (planId == null) return;
     setState(() => activating = true);
     try {
-      await CarePlanService.instance.savePlanDuration(planId, mode: durationMode, endDate: _endDateText);
-      final detail = await CarePlanService.instance.activatePlan(planId);
-      final notificationResult = await NotificationService.instance.scheduleNextOccurrences(
-        planId: planId,
-        tasks: detail.tasks,
+      await CarePlanService.instance.savePlanDuration(
+        planId,
+        mode: durationMode,
+        endDate: _endDateText,
       );
+      final detail = await CarePlanService.instance.activatePlan(planId);
+      final notificationResult = await NotificationService.instance
+          .scheduleNextOccurrences(planId: planId, tasks: detail.tasks);
       if (!mounted) return;
       final message = !notificationResult.permissionGranted
-          ? 'Care plan activated, but notification permission was not granted.'
+          ? context.tr('sim_activated_no_permission')
           : !notificationResult.exactAlarmGranted
-              ? 'Care plan activated. Allow exact alarms in Android settings to enable reminders.'
-              : 'Care plan activated. ${notificationResult.scheduledCount} reminder${notificationResult.scheduledCount == 1 ? '' : 's'} scheduled.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.dashboard, (route) => false);
+          ? context.tr('sim_activated_no_exact_alarm')
+          : context.tr(
+              'sim_activated_with_count',
+              values: {'count': notificationResult.scheduledCount},
+            );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.dashboard,
+        (route) => false,
+      );
     } on CarePlanException catch (exception) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(exception.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(exception.message)));
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('The care plan could not be activated on this device.')),
+          SnackBar(content: Text(context.tr('sim_activation_failed_snackbar'))),
         );
       }
     } finally {
@@ -1748,15 +1858,13 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
 
       final why = finding['why'] is List
           ? (finding['why'] as List)
-              .map((item) => item.toString().trim())
-              .where((item) => item.isNotEmpty)
-              .toList()
+                .map((item) => item.toString().trim())
+                .where((item) => item.isNotEmpty)
+                .toList()
           : <String>[];
       return _AdaptDraft(
         taskId: read(const ['taskId', 'task_id']),
-        title: read(const ['question', 'title', 'name']).isEmpty
-            ? 'Routine reminder'
-            : read(const ['question', 'title', 'name']),
+        title: read(const ['question', 'title', 'name']),
         currentTime: read(const ['currentTime', 'current_time']),
         suggestedTime: read(const ['suggestedTime', 'suggested_time']),
         period: read(const ['suggestedPeriod', 'suggested_period']),
@@ -1769,18 +1877,29 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
   int get keepCount => drafts.where((item) => item.explicitlyKept).length;
 
   Future<void> _changeTime(_AdaptDraft draft) async {
-    final initial = _parse24Hour(draft.suggestedTime) ?? const TimeOfDay(hour: 9, minute: 30);
+    final initial =
+        _parse24Hour(draft.suggestedTime) ??
+        const TimeOfDay(hour: 9, minute: 30);
     final chosen = await showTimePicker(
       context: context,
       initialTime: initial,
-      helpText: 'Choose another ${draft.period} reminder',
+      helpText: context.tr(
+        'sim_sheet_time_picker_help',
+        values: {'period': draft.period},
+      ),
     );
     if (chosen == null || !mounted) return;
     if (!isTimeInCarePeriod(draft.period, chosen)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Choose a time inside the ${carePeriodAllowedWindow(draft.period)} ${draft.period} period.',
+            context.tr(
+              'sim_sheet_invalid_time',
+              values: {
+                'window': carePeriodAllowedWindow(draft.period),
+                'period': draft.period,
+              },
+            ),
           ),
         ),
       );
@@ -1824,9 +1943,7 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
     }
     if (decisions.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Select at least one adjustment or choose Keep current.'),
-        ),
+        SnackBar(content: Text(context.tr('sim_sheet_select_at_least_one'))),
       );
       return;
     }
@@ -1861,22 +1978,25 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
               const SizedBox(height: 14),
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Adapt My Plan',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                      context.tr('sim_adapt_title'),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close),
-                    tooltip: 'Close',
+                    tooltip: context.tr('sim_sheet_close_tooltip'),
                   ),
                 ],
               ),
-              const Text(
-                'Review flexible reminder changes together. Medical instructions are not changed.',
-                style: TextStyle(color: AppColors.muted),
+              Text(
+                context.tr('sim_sheet_description'),
+                style: const TextStyle(color: AppColors.muted),
               ),
               const SizedBox(height: 14),
               Flexible(
@@ -1884,21 +2004,15 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
                   child: Column(
                     children: [
                       for (final draft in drafts) _draftCard(draft),
-                      const SafetyNote(
-                        text:
-                            'SehatMate only applies flexible reminder changes shown here. Explicit clinician-specified times cannot be moved automatically.',
-                      ),
+                      SafetyNote(text: context.tr('sim_sheet_safety_note')),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                '$applyCount selected to apply${keepCount > 0 ? ' · $keepCount keep current' : ''}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.muted,
-                ),
+                '${context.tr('sim_sheet_selected_to_apply', values: {'count': applyCount})}${keepCount > 0 ? context.tr('sim_sheet_keep_current_count', values: {'count': keepCount}) : ''}',
+                style: const TextStyle(fontSize: 13, color: AppColors.muted),
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
@@ -1906,8 +2020,11 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
                 icon: const Icon(Icons.auto_fix_high_outlined, size: 18),
                 label: Text(
                   applyCount > 0
-                      ? 'Apply $applyCount selected adjustment${applyCount == 1 ? '' : 's'}'
-                      : 'Save Keep current choices',
+                      ? context.tr(
+                          'sim_sheet_apply_button',
+                          values: {'count': applyCount},
+                        )
+                      : context.tr('sim_sheet_save_keep_choices'),
                 ),
               ),
             ],
@@ -1950,7 +2067,9 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        draft.title,
+                        draft.title.isEmpty
+                            ? context.tr('sim_sheet_default_title')
+                            : draft.title,
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
@@ -1970,7 +2089,9 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
             ),
             if (draft.why.isNotEmpty) ...[
               const SizedBox(height: 8),
-              ...draft.why.take(3).map(
+              ...draft.why
+                  .take(3)
+                  .map(
                     (item) => Padding(
                       padding: const EdgeInsets.only(bottom: 3),
                       child: Text(
@@ -1988,7 +2109,7 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
                 OutlinedButton.icon(
                   onPressed: () => _changeTime(draft),
                   icon: const Icon(Icons.schedule, size: 17),
-                  label: const Text('Change'),
+                  label: Text(context.tr('sim_sheet_change')),
                 ),
                 TextButton.icon(
                   onPressed: () {
@@ -2004,7 +2125,9 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
                     size: 17,
                   ),
                   label: Text(
-                    draft.explicitlyKept ? 'Keeping current' : 'Keep current',
+                    draft.explicitlyKept
+                        ? context.tr('sim_sheet_keeping_current')
+                        : context.tr('sim_sheet_keep_current'),
                   ),
                 ),
               ],
@@ -2015,4 +2138,3 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
     );
   }
 }
-

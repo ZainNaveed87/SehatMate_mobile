@@ -234,12 +234,9 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Server ne invalid task outcome wapas kiya.',
     },
     'error_document_empty_or_too_large': {
-      AppLanguage.english:
-          'The document is empty or exceeds the 20 MB limit.',
-      AppLanguage.urdu:
-          'Document خالی ہے یا 20 MB limit سے زیادہ ہے۔',
-      AppLanguage.romanUrdu:
-          'Document khali hai ya 20 MB limit se zyada hai.',
+      AppLanguage.english: 'The document is empty or exceeds the 20 MB limit.',
+      AppLanguage.urdu: 'Document خالی ہے یا 20 MB limit سے زیادہ ہے۔',
+      AppLanguage.romanUrdu: 'Document khali hai ya 20 MB limit se zyada hai.',
     },
     'error_invalid_document': {
       AppLanguage.english: 'The server returned an invalid document.',
@@ -259,16 +256,13 @@ class AppStrings {
     'error_label_image_empty_or_too_large': {
       AppLanguage.english:
           'The label image is empty or exceeds the 10 MB limit.',
-      AppLanguage.urdu:
-          'Label image خالی ہے یا 10 MB limit سے زیادہ ہے۔',
+      AppLanguage.urdu: 'Label image خالی ہے یا 10 MB limit سے زیادہ ہے۔',
       AppLanguage.romanUrdu:
           'Label image khali hai ya 10 MB limit se zyada hai.',
     },
     'error_invalid_ingredient_evidence': {
-      AppLanguage.english:
-          'The server returned invalid ingredient evidence.',
-      AppLanguage.urdu:
-          'Server نے invalid ingredient evidence واپس کیا۔',
+      AppLanguage.english: 'The server returned invalid ingredient evidence.',
+      AppLanguage.urdu: 'Server نے invalid ingredient evidence واپس کیا۔',
       AppLanguage.romanUrdu:
           'Server ne invalid ingredient evidence wapas kiya.',
     },
@@ -285,8 +279,7 @@ class AppStrings {
     'error_enter_professional_answer': {
       AppLanguage.english:
           'Enter the answer you received from your healthcare professional.',
-      AppLanguage.urdu:
-          'Healthcare professional سے ملا ہوا جواب درج کریں۔',
+      AppLanguage.urdu: 'Healthcare professional سے ملا ہوا جواب درج کریں۔',
       AppLanguage.romanUrdu:
           'Healthcare professional se mila hua jawab enter karein.',
     },
@@ -350,10 +343,8 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Google Web Client ID configured nahi hai.',
     },
     'error_google_unsupported': {
-      AppLanguage.english:
-          'Google Sign-In is not supported on this platform.',
-      AppLanguage.urdu:
-          'اس platform پر Google Sign-In supported نہیں ہے۔',
+      AppLanguage.english: 'Google Sign-In is not supported on this platform.',
+      AppLanguage.urdu: 'اس platform پر Google Sign-In supported نہیں ہے۔',
       AppLanguage.romanUrdu:
           'Is platform par Google Sign-In supported nahi hai.',
     },
@@ -378,8 +369,7 @@ class AppStrings {
     'error_google_device_config': {
       AppLanguage.english:
           'Google Sign-In is not configured correctly on this device.',
-      AppLanguage.urdu:
-          'اس device پر Google Sign-In درست configure نہیں ہے۔',
+      AppLanguage.urdu: 'اس device پر Google Sign-In درست configure نہیں ہے۔',
       AppLanguage.romanUrdu:
           'Is device par Google Sign-In theek configure nahi hai.',
     },
@@ -421,39 +411,32 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Server ne valid session wapas nahi kiya.',
     },
 
-
     'page_load_failed': {
-  AppLanguage.english:
-      "This page didn't load",
+      AppLanguage.english: "This page didn't load",
 
-  AppLanguage.urdu:
-      'یہ صفحہ لوڈ نہیں ہو سکا',
+      AppLanguage.urdu: 'یہ صفحہ لوڈ نہیں ہو سکا',
 
-  AppLanguage.romanUrdu:
-      'Yeh page load nahi ho saka',
-},
+      AppLanguage.romanUrdu: 'Yeh page load nahi ho saka',
+    },
 
-'page_load_failed_description': {
-  AppLanguage.english:
-      'Something went wrong on our end. You can try refreshing or head back home.',
+    'page_load_failed_description': {
+      AppLanguage.english:
+          'Something went wrong on our end. You can try refreshing or head back home.',
 
-  AppLanguage.urdu:
-      'کچھ غلط ہو گیا ہے۔ آپ دوبارہ کوشش کر سکتے ہیں یا ہوم پر واپس جا سکتے ہیں۔',
+      AppLanguage.urdu:
+          'کچھ غلط ہو گیا ہے۔ آپ دوبارہ کوشش کر سکتے ہیں یا ہوم پر واپس جا سکتے ہیں۔',
 
-  AppLanguage.romanUrdu:
-      'Kuch ghalat ho gaya hai. Aap dobara try kar sakte hain ya Home par wapas ja sakte hain.',
-},
+      AppLanguage.romanUrdu:
+          'Kuch ghalat ho gaya hai. Aap dobara try kar sakte hain ya Home par wapas ja sakte hain.',
+    },
 
-'go_home': {
-  AppLanguage.english:
-      'Go home',
+    'go_home': {
+      AppLanguage.english: 'Go home',
 
-  AppLanguage.urdu:
-      'ہوم پر جائیں',
+      AppLanguage.urdu: 'ہوم پر جائیں',
 
-  AppLanguage.romanUrdu:
-      'Home par jayein',
-},
+      AppLanguage.romanUrdu: 'Home par jayein',
+    },
     'page_not_found': {
       AppLanguage.english: 'Page not found',
       AppLanguage.urdu: 'صفحہ نہیں ملا',
@@ -598,8 +581,7 @@ class AppStrings {
     'landing_features_title': {
       AppLanguage.english:
           'Everything a family needs to keep the plan on track.',
-      AppLanguage.urdu:
-          'خاندان کو منصوبہ درست رکھنے کے لیے جو کچھ چاہیے۔',
+      AppLanguage.urdu: 'خاندان کو منصوبہ درست رکھنے کے لیے جو کچھ چاہیے۔',
       AppLanguage.romanUrdu:
           'Family ko plan track par rakhne ke liye jo kuch chahiye.',
     },
@@ -637,10 +619,8 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Care-plan support, diagnosis nahi',
     },
     'landing_hero_title': {
-      AppLanguage.english:
-          'Make every care plan easier to follow at home.',
-      AppLanguage.urdu:
-          'ہر نگہداشت منصوبے پر گھر میں عمل آسان بنائیں۔',
+      AppLanguage.english: 'Make every care plan easier to follow at home.',
+      AppLanguage.urdu: 'ہر نگہداشت منصوبے پر گھر میں عمل آسان بنائیں۔',
       AppLanguage.romanUrdu:
           'Har care plan ko ghar par follow karna asan banayein.',
     },
@@ -727,8 +707,7 @@ class AppStrings {
     'landing_how_upload_body': {
       AppLanguage.english:
           'Prescriptions, discharge summaries and follow-up slips.',
-      AppLanguage.urdu:
-          'نسخے، ڈسچارج خلاصے اور فالو اَپ سلپس۔',
+      AppLanguage.urdu: 'نسخے، ڈسچارج خلاصے اور فالو اَپ سلپس۔',
       AppLanguage.romanUrdu:
           'Prescriptions, discharge summaries aur follow-up slips.',
     },
@@ -753,8 +732,7 @@ class AppStrings {
     'landing_how_routine_body': {
       AppLanguage.english:
           'A short conversation about your day, help and transport.',
-      AppLanguage.urdu:
-          'آپ کے دن، مدد اور ٹرانسپورٹ کے بارے میں مختصر گفتگو۔',
+      AppLanguage.urdu: 'آپ کے دن، مدد اور ٹرانسپورٹ کے بارے میں مختصر گفتگو۔',
       AppLanguage.romanUrdu:
           'Aap ke din, madad aur transport ke baare mein chhoti baat.',
     },
@@ -840,8 +818,7 @@ class AppStrings {
     'landing_safety_readiness': {
       AppLanguage.english:
           'Care Readiness reflects practical feasibility, not medical risk.',
-      AppLanguage.urdu:
-          'Care Readiness عملی امکان دکھاتی ہے، طبی خطرہ نہیں۔',
+      AppLanguage.urdu: 'Care Readiness عملی امکان دکھاتی ہے، طبی خطرہ نہیں۔',
       AppLanguage.romanUrdu:
           'Care Readiness practical feasibility dikhati hai, medical risk nahi.',
     },
@@ -942,8 +919,7 @@ class AppStrings {
     'landing_footer_copyright': {
       AppLanguage.english:
           '© 2026 SehatMate AI. Demo product for presentation purposes.',
-      AppLanguage.urdu:
-          '© 2026 SehatMate AI۔ پریزنٹیشن کے لیے ڈیمو product۔',
+      AppLanguage.urdu: '© 2026 SehatMate AI۔ پریزنٹیشن کے لیے ڈیمو product۔',
       AppLanguage.romanUrdu:
           '© 2026 SehatMate AI. Presentation ke liye demo product.',
     },
@@ -995,207 +971,181 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Undo',
     },
 
+    // Auth
+    'back_to_home': {
+      AppLanguage.english: 'Back to home',
+      AppLanguage.urdu: 'ہوم پر واپس جائیں',
+      AppLanguage.romanUrdu: 'Home par wapas jayein',
+    },
 
-// Auth
-'back_to_home': {
-  AppLanguage.english: 'Back to home',
-  AppLanguage.urdu: 'ہوم پر واپس جائیں',
-  AppLanguage.romanUrdu: 'Home par wapas jayein',
-},
+    'sign_up': {
+      AppLanguage.english: 'Sign Up',
+      AppLanguage.urdu: 'اکاؤنٹ بنائیں',
+      AppLanguage.romanUrdu: 'Sign Up',
+    },
 
-'sign_up': {
-  AppLanguage.english: 'Sign Up',
-  AppLanguage.urdu: 'اکاؤنٹ بنائیں',
-  AppLanguage.romanUrdu: 'Sign Up',
-},
+    'continue_as_guest': {
+      AppLanguage.english: 'Continue as Guest',
+      AppLanguage.urdu: 'مہمان کے طور پر جاری رکھیں',
+      AppLanguage.romanUrdu: 'Guest ke taur par jari rakhein',
+    },
 
-'continue_as_guest': {
-  AppLanguage.english: 'Continue as Guest',
-  AppLanguage.urdu: 'مہمان کے طور پر جاری رکھیں',
-  AppLanguage.romanUrdu: 'Guest ke taur par jari rakhein',
-},
+    'continue_with_google': {
+      AppLanguage.english: 'Continue with Google',
+      AppLanguage.urdu: 'Google کے ساتھ جاری رکھیں',
+      AppLanguage.romanUrdu: 'Google ke saath continue karein',
+    },
 
-'continue_with_google': {
-  AppLanguage.english: 'Continue with Google',
-  AppLanguage.urdu: 'Google کے ساتھ جاری رکھیں',
-  AppLanguage.romanUrdu: 'Google ke saath continue karein',
-},
+    'or': {
+      AppLanguage.english: 'or',
+      AppLanguage.urdu: 'یا',
+      AppLanguage.romanUrdu: 'ya',
+    },
 
-'or': {
-  AppLanguage.english: 'or',
-  AppLanguage.urdu: 'یا',
-  AppLanguage.romanUrdu: 'ya',
-},
+    'email': {
+      AppLanguage.english: 'Email',
+      AppLanguage.urdu: 'ای میل',
+      AppLanguage.romanUrdu: 'Email',
+    },
 
-'email': {
-  AppLanguage.english: 'Email',
-  AppLanguage.urdu: 'ای میل',
-  AppLanguage.romanUrdu: 'Email',
-},
+    'password': {
+      AppLanguage.english: 'Password',
+      AppLanguage.urdu: 'پاس ورڈ',
+      AppLanguage.romanUrdu: 'Password',
+    },
 
-'password': {
-  AppLanguage.english: 'Password',
-  AppLanguage.urdu: 'پاس ورڈ',
-  AppLanguage.romanUrdu: 'Password',
-},
+    'forgot_password': {
+      AppLanguage.english: 'Forgot Password',
+      AppLanguage.urdu: 'پاس ورڈ بھول گئے؟',
+      AppLanguage.romanUrdu: 'Password bhool gaye?',
+    },
 
-'forgot_password': {
-  AppLanguage.english: 'Forgot Password',
-  AppLanguage.urdu: 'پاس ورڈ بھول گئے؟',
-  AppLanguage.romanUrdu: 'Password bhool gaye?',
-},
+    'password_reset_coming': {
+      AppLanguage.english: 'Password reset will be added with email delivery.',
+      AppLanguage.urdu:
+          'پاس ورڈ ری سیٹ کی سہولت ای میل کے ذریعے شامل کی جائے گی۔',
+      AppLanguage.romanUrdu: 'Password reset email ke zariye add kiya jayega.',
+    },
 
-'password_reset_coming': {
-  AppLanguage.english:
-      'Password reset will be added with email delivery.',
-  AppLanguage.urdu:
-      'پاس ورڈ ری سیٹ کی سہولت ای میل کے ذریعے شامل کی جائے گی۔',
-  AppLanguage.romanUrdu:
-      'Password reset email ke zariye add kiya jayega.',
-},
+    'your_password': {
+      AppLanguage.english: 'Your password',
+      AppLanguage.urdu: 'اپنا پاس ورڈ درج کریں',
+      AppLanguage.romanUrdu: 'Apna password enter karein',
+    },
 
-'your_password': {
-  AppLanguage.english: 'Your password',
-  AppLanguage.urdu: 'اپنا پاس ورڈ درج کریں',
-  AppLanguage.romanUrdu: 'Apna password enter karein',
-},
+    'full_name': {
+      AppLanguage.english: 'Full name',
+      AppLanguage.urdu: 'پورا نام',
+      AppLanguage.romanUrdu: 'Full name',
+    },
 
-'full_name': {
-  AppLanguage.english: 'Full name',
-  AppLanguage.urdu: 'پورا نام',
-  AppLanguage.romanUrdu: 'Full name',
-},
+    'your_full_name': {
+      AppLanguage.english: 'Your full name',
+      AppLanguage.urdu: 'اپنا پورا نام درج کریں',
+      AppLanguage.romanUrdu: 'Apna full name enter karein',
+    },
 
-'your_full_name': {
-  AppLanguage.english: 'Your full name',
-  AppLanguage.urdu: 'اپنا پورا نام درج کریں',
-  AppLanguage.romanUrdu: 'Apna full name enter karein',
-},
+    'password_min_8_hint': {
+      AppLanguage.english: 'At least 8 characters',
+      AppLanguage.urdu: 'کم از کم 8 حروف',
+      AppLanguage.romanUrdu: 'Kam az kam 8 characters',
+    },
 
-'password_min_8_hint': {
-  AppLanguage.english: 'At least 8 characters',
-  AppLanguage.urdu: 'کم از کم 8 حروف',
-  AppLanguage.romanUrdu: 'Kam az kam 8 characters',
-},
+    'create_account': {
+      AppLanguage.english: 'Create Account',
+      AppLanguage.urdu: 'اکاؤنٹ بنائیں',
+      AppLanguage.romanUrdu: 'Account banayein',
+    },
 
-'create_account': {
-  AppLanguage.english: 'Create Account',
-  AppLanguage.urdu: 'اکاؤنٹ بنائیں',
-  AppLanguage.romanUrdu: 'Account banayein',
-},
+    'enter_valid_email': {
+      AppLanguage.english: 'Enter a valid email address.',
+      AppLanguage.urdu: 'درست ای میل ایڈریس درج کریں۔',
+      AppLanguage.romanUrdu: 'Valid email address enter karein.',
+    },
 
-'enter_valid_email': {
-  AppLanguage.english: 'Enter a valid email address.',
-  AppLanguage.urdu: 'درست ای میل ایڈریس درج کریں۔',
-  AppLanguage.romanUrdu: 'Valid email address enter karein.',
-},
+    'enter_password': {
+      AppLanguage.english: 'Enter your password.',
+      AppLanguage.urdu: 'اپنا پاس ورڈ درج کریں۔',
+      AppLanguage.romanUrdu: 'Apna password enter karein.',
+    },
 
-'enter_password': {
-  AppLanguage.english: 'Enter your password.',
-  AppLanguage.urdu: 'اپنا پاس ورڈ درج کریں۔',
-  AppLanguage.romanUrdu: 'Apna password enter karein.',
-},
+    'enter_full_name': {
+      AppLanguage.english: 'Enter your full name.',
+      AppLanguage.urdu: 'اپنا پورا نام درج کریں۔',
+      AppLanguage.romanUrdu: 'Apna full name enter karein.',
+    },
 
-'enter_full_name': {
-  AppLanguage.english: 'Enter your full name.',
-  AppLanguage.urdu: 'اپنا پورا نام درج کریں۔',
-  AppLanguage.romanUrdu: 'Apna full name enter karein.',
-},
+    'password_min_8_error': {
+      AppLanguage.english: 'Password must contain at least 8 characters.',
+      AppLanguage.urdu: 'پاس ورڈ میں کم از کم 8 حروف ہونے چاہئیں۔',
+      AppLanguage.romanUrdu:
+          'Password mein kam az kam 8 characters hone chahiye.',
+    },
 
-'password_min_8_error': {
-  AppLanguage.english:
-      'Password must contain at least 8 characters.',
-  AppLanguage.urdu:
-      'پاس ورڈ میں کم از کم 8 حروف ہونے چاہئیں۔',
-  AppLanguage.romanUrdu:
-      'Password mein kam az kam 8 characters hone chahiye.',
-},
+    'sign_in_failed': {
+      AppLanguage.english: 'Sign in failed. Please try again.',
+      AppLanguage.urdu: 'سائن اِن نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu: 'Sign in nahi ho saka. Dobara try karein.',
+    },
 
-'sign_in_failed': {
-  AppLanguage.english: 'Sign in failed. Please try again.',
-  AppLanguage.urdu:
-      'سائن اِن نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
-  AppLanguage.romanUrdu:
-      'Sign in nahi ho saka. Dobara try karein.',
-},
+    'account_creation_failed': {
+      AppLanguage.english: 'Account creation failed. Please try again.',
+      AppLanguage.urdu: 'اکاؤنٹ نہیں بن سکا۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu: 'Account create nahi ho saka. Dobara try karein.',
+    },
 
-'account_creation_failed': {
-  AppLanguage.english:
-      'Account creation failed. Please try again.',
-  AppLanguage.urdu:
-      'اکاؤنٹ نہیں بن سکا۔ دوبارہ کوشش کریں۔',
-  AppLanguage.romanUrdu:
-      'Account create nahi ho saka. Dobara try karein.',
-},
+    'google_sign_in_failed': {
+      AppLanguage.english: 'Google Sign-In failed. Please try again.',
+      AppLanguage.urdu: 'Google سے سائن اِن نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu: 'Google Sign-In nahi ho saka. Dobara try karein.',
+    },
 
-'google_sign_in_failed': {
-  AppLanguage.english:
-      'Google Sign-In failed. Please try again.',
-  AppLanguage.urdu:
-      'Google سے سائن اِن نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
-  AppLanguage.romanUrdu:
-      'Google Sign-In nahi ho saka. Dobara try karein.',
-},
+    'auth_incorrect_credentials': {
+      AppLanguage.english: 'Incorrect email or password.',
+      AppLanguage.urdu: 'ای میل یا پاس ورڈ درست نہیں ہے۔',
+      AppLanguage.romanUrdu: 'Email ya password sahi nahi hai.',
+    },
 
-'auth_incorrect_credentials': {
-  AppLanguage.english: 'Incorrect email or password.',
-  AppLanguage.urdu: 'ای میل یا پاس ورڈ درست نہیں ہے۔',
-  AppLanguage.romanUrdu: 'Email ya password sahi nahi hai.',
-},
+    'auth_account_exists': {
+      AppLanguage.english: 'An account with this email already exists.',
+      AppLanguage.urdu: 'اس ای میل کے ساتھ اکاؤنٹ پہلے سے موجود ہے۔',
+      AppLanguage.romanUrdu: 'Is email ke saath account pehle se maujood hai.',
+    },
 
-'auth_account_exists': {
-  AppLanguage.english:
-      'An account with this email already exists.',
-  AppLanguage.urdu:
-      'اس ای میل کے ساتھ اکاؤنٹ پہلے سے موجود ہے۔',
-  AppLanguage.romanUrdu:
-      'Is email ke saath account pehle se maujood hai.',
-},
+    'auth_request_failed': {
+      AppLanguage.english:
+          'Authentication could not be completed. Please try again.',
+      AppLanguage.urdu: 'سائن اِن کا عمل مکمل نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu:
+          'Authentication complete nahi ho saki. Dobara try karein.',
+    },
 
-'auth_request_failed': {
-  AppLanguage.english:
-      'Authentication could not be completed. Please try again.',
-  AppLanguage.urdu:
-      'سائن اِن کا عمل مکمل نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
-  AppLanguage.romanUrdu:
-      'Authentication complete nahi ho saki. Dobara try karein.',
-},
+    'auth_explainer_title': {
+      AppLanguage.english: 'Doctor Instructions → SehatMate → Better Home Care',
+      AppLanguage.urdu: 'ڈاکٹر کی ہدایات → صحت میٹ → بہتر گھریلو نگہداشت',
+      AppLanguage.romanUrdu:
+          'Doctor Instructions → SehatMate → Behtar Home Care',
+    },
 
-'auth_explainer_title': {
-  AppLanguage.english:
-      'Doctor Instructions → SehatMate → Better Home Care',
-  AppLanguage.urdu:
-      'ڈاکٹر کی ہدایات → صحت میٹ → بہتر گھریلو نگہداشت',
-  AppLanguage.romanUrdu:
-      'Doctor Instructions → SehatMate → Behtar Home Care',
-},
+    'auth_verified_instructions': {
+      AppLanguage.english: 'Verified instructions, never auto-activated',
+      AppLanguage.urdu:
+          'تصدیق شدہ ہدایات، خودکار طور پر کبھی فعال نہیں کی جاتیں',
+      AppLanguage.romanUrdu:
+          'Verified instructions kabhi automatically activate nahi hotin',
+    },
 
-'auth_verified_instructions': {
-  AppLanguage.english:
-      'Verified instructions, never auto-activated',
-  AppLanguage.urdu:
-      'تصدیق شدہ ہدایات، خودکار طور پر کبھی فعال نہیں کی جاتیں',
-  AppLanguage.romanUrdu:
-      'Verified instructions kabhi automatically activate nahi hotin',
-},
+    'auth_7_day_simulation': {
+      AppLanguage.english: 'A 7-day simulation of your real routine',
+      AppLanguage.urdu: 'آپ کی حقیقی روٹین کی 7 دن کی سیمیولیشن',
+      AppLanguage.romanUrdu: 'Aap ki real routine ki 7-day simulation',
+    },
 
-'auth_7_day_simulation': {
-  AppLanguage.english:
-      'A 7-day simulation of your real routine',
-  AppLanguage.urdu:
-      'آپ کی حقیقی روٹین کی 7 دن کی سیمیولیشن',
-  AppLanguage.romanUrdu:
-      'Aap ki real routine ki 7-day simulation',
-},
-
-'auth_family_access': {
-  AppLanguage.english:
-      'Family tasks with minimum necessary access',
-  AppLanguage.urdu:
-      'خاندانی کام صرف ضروری حد تک رسائی کے ساتھ',
-  AppLanguage.romanUrdu:
-      'Family tasks sirf zaroori access ke saath',
-},
+    'auth_family_access': {
+      AppLanguage.english: 'Family tasks with minimum necessary access',
+      AppLanguage.urdu: 'خاندانی کام صرف ضروری حد تک رسائی کے ساتھ',
+      AppLanguage.romanUrdu: 'Family tasks sirf zaroori access ke saath',
+    },
 
     // Onboarding and profile setup
     'onboarding_step_of_total': {
@@ -1214,10 +1164,8 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Aap SehatMate kis ke liye use kar rahe hain?',
     },
     'onboarding_who_subtitle': {
-      AppLanguage.english:
-          'This helps us decide how much detail to show.',
-      AppLanguage.urdu:
-          'اس سے ہمیں سمجھ آتا ہے کہ کتنی تفصیل دکھانی ہے۔',
+      AppLanguage.english: 'This helps us decide how much detail to show.',
+      AppLanguage.urdu: 'اس سے ہمیں سمجھ آتا ہے کہ کتنی تفصیل دکھانی ہے۔',
       AppLanguage.romanUrdu:
           'Is se humein samajh aata hai ke kitni detail dikhani hai.',
     },
@@ -1229,7 +1177,8 @@ class AppStrings {
     'onboarding_myself_description': {
       AppLanguage.english: 'I am the patient following the care plan.',
       AppLanguage.urdu: 'میں وہ مریض ہوں جو نگہداشت منصوبے پر عمل کر رہا ہے۔',
-      AppLanguage.romanUrdu: 'Main woh patient hoon jo care plan follow kar raha hai.',
+      AppLanguage.romanUrdu:
+          'Main woh patient hoon jo care plan follow kar raha hai.',
     },
     'onboarding_someone_i_care_for': {
       AppLanguage.english: 'Someone I care for',
@@ -1249,7 +1198,8 @@ class AppStrings {
     'language_change_later_settings': {
       AppLanguage.english: 'You can change this later in Settings.',
       AppLanguage.urdu: 'آپ اسے بعد میں Settings میں بدل سکتے ہیں۔',
-      AppLanguage.romanUrdu: 'Aap isay baad mein Settings mein change kar sakte hain.',
+      AppLanguage.romanUrdu:
+          'Aap isay baad mein Settings mein change kar sakte hain.',
     },
     'accessibility': {
       AppLanguage.english: 'Accessibility',
@@ -1397,7 +1347,8 @@ class AppStrings {
     'settings_simple_care_hint': {
       AppLanguage.english: 'Show one task at a time in plain language',
       AppLanguage.urdu: 'سادہ زبان میں ایک وقت میں ایک task دکھائیں',
-      AppLanguage.romanUrdu: 'Simple zaban mein aik waqt mein aik task dikhayein',
+      AppLanguage.romanUrdu:
+          'Simple zaban mein aik waqt mein aik task dikhayein',
     },
     'reduced_motion': {
       AppLanguage.english: 'Reduced motion',
@@ -1542,8 +1493,7 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Abhi koi caregiver nahi',
     },
     'no_caregivers_yet_description': {
-      AppLanguage.english:
-          'Add a family member so care tasks can be shared.',
+      AppLanguage.english: 'Add a family member so care tasks can be shared.',
       AppLanguage.urdu:
           'خاندان کے فرد کو شامل کریں تاکہ نگہداشت کے کام share ہو سکیں۔',
       AppLanguage.romanUrdu:
@@ -1631,8 +1581,7 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Abhi koi task assigned nahi',
     },
     'no_tasks_assigned_yet_description': {
-      AppLanguage.english:
-          'Assign a care task from the care gaps or schedule.',
+      AppLanguage.english: 'Assign a care task from the care gaps or schedule.',
       AppLanguage.urdu:
           'نگہداشت کی کمیوں یا schedule سے care task assign کریں۔',
       AppLanguage.romanUrdu:
@@ -1973,10 +1922,8 @@ class AppStrings {
           'Aap ki confirmed correction alag dikhayi gayi hai; originally extracted instruction traceability ke liye preserved hai.',
     },
     'ingredient_label_needs_clearer_photo': {
-      AppLanguage.english:
-          'The ingredient label still needs a clearer photo.',
-      AppLanguage.urdu:
-          'Ingredient label کے لیے ابھی clearer photo چاہیے۔',
+      AppLanguage.english: 'The ingredient label still needs a clearer photo.',
+      AppLanguage.urdu: 'Ingredient label کے لیے ابھی clearer photo چاہیے۔',
       AppLanguage.romanUrdu:
           'Ingredient label ke liye abhi clearer photo chahiye.',
     },
@@ -2051,8 +1998,7 @@ class AppStrings {
     'safety_critical_detail_unclear': {
       AppLanguage.english:
           'A safety-critical detail is unclear in the document.',
-      AppLanguage.urdu:
-          'Document میں safety-critical detail unclear ہے۔',
+      AppLanguage.urdu: 'Document میں safety-critical detail unclear ہے۔',
       AppLanguage.romanUrdu:
           'Document mein safety-critical detail unclear hai.',
     },
@@ -2117,8 +2063,7 @@ class AppStrings {
     'possible_interpretation_only': {
       AppLanguage.english: 'Possible interpretation only: {interpretation}',
       AppLanguage.urdu: 'صرف possible interpretation: {interpretation}',
-      AppLanguage.romanUrdu:
-          'Sirf possible interpretation: {interpretation}',
+      AppLanguage.romanUrdu: 'Sirf possible interpretation: {interpretation}',
     },
     'ask_prefix': {
       AppLanguage.english: 'Ask: {question}',
@@ -2212,8 +2157,7 @@ class AppStrings {
     'trusted_source_checking_sign_in_required': {
       AppLanguage.english:
           'Trusted-source checking is available after sign in.',
-      AppLanguage.urdu:
-          'Trusted-source checking sign in کے بعد available ہے۔',
+      AppLanguage.urdu: 'Trusted-source checking sign in کے بعد available ہے۔',
       AppLanguage.romanUrdu:
           'Trusted-source checking sign in ke baad available hai.',
     },
@@ -2239,8 +2183,7 @@ class AppStrings {
     'instruction_saved_as_verified': {
       AppLanguage.english: 'Instruction saved as verified.',
       AppLanguage.urdu: 'Instruction verified کے طور پر save ہو گئی۔',
-      AppLanguage.romanUrdu:
-          'Instruction verified ke tor par save ho gayi.',
+      AppLanguage.romanUrdu: 'Instruction verified ke tor par save ho gayi.',
     },
     'instruction_marked_as_unclear': {
       AppLanguage.english: 'Instruction marked as unclear.',
@@ -2324,8 +2267,7 @@ class AppStrings {
     'instruction_updated_and_confirmed': {
       AppLanguage.english: 'Instruction updated and confirmed',
       AppLanguage.urdu: 'Instruction update اور confirm ہو گئی',
-      AppLanguage.romanUrdu:
-          'Instruction update aur confirm ho gayi',
+      AppLanguage.romanUrdu: 'Instruction update aur confirm ho gayi',
     },
     'title_and_instruction_required': {
       AppLanguage.english: 'Title and instruction are required.',
@@ -2513,13 +2455,12 @@ class AppStrings {
     'teach_back_prompt_dressing_help': {
       AppLanguage.english: 'Who helps you with dressing changes?',
       AppLanguage.urdu: 'Dressing change میں آپ کی مدد کون کرتا ہے؟',
-      AppLanguage.romanUrdu: 'Dressing changes mein aap ki madad kaun karta hai?',
+      AppLanguage.romanUrdu:
+          'Dressing changes mein aap ki madad kaun karta hai?',
     },
     'teach_back_plan_dressing_help': {
-      AppLanguage.english:
-          'Ahmed helps with the dressing in the evening.',
-      AppLanguage.urdu:
-          'Ahmed شام کو dressing میں مدد کرتا ہے۔',
+      AppLanguage.english: 'Ahmed helps with the dressing in the evening.',
+      AppLanguage.urdu: 'Ahmed شام کو dressing میں مدد کرتا ہے۔',
       AppLanguage.romanUrdu:
           'Ahmed evening mein dressing mein madad karta hai.',
     },
@@ -2611,18 +2552,18 @@ class AppStrings {
     'demo_reality_assistance_question': {
       AppLanguage.english: "Do any care tasks need someone's assistance?",
       AppLanguage.urdu: 'کیا کسی care task کے لیے کسی کی مدد چاہیے؟',
-      AppLanguage.romanUrdu: 'Kya kisi care task ke liye kisi ki madad chahiye?',
+      AppLanguage.romanUrdu:
+          'Kya kisi care task ke liye kisi ki madad chahiye?',
     },
     'demo_reality_helper_question': {
       AppLanguage.english: 'Who is usually available to help?',
       AppLanguage.urdu: 'مدد کے لیے عموماً کون دستیاب ہوتا ہے؟',
-      AppLanguage.romanUrdu: 'Madad ke liye aam tor par kaun available hota hai?',
+      AppLanguage.romanUrdu:
+          'Madad ke liye aam tor par kaun available hota hai?',
     },
     'demo_reality_helper_times_question': {
-      AppLanguage.english:
-          'At what times is that person usually available?',
-      AppLanguage.urdu:
-          'وہ شخص عموماً کن اوقات میں دستیاب ہوتا ہے؟',
+      AppLanguage.english: 'At what times is that person usually available?',
+      AppLanguage.urdu: 'وہ شخص عموماً کن اوقات میں دستیاب ہوتا ہے؟',
       AppLanguage.romanUrdu:
           'Woh shakhs aam tor par kin auqat mein available hota hai?',
     },
@@ -2637,10 +2578,8 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Kya tamam prescribed medicines mil gayi hain?',
     },
     'demo_reality_reading_question': {
-      AppLanguage.english:
-          'Can the written instructions be read comfortably?',
-      AppLanguage.urdu:
-          'کیا لکھی ہوئی ہدایات آسانی سے پڑھی جا سکتی ہیں؟',
+      AppLanguage.english: 'Can the written instructions be read comfortably?',
+      AppLanguage.urdu: 'کیا لکھی ہوئی ہدایات آسانی سے پڑھی جا سکتی ہیں؟',
       AppLanguage.romanUrdu:
           'Kya written instructions asani se parhi ja sakti hain?',
     },
@@ -2907,8 +2846,7 @@ class AppStrings {
     'demo_notification_visit_no_transport': {
       AppLanguage.english:
           "Tomorrow's hospital visit has no confirmed transport",
-      AppLanguage.urdu:
-          'کل کے hospital visit کے لیے transport confirm نہیں',
+      AppLanguage.urdu: 'کل کے hospital visit کے لیے transport confirm نہیں',
       AppLanguage.romanUrdu:
           'Kal ke hospital visit ke liye transport confirm nahi',
     },
@@ -2924,8 +2862,10 @@ class AppStrings {
     },
     'documents_subtitle': {
       AppLanguage.english: 'Every document used to build your care plans.',
-      AppLanguage.urdu: 'آپ کے نگہداشت منصوبے بنانے کے لیے استعمال ہونے والی ہر document۔',
-      AppLanguage.romanUrdu: 'Aap ke care plans banane ke liye use hone wala har document.',
+      AppLanguage.urdu:
+          'آپ کے نگہداشت منصوبے بنانے کے لیے استعمال ہونے والی ہر document۔',
+      AppLanguage.romanUrdu:
+          'Aap ke care plans banane ke liye use hone wala har document.',
     },
     'upload': {
       AppLanguage.english: 'Upload',
@@ -2956,10 +2896,8 @@ class AppStrings {
       AppLanguage.romanUrdu: '{type} · {pages} page(s) · {date}',
     },
     'document_preview_demo_unavailable': {
-      AppLanguage.english:
-          'Document preview is not available in this demo.',
-      AppLanguage.urdu:
-          'اس demo میں document preview دستیاب نہیں ہے۔',
+      AppLanguage.english: 'Document preview is not available in this demo.',
+      AppLanguage.urdu: 'اس demo میں document preview دستیاب نہیں ہے۔',
       AppLanguage.romanUrdu:
           'Is demo mein document preview available nahi hai.',
     },
@@ -3002,12 +2940,9 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Care Progress',
     },
     'care_progress_subtitle': {
-      AppLanguage.english:
-          'How practical the care plan has become over time.',
-      AppLanguage.urdu:
-          'وقت کے ساتھ care plan کتنا practical ہوا۔',
-      AppLanguage.romanUrdu:
-          'Waqt ke saath care plan kitna practical hua.',
+      AppLanguage.english: 'How practical the care plan has become over time.',
+      AppLanguage.urdu: 'وقت کے ساتھ care plan کتنا practical ہوا۔',
+      AppLanguage.romanUrdu: 'Waqt ke saath care plan kitna practical hua.',
     },
     'care_readiness_trend': {
       AppLanguage.english: 'Care readiness trend',
@@ -3063,10 +2998,6 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Week {number}',
     },
 
-
-
-
-
     // Language settings
     'language': {
       AppLanguage.english: 'Language',
@@ -3106,7 +3037,6 @@ class AppStrings {
       AppLanguage.urdu: 'زبان تبدیل ہو گئی۔',
       AppLanguage.romanUrdu: 'Language change ho gayi.',
     },
-
 
     // Dashboard
     'there': {
@@ -3163,12 +3093,15 @@ class AppStrings {
     'dashboard_offline_changes_waiting': {
       AppLanguage.english: 'Offline · {count} change(s) waiting to sync.',
       AppLanguage.urdu: 'آف لائن · {count} تبدیلیاں سنک ہونے کی منتظر ہیں۔',
-      AppLanguage.romanUrdu: 'Offline · {count} changes sync hone ka wait kar rahi hain.',
+      AppLanguage.romanUrdu:
+          'Offline · {count} changes sync hone ka wait kar rahi hain.',
     },
     'dashboard_offline_saved_data': {
       AppLanguage.english: 'Offline · showing the latest saved care data.',
-      AppLanguage.urdu: 'آف لائن · تازہ ترین محفوظ نگہداشت ڈیٹا دکھایا جا رہا ہے۔',
-      AppLanguage.romanUrdu: 'Offline · latest saved care data dikhaya ja raha hai.',
+      AppLanguage.urdu:
+          'آف لائن · تازہ ترین محفوظ نگہداشت ڈیٹا دکھایا جا رہا ہے۔',
+      AppLanguage.romanUrdu:
+          'Offline · latest saved care data dikhaya ja raha hai.',
     },
     'dashboard_syncing': {
       AppLanguage.english: 'Syncing care changes and reminders…',
@@ -3339,7 +3272,8 @@ class AppStrings {
     'routine_confidence_signals': {
       AppLanguage.english: '{confidence} confidence · {count} routine signals.',
       AppLanguage.urdu: '{confidence} اعتماد · {count} روٹین سگنلز۔',
-      AppLanguage.romanUrdu: '{confidence} confidence · {count} routine signals.',
+      AppLanguage.romanUrdu:
+          '{confidence} confidence · {count} routine signals.',
     },
     'review_with_adapt_my_plan': {
       AppLanguage.english: 'Review with Adapt My Plan',
@@ -3361,8 +3295,10 @@ class AppStrings {
     },
     'one_outcome_per_reminder': {
       AppLanguage.english: 'One real outcome record per scheduled reminder.',
-      AppLanguage.urdu: 'ہر مقررہ ریمائنڈر کے لیے ایک حقیقی نتیجہ ریکارڈ ہوتا ہے۔',
-      AppLanguage.romanUrdu: 'Har scheduled reminder ka aik real outcome record hota hai.',
+      AppLanguage.urdu:
+          'ہر مقررہ ریمائنڈر کے لیے ایک حقیقی نتیجہ ریکارڈ ہوتا ہے۔',
+      AppLanguage.romanUrdu:
+          'Har scheduled reminder ka aik real outcome record hota hai.',
     },
     'open_calendar': {
       AppLanguage.english: 'Open calendar',
@@ -3423,12 +3359,13 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Sign in',
     },
 
-
     // Care Plans + New Care Plan
     'care_plans_subtitle': {
-      AppLanguage.english: 'Every plan built from verified doctor instructions.',
+      AppLanguage.english:
+          'Every plan built from verified doctor instructions.',
       AppLanguage.urdu: 'ہر منصوبہ تصدیق شدہ ڈاکٹر کی ہدایات سے بنایا جاتا ہے۔',
-      AppLanguage.romanUrdu: 'Har plan verified doctor instructions se banta hai.',
+      AppLanguage.romanUrdu:
+          'Har plan verified doctor instructions se banta hai.',
     },
     'new_care_plan': {
       AppLanguage.english: 'New Care Plan',
@@ -3771,7 +3708,6 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Clinic ki koi aur medical instruction.',
     },
 
-
     // Calendar
     'calendar_subtitle': {
       AppLanguage.english:
@@ -3788,8 +3724,10 @@ class AppStrings {
     },
     'calendar_sign_in_required': {
       AppLanguage.english: 'Sign in to view your real care calendar.',
-      AppLanguage.urdu: 'اپنا حقیقی نگہداشت کیلنڈر دیکھنے کے لیے سائن اِن کریں۔',
-      AppLanguage.romanUrdu: 'Apna real care calendar dekhne ke liye sign in karein.',
+      AppLanguage.urdu:
+          'اپنا حقیقی نگہداشت کیلنڈر دیکھنے کے لیے سائن اِن کریں۔',
+      AppLanguage.romanUrdu:
+          'Apna real care calendar dekhne ke liye sign in karein.',
     },
     'calendar_saved_offline': {
       AppLanguage.english:
@@ -3810,12 +3748,14 @@ class AppStrings {
     'calendar_offline_outcomes_waiting': {
       AppLanguage.english: 'Offline · {count} outcome(s) waiting to sync.',
       AppLanguage.urdu: 'آف لائن · {count} نتائج سنک ہونے کے منتظر ہیں۔',
-      AppLanguage.romanUrdu: 'Offline · {count} outcomes sync hone ka wait kar rahe hain.',
+      AppLanguage.romanUrdu:
+          'Offline · {count} outcomes sync hone ka wait kar rahe hain.',
     },
     'calendar_offline_saved_data': {
       AppLanguage.english: 'Offline · showing saved calendar data.',
       AppLanguage.urdu: 'آف لائن · محفوظ کیلنڈر ڈیٹا دکھایا جا رہا ہے۔',
-      AppLanguage.romanUrdu: 'Offline · saved calendar data dikhaya ja raha hai.',
+      AppLanguage.romanUrdu:
+          'Offline · saved calendar data dikhaya ja raha hai.',
     },
     'calendar_syncing': {
       AppLanguage.english: 'Syncing…',
@@ -3825,7 +3765,8 @@ class AppStrings {
     'calendar_outcomes_waiting': {
       AppLanguage.english: '{count} outcome(s) waiting to sync.',
       AppLanguage.urdu: '{count} نتائج سنک ہونے کے منتظر ہیں۔',
-      AppLanguage.romanUrdu: '{count} outcomes sync hone ka wait kar rahe hain.',
+      AppLanguage.romanUrdu:
+          '{count} outcomes sync hone ka wait kar rahe hain.',
     },
     'previous_week': {
       AppLanguage.english: 'Previous week',
@@ -3858,8 +3799,7 @@ class AppStrings {
     'calendar_week_range': {
       AppLanguage.english:
           '{startMonth} {startDay} – {endMonth} {endDay}, {year}',
-      AppLanguage.urdu:
-          '{startDay} {startMonth} – {endDay} {endMonth}، {year}',
+      AppLanguage.urdu: '{startDay} {startMonth} – {endDay} {endMonth}، {year}',
       AppLanguage.romanUrdu:
           '{startMonth} {startDay} – {endMonth} {endDay}, {year}',
     },
@@ -4000,14 +3940,10 @@ class AppStrings {
     },
 
     'care_gaps_load_failed': {
-  AppLanguage.english:
-      'Care gaps could not be loaded.',
-  AppLanguage.urdu:
-      'نگہداشت کی کمیاں لوڈ نہیں ہو سکیں۔',
-  AppLanguage.romanUrdu:
-      'Care gaps load nahi ho sake.',
-},
-
+      AppLanguage.english: 'Care gaps could not be loaded.',
+      AppLanguage.urdu: 'نگہداشت کی کمیاں لوڈ نہیں ہو سکیں۔',
+      AppLanguage.romanUrdu: 'Care gaps load nahi ho sake.',
+    },
 
     // Progress
     'progress_subtitle': {
@@ -4031,7 +3967,8 @@ class AppStrings {
     'progress_sign_in_required': {
       AppLanguage.english: 'Sign in to view real task progress.',
       AppLanguage.urdu: 'حقیقی task progress دیکھنے کے لیے سائن اِن کریں۔',
-      AppLanguage.romanUrdu: 'Real task progress dekhne ke liye sign in karein.',
+      AppLanguage.romanUrdu:
+          'Real task progress dekhne ke liye sign in karein.',
     },
     'recorded_automatically': {
       AppLanguage.english: 'Recorded automatically',
@@ -4062,10 +3999,8 @@ class AppStrings {
           'Yeh sirf care tasks follow karne ki progress hai. Yeh medical outcome ya clinical-risk score nahi hai.',
     },
     'no_task_outcomes_in_range': {
-      AppLanguage.english:
-          'No task outcomes are recorded in this range yet.',
-      AppLanguage.urdu:
-          'اس مدت میں ابھی کوئی task outcome ریکارڈ نہیں ہوا۔',
+      AppLanguage.english: 'No task outcomes are recorded in this range yet.',
+      AppLanguage.urdu: 'اس مدت میں ابھی کوئی task outcome ریکارڈ نہیں ہوا۔',
       AppLanguage.romanUrdu:
           'Is range mein abhi koi task outcome record nahi hua.',
     },
@@ -4158,227 +4093,1790 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Confirmed medicine aur care-plan reminders',
     },
 
+    // Care Gaps
+    'care_gap_all': {
+      AppLanguage.english: 'All',
+      AppLanguage.urdu: 'تمام',
+      AppLanguage.romanUrdu: 'Sab',
+    },
 
-  
+    'care_gap_blocking': {
+      AppLanguage.english: 'Blocking',
+      AppLanguage.urdu: 'رکاوٹ',
+      AppLanguage.romanUrdu: 'Blocking',
+    },
 
-  // Care Gaps
-'care_gap_all': {
-  AppLanguage.english: 'All',
-  AppLanguage.urdu: 'تمام',
-  AppLanguage.romanUrdu: 'Sab',
-},
+    'care_gap_needs_attention': {
+      AppLanguage.english: 'Needs attention',
+      AppLanguage.urdu: 'توجہ درکار ہے',
+      AppLanguage.romanUrdu: 'Tawajjo darkar hai',
+    },
 
-'care_gap_blocking': {
-  AppLanguage.english: 'Blocking',
-  AppLanguage.urdu: 'رکاوٹ',
-  AppLanguage.romanUrdu: 'Blocking',
-},
+    'care_gap_in_progress': {
+      AppLanguage.english: 'In Progress',
+      AppLanguage.urdu: 'جاری ہے',
+      AppLanguage.romanUrdu: 'Jari hai',
+    },
 
-'care_gap_needs_attention': {
-  AppLanguage.english: 'Needs attention',
-  AppLanguage.urdu: 'توجہ درکار ہے',
-  AppLanguage.romanUrdu: 'Tawajjo darkar hai',
-},
+    'back_to_simulation': {
+      AppLanguage.english: 'Back to Simulation',
+      AppLanguage.urdu: 'سیمیولیشن پر واپس جائیں',
+      AppLanguage.romanUrdu: 'Simulation par wapas jayein',
+    },
 
-'care_gap_in_progress': {
-  AppLanguage.english: 'In Progress',
-  AppLanguage.urdu: 'جاری ہے',
-  AppLanguage.romanUrdu: 'Jari hai',
-},
+    'care_gaps_checking': {
+      AppLanguage.english:
+          'Checking your care plans for missing or unresolved items.',
+      AppLanguage.urdu:
+          'آپ کے نگہداشت کے منصوبوں میں نامکمل یا حل طلب چیزیں چیک کی جا رہی ہیں۔',
+      AppLanguage.romanUrdu:
+          'Aap ke care plans mein missing ya unresolved cheezen check ki ja rahi hain.',
+    },
 
-'back_to_simulation': {
-  AppLanguage.english: 'Back to Simulation',
-  AppLanguage.urdu: 'سیمیولیشن پر واپس جائیں',
-  AppLanguage.romanUrdu: 'Simulation par wapas jayein',
-},
+    'care_gaps_counts': {
+      AppLanguage.english: '{open} open · {blocking} blocking',
+      AppLanguage.urdu: '{open} کھلے · {blocking} رکاوٹ والے',
+      AppLanguage.romanUrdu: '{open} open · {blocking} blocking',
+    },
 
-'care_gaps_checking': {
-  AppLanguage.english:
-      'Checking your care plans for missing or unresolved items.',
-  AppLanguage.urdu:
-      'آپ کے نگہداشت کے منصوبوں میں نامکمل یا حل طلب چیزیں چیک کی جا رہی ہیں۔',
-  AppLanguage.romanUrdu:
-      'Aap ke care plans mein missing ya unresolved cheezen check ki ja rahi hain.',
-},
+    'saved': {
+      AppLanguage.english: 'Saved',
+      AppLanguage.urdu: 'محفوظ ہو گیا',
+      AppLanguage.romanUrdu: 'Save ho gaya',
+    },
 
-'care_gaps_counts': {
-  AppLanguage.english:
-      '{open} open · {blocking} blocking',
-  AppLanguage.urdu:
-      '{open} کھلے · {blocking} رکاوٹ والے',
-  AppLanguage.romanUrdu:
-      '{open} open · {blocking} blocking',
-},
+    'care_gaps_ready_title': {
+      AppLanguage.english: 'Everything currently looks ready',
+      AppLanguage.urdu: 'فی الحال سب کچھ تیار نظر آ رہا ہے',
+      AppLanguage.romanUrdu: 'Filhal sab kuch ready lag raha hai',
+    },
 
-'saved': {
-  AppLanguage.english: 'Saved',
-  AppLanguage.urdu: 'محفوظ ہو گیا',
-  AppLanguage.romanUrdu: 'Save ho gaya',
-},
+    'care_gaps_empty_filter': {
+      AppLanguage.english: 'No care gaps match this filter right now.',
+      AppLanguage.urdu: 'فی الحال اس فلٹر سے کوئی نگہداشت کی کمی نہیں ملتی۔',
+      AppLanguage.romanUrdu:
+          'Filhal is filter se koi care gap match nahi karta.',
+    },
 
-'care_gaps_ready_title': {
-  AppLanguage.english:
-      'Everything currently looks ready',
-  AppLanguage.urdu:
-      'فی الحال سب کچھ تیار نظر آ رہا ہے',
-  AppLanguage.romanUrdu:
-      'Filhal sab kuch ready lag raha hai',
-},
+    'resolve_blockers_first': {
+      AppLanguage.english: 'Resolve required blockers first',
+      AppLanguage.urdu: 'پہلے ضروری رکاوٹیں حل کریں',
+      AppLanguage.romanUrdu: 'Pehle zaroori blockers resolve karein',
+    },
 
-'care_gaps_empty_filter': {
-  AppLanguage.english:
-      'No care gaps match this filter right now.',
-  AppLanguage.urdu:
-      'فی الحال اس فلٹر سے کوئی نگہداشت کی کمی نہیں ملتی۔',
-  AppLanguage.romanUrdu:
-      'Filhal is filter se koi care gap match nahi karta.',
-},
+    'run_final_simulation': {
+      AppLanguage.english: 'Run Final Simulation',
+      AppLanguage.urdu: 'آخری سیمیولیشن چلائیں',
+      AppLanguage.romanUrdu: 'Final Simulation chalayein',
+    },
 
-'resolve_blockers_first': {
-  AppLanguage.english:
-      'Resolve required blockers first',
-  AppLanguage.urdu:
-      'پہلے ضروری رکاوٹیں حل کریں',
-  AppLanguage.romanUrdu:
-      'Pehle zaroori blockers resolve karein',
-},
+    'care_gaps_safety_note': {
+      AppLanguage.english:
+          'Care gaps highlight missing or unresolved care-plan steps. They do not diagnose medical risk or change treatment.',
+      AppLanguage.urdu:
+          'نگہداشت کی کمیاں نگہداشت کے منصوبے کے نامکمل یا حل طلب مراحل دکھاتی ہیں۔ یہ طبی خطرے کی تشخیص نہیں کرتیں اور علاج میں تبدیلی نہیں کرتیں۔',
+      AppLanguage.romanUrdu:
+          'Care gaps care plan ke missing ya unresolved steps dikhate hain. Yeh medical risk diagnose nahi karte aur treatment change nahi karte.',
+    },
 
-'run_final_simulation': {
-  AppLanguage.english:
-      'Run Final Simulation',
-  AppLanguage.urdu:
-      'آخری سیمیولیشن چلائیں',
-  AppLanguage.romanUrdu:
-      'Final Simulation chalayein',
-},
+    'current_issues_by_type': {
+      AppLanguage.english: 'Current issues by type',
+      AppLanguage.urdu: 'قسم کے مطابق موجودہ مسائل',
+      AppLanguage.romanUrdu: 'Type ke mutabiq current issues',
+    },
 
-'care_gaps_safety_note': {
-  AppLanguage.english:
-      'Care gaps highlight missing or unresolved care-plan steps. They do not diagnose medical risk or change treatment.',
-  AppLanguage.urdu:
-      'نگہداشت کی کمیاں نگہداشت کے منصوبے کے نامکمل یا حل طلب مراحل دکھاتی ہیں۔ یہ طبی خطرے کی تشخیص نہیں کرتیں اور علاج میں تبدیلی نہیں کرتیں۔',
-  AppLanguage.romanUrdu:
-      'Care gaps care plan ke missing ya unresolved steps dikhate hain. Yeh medical risk diagnose nahi karte aur treatment change nahi karte.',
-},
+    'care_gap_group_help': {
+      AppLanguage.english:
+          'Same-type problems are grouped so you can understand the plan without repeated cards.',
+      AppLanguage.urdu:
+          'ایک ہی قسم کے مسائل کو ایک ساتھ رکھا گیا ہے تاکہ بار بار کارڈ دکھائے بغیر منصوبہ سمجھنا آسان ہو۔',
+      AppLanguage.romanUrdu:
+          'Same type ke maslay group kiye gaye hain taa ke repeated cards ke baghair plan samajhna asan ho.',
+    },
 
-'current_issues_by_type': {
-  AppLanguage.english:
-      'Current issues by type',
-  AppLanguage.urdu:
-      'قسم کے مطابق موجودہ مسائل',
-  AppLanguage.romanUrdu:
-      'Type ke mutabiq current issues',
-},
+    'schedule_issues': {
+      AppLanguage.english: 'Schedule issues',
+      AppLanguage.urdu: 'شیڈول کے مسائل',
+      AppLanguage.romanUrdu: 'Schedule issues',
+    },
 
-'care_gap_group_help': {
-  AppLanguage.english:
-      'Same-type problems are grouped so you can understand the plan without repeated cards.',
-  AppLanguage.urdu:
-      'ایک ہی قسم کے مسائل کو ایک ساتھ رکھا گیا ہے تاکہ بار بار کارڈ دکھائے بغیر منصوبہ سمجھنا آسان ہو۔',
-  AppLanguage.romanUrdu:
-      'Same type ke maslay group kiye gaye hain taa ke repeated cards ke baghair plan samajhna asan ho.',
-},
+    'missing_information': {
+      AppLanguage.english: 'Missing information',
+      AppLanguage.urdu: 'معلومات نامکمل ہیں',
+      AppLanguage.romanUrdu: 'Missing information',
+    },
 
-'schedule_issues': {
-  AppLanguage.english: 'Schedule issues',
-  AppLanguage.urdu: 'شیڈول کے مسائل',
-  AppLanguage.romanUrdu: 'Schedule issues',
-},
+    'document_issues': {
+      AppLanguage.english: 'Document issues',
+      AppLanguage.urdu: 'دستاویزات کے مسائل',
+      AppLanguage.romanUrdu: 'Document issues',
+    },
 
-'missing_information': {
-  AppLanguage.english: 'Missing information',
-  AppLanguage.urdu: 'معلومات نامکمل ہیں',
-  AppLanguage.romanUrdu: 'Missing information',
-},
+    'verification': {
+      AppLanguage.english: 'Verification',
+      AppLanguage.urdu: 'تصدیق',
+      AppLanguage.romanUrdu: 'Verification',
+    },
 
-'document_issues': {
-  AppLanguage.english: 'Document issues',
-  AppLanguage.urdu: 'دستاویزات کے مسائل',
-  AppLanguage.romanUrdu: 'Document issues',
-},
+    'care_coordination': {
+      AppLanguage.english: 'Care coordination',
+      AppLanguage.urdu: 'نگہداشت میں ہم آہنگی',
+      AppLanguage.romanUrdu: 'Care coordination',
+    },
 
-'verification': {
-  AppLanguage.english: 'Verification',
-  AppLanguage.urdu: 'تصدیق',
-  AppLanguage.romanUrdu: 'Verification',
-},
+    'care_gap_group_blocking_attention': {
+      AppLanguage.english: '{blocking} blocking · {attention} attention',
+      AppLanguage.urdu: '{blocking} رکاوٹ · {attention} توجہ طلب',
+      AppLanguage.romanUrdu: '{blocking} blocking · {attention} attention',
+    },
 
+    'care_gap_current_issues_count': {
+      AppLanguage.english: '{count} current issues',
+      AppLanguage.urdu: '{count} موجودہ مسائل',
+      AppLanguage.romanUrdu: '{count} current issues',
+    },
 
+    'care_gap_group_chip': {
+      AppLanguage.english: '{count} {type}',
+      AppLanguage.urdu: '{count} {type}',
+      AppLanguage.romanUrdu: '{count} {type}',
+    },
 
-'care_coordination': {
-  AppLanguage.english: 'Care coordination',
-  AppLanguage.urdu: 'نگہداشت میں ہم آہنگی',
-  AppLanguage.romanUrdu: 'Care coordination',
-},
+    'care_gap_group_chip_blocking': {
+      AppLanguage.english: '{count} {type} · {blocking} blocking',
+      AppLanguage.urdu: '{count} {type} · {blocking} رکاوٹ',
+      AppLanguage.romanUrdu: '{count} {type} · {blocking} blocking',
+    },
 
-'care_gap_group_blocking_attention': {
-  AppLanguage.english:
-      '{blocking} blocking · {attention} attention',
-  AppLanguage.urdu:
-      '{blocking} رکاوٹ · {attention} توجہ طلب',
-  AppLanguage.romanUrdu:
-      '{blocking} blocking · {attention} attention',
-},
+    'care_plan': {
+      AppLanguage.english: 'Care Plan',
+      AppLanguage.urdu: 'نگہداشت کا منصوبہ',
+      AppLanguage.romanUrdu: 'Care Plan',
+    },
 
-'care_gap_current_issues_count': {
-  AppLanguage.english:
-      '{count} current issues',
-  AppLanguage.urdu:
-      '{count} موجودہ مسائل',
-  AppLanguage.romanUrdu:
-      '{count} current issues',
-},
+    'why': {
+      AppLanguage.english: 'Why',
+      AppLanguage.urdu: 'وجہ',
+      AppLanguage.romanUrdu: 'Wajah',
+    },
 
-'care_gap_group_chip': {
-  AppLanguage.english:
-      '{count} {type}',
-  AppLanguage.urdu:
-      '{count} {type}',
-  AppLanguage.romanUrdu:
-      '{count} {type}',
-},
+    'care_gap_next_step_label': {
+      AppLanguage.english: 'Next step',
+      AppLanguage.urdu: 'اگلا مرحلہ',
+      AppLanguage.romanUrdu: 'Agla step',
+    },
 
-'care_gap_group_chip_blocking': {
-  AppLanguage.english:
-      '{count} {type} · {blocking} blocking',
-  AppLanguage.urdu:
-      '{count} {type} · {blocking} رکاوٹ',
-  AppLanguage.romanUrdu:
-      '{count} {type} · {blocking} blocking',
-},
+    'demo_care_gaps': {
+      AppLanguage.english: 'Demo care gaps',
+      AppLanguage.urdu: 'ڈیمو نگہداشت کی کمیاں',
+      AppLanguage.romanUrdu: 'Demo care gaps',
+    },
 
-'care_plan': {
-  AppLanguage.english: 'Care Plan',
-  AppLanguage.urdu: 'نگہداشت کا منصوبہ',
-  AppLanguage.romanUrdu: 'Care Plan',
-},
+    // ── Routine Preferences ──
+    'routine_title': {
+      AppLanguage.english: 'My Routine & Preferences',
+      AppLanguage.urdu: 'میری روزمرہ اور ترجیحات',
+      AppLanguage.romanUrdu: 'Meri Routine aur Tarjeehat',
+    },
+    'routine_subtitle': {
+      AppLanguage.english:
+          'Tell SehatMate what usually works for you and control what it learns from your activity.',
+      AppLanguage.urdu:
+          'SehatMate کو بتائیں کہ آپ کے لیے کیا کام کرتا ہے اور کنٹرول کریں کہ یہ آپ کی سرگرمی سے کیا سیکھتا ہے۔',
+      AppLanguage.romanUrdu:
+          'SehatMate ko batayein ke aap ke liye kya kaam karta hai aur control karein ke yeh aap ki activity se kya seekhta hai.',
+    },
+    'routine_save_success': {
+      AppLanguage.english: 'Routine preferences saved.',
+      AppLanguage.urdu: 'روزمرہ کی ترجیحات محفوظ ہو گئیں۔',
+      AppLanguage.romanUrdu: 'Routine tarjeehat save ho gaye.',
+    },
+    'routine_reset_title': {
+      AppLanguage.english: 'Reset learned routine?',
+      AppLanguage.urdu: 'سیکھی ہوئی روزمرہ دوبارہ ترتیب دیں؟',
+      AppLanguage.romanUrdu: 'Seekhi hui routine reset karein?',
+    },
+    'routine_reset_content': {
+      AppLanguage.english:
+          'This removes activity-based learning such as accepted suggestions and timing choices. Your manually written routine notes stay saved.',
+      AppLanguage.urdu:
+          'یہ سرگرمی پر مبنی سیکھنے کو ہٹا دیتا ہے جیسے قبول شدہ تجاویز اور ٹائمنگ کے انتخاب۔ آپ کے ہاتھ سے لکھے گئے روزمرہ کے نوٹس محفوظ رہتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Yeh activity-based seekhne ko remove karta hai jaise accepted suggestions aur timing choices. Aap ke manually likhe hue routine notes save rehte hain.',
+    },
+    'routine_reset_confirm': {
+      AppLanguage.english: 'Reset learning',
+      AppLanguage.urdu: 'سیکھنا دوبارہ ترتیب دیں',
+      AppLanguage.romanUrdu: 'Seekhna reset karein',
+    },
+    'routine_reset_success': {
+      AppLanguage.english: 'Learned routine history reset.',
+      AppLanguage.urdu: 'سیکھی ہوئی روزمرہ کی تاریخ دوبارہ ترتیب دی گئی۔',
+      AppLanguage.romanUrdu: 'Seekhi hui routine history reset ho gayi.',
+    },
+    'routine_period_morning': {
+      AppLanguage.english: 'Morning',
+      AppLanguage.urdu: 'صبح',
+      AppLanguage.romanUrdu: 'Subah',
+    },
+    'routine_period_afternoon': {
+      AppLanguage.english: 'Afternoon',
+      AppLanguage.urdu: 'دوپہر',
+      AppLanguage.romanUrdu: 'Dopehar',
+    },
+    'routine_period_evening': {
+      AppLanguage.english: 'Evening',
+      AppLanguage.urdu: 'شام',
+      AppLanguage.romanUrdu: 'Shaam',
+    },
+    'routine_period_night': {
+      AppLanguage.english: 'Night',
+      AppLanguage.urdu: 'رات',
+      AppLanguage.romanUrdu: 'Raat',
+    },
+    'routine_learn_from_activity': {
+      AppLanguage.english: 'Learn from my activity',
+      AppLanguage.urdu: 'میری سرگرمی سے سیکھیں',
+      AppLanguage.romanUrdu: 'Meri activity se seekhein',
+    },
+    'routine_learn_subtitle': {
+      AppLanguage.english:
+          'Accepted or rejected suggestions, schedule edits and Reality Check answers can improve future reminder suggestions.',
+      AppLanguage.urdu:
+          'قبول یا مسترد کی گئی تجاویز، شیڈول میں ترمیم اور Reality Check کے جوابات مستقبل کی یاد دہانی کی تجاویز کو بہتر بنا سکتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Accepted ya rejected suggestions, schedule edits aur Reality Check answers future reminder suggestions ko behtar bana sakte hain.',
+    },
+    'routine_reminder_style': {
+      AppLanguage.english: 'Preferred reminder style',
+      AppLanguage.urdu: 'ترجیحی یاد دہانی کا انداز',
+      AppLanguage.romanUrdu: 'Tarjeehi reminder ka style',
+    },
+    'routine_style_gentle': {
+      AppLanguage.english: 'Gentle',
+      AppLanguage.urdu: 'نرم',
+      AppLanguage.romanUrdu: 'Naram',
+    },
+    'routine_style_balanced': {
+      AppLanguage.english: 'Balanced',
+      AppLanguage.urdu: 'متوازن',
+      AppLanguage.romanUrdu: 'Mutawazan',
+    },
+    'routine_style_persistent': {
+      AppLanguage.english: 'Persistent',
+      AppLanguage.urdu: ' مسلسل',
+      AppLanguage.romanUrdu: 'Musalsal',
+    },
+    'routine_your_routine': {
+      AppLanguage.english: 'Your routine',
+      AppLanguage.urdu: 'آپ کی روزمرہ',
+      AppLanguage.romanUrdu: 'Aap ki routine',
+    },
+    'routine_your_routine_desc': {
+      AppLanguage.english:
+          'These are explicit preferences you control. You can write a time, a range, or a short routine note.',
+      AppLanguage.urdu:
+          'یہ واضح ترجیحات ہیں جو آپ کنٹرول کرتے ہیں۔ آپ وقت، رینج، یا مختصر روزمرہ کا نوٹ لکھ سکتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Yeh wazeh tarjeehat hain jo aap control karte hain. Aap waqt, range, ya mukhtasir routine note likh sakte hain.',
+    },
+    'routine_hint_morning': {
+      AppLanguage.english: 'Example: Usually free after 9:30 AM',
+      AppLanguage.urdu: 'مثال: عام طور پر صبح 9:30 بجے کے بعد فارغ',
+      AppLanguage.romanUrdu:
+          'Misaal: Aam tor par subah 9:30 bajey ke baad free',
+    },
+    'routine_hint_afternoon': {
+      AppLanguage.english: 'Example: Work is flexible after 2 PM',
+      AppLanguage.urdu: 'مثال: دوپہر 2 بجے کے بعد کام لچکدار ہے',
+      AppLanguage.romanUrdu:
+          'Misaal: Dopehar 2 bajey ke baad kaam flexible hai',
+    },
+    'routine_hint_evening': {
+      AppLanguage.english: 'Example: Dinner time changes',
+      AppLanguage.urdu: 'مثال: رات کے کھانے کا وقت بدلتا ہے',
+      AppLanguage.romanUrdu: 'Misaal: Raat ke khane ka waqt badalta hai',
+    },
+    'routine_hint_night': {
+      AppLanguage.english: 'Example: Prefer reminders around 10:30 PM',
+      AppLanguage.urdu: 'مثال: رات 10:30 بجے کے آس پاس یاد دہانی کو ترجیح دیں',
+      AppLanguage.romanUrdu:
+          'Misaal: Raat 10:30 bajey ke aas paas reminder ko tarjeeh dein',
+    },
+    'routine_learned_from_activity': {
+      AppLanguage.english: 'Learned from your activity',
+      AppLanguage.urdu: 'آپ کی سرگرمی سے سیکھا گیا',
+      AppLanguage.romanUrdu: 'Aap ki activity se seekha gaya',
+    },
+    'routine_signals_count': {
+      AppLanguage.english: '{count} signals',
+      AppLanguage.urdu: '{count} سگنلز',
+      AppLanguage.romanUrdu: '{count} signals',
+    },
+    'routine_reset_learned': {
+      AppLanguage.english: 'Reset learned routine',
+      AppLanguage.urdu: 'سیکھی ہوئی روزمرہ دوبارہ ترتیب دیں',
+      AppLanguage.romanUrdu: 'Seekhi hui routine reset karein',
+    },
+    'routine_safety_note': {
+      AppLanguage.english:
+          'Medical instructions are separate from routine learning. SehatMate may suggest a reminder that fits your routine, but it will not automatically move an explicit clinician-specified time.',
+      AppLanguage.urdu:
+          'طبی ہدایات روزمرہ کی سیکھنے سے الگ ہیں۔ SehatMate آپ کی روزمرہ کے مطابق یاد دہانی تجویز کر سکتا ہے، لیکن یہ واضح طور پر ماہر کی مقرر کردہ وقت کو خودکار طور پر تبدیل نہیں کرے گا۔',
+      AppLanguage.romanUrdu:
+          'Medical hidayat routine ki seekhne se alag hain. SehatMate aap ki routine ke mutabiq reminder suggest kar sakta hai, lekin yeh wazeh tor par mahir ke muqarrar karda waqt ko automatically change nahi karega.',
+    },
+    'routine_save_preferences': {
+      AppLanguage.english: 'Save preferences',
+      AppLanguage.urdu: 'ترجیحات محفوظ کریں',
+      AppLanguage.romanUrdu: 'Tarjeehat save karein',
+    },
+    'routine_no_pattern_yet': {
+      AppLanguage.english: 'No pattern yet',
+      AppLanguage.urdu: 'ابھی کوئی پیٹرن نہیں',
+      AppLanguage.romanUrdu: 'Abhi koi pattern nahi',
+    },
+    'routine_saving': {
+      AppLanguage.english: 'Saving…',
+      AppLanguage.urdu: 'محفوظ ہو رہا ہے…',
+      AppLanguage.romanUrdu: 'Save ho raha hai…',
+    },
 
-'why': {
-  AppLanguage.english: 'Why',
-  AppLanguage.urdu: 'وجہ',
-  AppLanguage.romanUrdu: 'Wajah',
-},
+    // ── Care Plan Detail ──
+    'cpd_record_skip_title': {
+      AppLanguage.english: 'Record this reminder as skipped?',
+      AppLanguage.urdu: 'اس یاد دہانی کو چھوڑا ہوا ریکارڈ کریں؟',
+      AppLanguage.romanUrdu: 'Is reminder ko skipped record karein?',
+    },
+    'cpd_record_skip_body': {
+      AppLanguage.english:
+          'This only records what happened. SehatMate does not advise skipping or changing treatment. If you are unsure what to do next, check the verified instruction or ask a qualified healthcare professional.',
+      AppLanguage.urdu:
+          'یہ صرف ریکارڈ کرتا ہے کہ کیا ہوا۔ SehatMate چھوڑنے یا علاج تبدیل کرنے کا مشورہ نہیں دیتا۔ اگر آپ کو یقین نہیں ہے کہ آگے کیا کرنا ہے، تو تصدیق شدہ ہدایت چیک کریں یا کسی قابل صحت کی دیکھ بھال کرنے والے پیشہ ور سے پوچھیں۔',
+      AppLanguage.romanUrdu:
+          'Yeh sirf record karta hai ke kya hua. SehatMate chhorne ya treatment change karne ka mashwara nahi deta. Agar aap ko yaqeen nahi hai ke aage kya karna hai, to verified hidayat check karein ya kisi qabil healthcare professional se poochein.',
+    },
+    'cpd_record_skipped': {
+      AppLanguage.english: 'Record skipped',
+      AppLanguage.urdu: 'چھوڑا ہوا ریکارڈ کریں',
+      AppLanguage.romanUrdu: 'Skipped record karein',
+    },
+    'cpd_task_marked_completed': {
+      AppLanguage.english: 'Task marked completed.',
+      AppLanguage.urdu: 'ٹاسک مکمل نشان زد ہو گیا۔',
+      AppLanguage.romanUrdu: 'Task marked complete ho gaya.',
+    },
+    'cpd_task_recorded_skipped': {
+      AppLanguage.english: 'Task recorded as skipped.',
+      AppLanguage.urdu: 'ٹاسک چھوڑا ہوا ریکارڈ ہو گیا۔',
+      AppLanguage.romanUrdu: 'Task skipped record ho gaya.',
+    },
+    'cpd_task_outcome_cleared': {
+      AppLanguage.english: 'Task outcome cleared.',
+      AppLanguage.urdu: 'ٹاسک کا نتیجہ صاف ہو گیا۔',
+      AppLanguage.romanUrdu: 'Task outcome clear ho gaya.',
+    },
+    'cpd_outcome_saved_offline': {
+      AppLanguage.english:
+          'Saved offline. This task outcome will sync automatically.',
+      AppLanguage.urdu:
+          'آف لائن محفوظ ہو گیا۔ یہ ٹاسک کا نتیجہ خودکار طور پر ہم آہنگ ہو جائے گا۔',
+      AppLanguage.romanUrdu:
+          'Offline save ho gaya. Yeh task outcome automatically sync ho jayega.',
+    },
+    'cpd_outcome_conflict_recovered': {
+      AppLanguage.english:
+          'Latest server status restored because this task changed elsewhere.',
+      AppLanguage.urdu:
+          'تازہ ترین سرور کی حالت بحال ہو گئی کیونکہ یہ ٹاسک کہیں اور تبدیل ہو گیا تھا۔',
+      AppLanguage.romanUrdu:
+          'Latest server status restore ho gaya kyunke yeh task kahin aur change ho gaya tha.',
+    },
+    'cpd_today_outcomes_title': {
+      AppLanguage.english: "Today's task outcomes",
+      AppLanguage.urdu: 'آج کے ٹاسک کے نتائج',
+      AppLanguage.romanUrdu: 'Aaj ke task ke nataij',
+    },
+    'cpd_today_outcomes_subtitle': {
+      AppLanguage.english: 'Each reminder is tracked separately for today.',
+      AppLanguage.urdu: 'ہر یاد دہانی کو آج کے لیے الگ سے ٹریک کیا جاتا ہے۔',
+      AppLanguage.romanUrdu:
+          'Har reminder ko aaj ke liye alag se track kiya jata hai.',
+    },
+    'cpd_outcomes_progress': {
+      AppLanguage.english: '{completed} / {total} done',
+      AppLanguage.urdu: '{completed} / {total} مکمل',
+      AppLanguage.romanUrdu: '{completed} / {total} ho gaye',
+    },
+    'cpd_no_occurrences_recorded': {
+      AppLanguage.english: 'No task occurrences were recorded for today.',
+      AppLanguage.urdu: 'آج کے لیے کوئی ٹاسک واقعات ریکارڈ نہیں ہوئے۔',
+      AppLanguage.romanUrdu:
+          'Aaj ke liye koi task occurrences record nahi hue.',
+    },
+    'cpd_no_tasks_scheduled_today': {
+      AppLanguage.english: 'No tasks are scheduled for today.',
+      AppLanguage.urdu: 'آج کے لیے کوئی ٹاسک مقرر نہیں ہے۔',
+      AppLanguage.romanUrdu: 'Aaj ke liye koi task scheduled nahi hai.',
+    },
+    'cpd_outcomes_safety_note': {
+      AppLanguage.english:
+          'Task outcomes record what happened. They do not change the verified medical instruction or tell you to skip, repeat, or change treatment.',
+      AppLanguage.urdu:
+          'ٹاسک کے نتائج ریکارڈ کرتے ہیں کہ کیا ہوا۔ وہ تصدیق شدہ طبی ہدایت کو تبدیل نہیں کرتے یا آپ کو چھوڑنے، دہرانے، یا علاج تبدیل کرنے کا نہیں کہتے۔',
+      AppLanguage.romanUrdu:
+          'Task ke nataij record karte hain ke kya hua. Woh verified medical hidayat ko change nahi karte ya aap ko chhorne, dohrane, ya treatment change karne ko nahi kehte.',
+    },
+    'cpd_status_completed': {
+      AppLanguage.english: 'Completed',
+      AppLanguage.urdu: 'مکمل',
+      AppLanguage.romanUrdu: 'Complete',
+    },
+    'cpd_status_completed_at': {
+      AppLanguage.english: 'Completed {time}',
+      AppLanguage.urdu: '{time} بجے مکمل',
+      AppLanguage.romanUrdu: '{time} bajey complete',
+    },
+    'cpd_status_skipped': {
+      AppLanguage.english: 'Skipped',
+      AppLanguage.urdu: 'چھوڑا ہوا',
+      AppLanguage.romanUrdu: 'Skipped',
+    },
+    'cpd_status_missed': {
+      AppLanguage.english: 'Missed',
+      AppLanguage.urdu: 'رہ گیا',
+      AppLanguage.romanUrdu: 'Missed',
+    },
+    'cpd_status_overdue': {
+      AppLanguage.english: 'Overdue',
+      AppLanguage.urdu: 'تاخیر',
+      AppLanguage.romanUrdu: 'Overdue',
+    },
+    'cpd_status_due_now': {
+      AppLanguage.english: 'Due now',
+      AppLanguage.urdu: 'ابھی مقرر',
+      AppLanguage.romanUrdu: 'Abhi due',
+    },
+    'cpd_status_upcoming': {
+      AppLanguage.english: 'Upcoming',
+      AppLanguage.urdu: 'آنے والا',
+      AppLanguage.romanUrdu: 'Upcoming',
+    },
+    'cpd_correct_as_completed': {
+      AppLanguage.english: 'Correct as completed',
+      AppLanguage.urdu: 'مکمل کے طور پر درست کریں',
+      AppLanguage.romanUrdu: 'Complete ke tor par correct karein',
+    },
+    'cpd_undo': {
+      AppLanguage.english: 'Undo',
+      AppLanguage.urdu: 'واپس کریں',
+      AppLanguage.romanUrdu: 'Wapas karein',
+    },
+    'cpd_mark_completed': {
+      AppLanguage.english: 'Completed',
+      AppLanguage.urdu: 'مکمل',
+      AppLanguage.romanUrdu: 'Complete',
+    },
+    'cpd_document_removed': {
+      AppLanguage.english: 'Document removed.',
+      AppLanguage.urdu: 'دستاویز ہٹا دی گئی۔',
+      AppLanguage.romanUrdu: 'Document remove ho gayi.',
+    },
+    'cpd_remove_medicine_title': {
+      AppLanguage.english: 'Remove medicine from SehatMate?',
+      AppLanguage.urdu: 'SehatMate سے دوا ہٹائیں؟',
+      AppLanguage.romanUrdu: 'SehatMate se medicine remove karein?',
+    },
+    'cpd_remove_medicine_body': {
+      AppLanguage.english:
+          'This removes "{medicine}" from this care plan, including its future SehatMate tasks and reminders. It does not mean the medicine should be stopped. Continue following the healthcare professional\'s instructions unless they tell you otherwise.',
+      AppLanguage.urdu:
+          'یہ "{medicine}" کو اس نگہداشت کے منصوبے سے ہٹا دیتا ہے، بشمول اس کے مستقبل کے SehatMate ٹاسک اور یاد دہانی۔ اس کا مطلب یہ نہیں ہے کہ دوا بند کر دی جائے۔ صحت کی دیکھ بھال کرنے والے پیشہ ور کی ہدایات پر عمل جاری رکھیں جب تک کہ وہ آپ کو دوسری صورت میں نہ بتائیں۔',
+      AppLanguage.romanUrdu:
+          'Yeh "{medicine}" ko is care plan se remove karta hai, bashmool is ke future SehatMate tasks aur reminders. Is ka matlab yeh nahi hai ke medicine band kar di jaye. Healthcare professional ki hidayat par amal jari rakhein jab tak ke woh aap ko doosri soorat mein na batayein.',
+    },
+    'cpd_remove_from_sehatmate': {
+      AppLanguage.english: 'Remove from SehatMate',
+      AppLanguage.urdu: 'SehatMate سے ہٹائیں',
+      AppLanguage.romanUrdu: 'SehatMate se remove karein',
+    },
+    'cpd_medicine_removed_rebuilt': {
+      AppLanguage.english:
+          'Medicine removed from SehatMate and local reminders rebuilt.',
+      AppLanguage.urdu:
+          'دوا SehatMate سے ہٹا دی گئی اور مقامی یاد دہانی دوبارہ بنائی گئی۔',
+      AppLanguage.romanUrdu:
+          'Medicine SehatMate se remove ho gayi aur local reminders rebuild ho gaye.',
+    },
+    'cpd_medicine_removed_rebuild_failed': {
+      AppLanguage.english:
+          'The medicine was changed on the server, but local reminders could not be fully rebuilt. Reopen the app to reconcile them.',
+      AppLanguage.urdu:
+          'دوا سرور پر تبدیل کر دی گئی تھی، لیکن مقامی یاد دہانی مکمل طور پر دوبارہ نہیں بنائی جا سکی۔ ان کو ہم آہنگ کرنے کے لیے ایپ دوبارہ کھولیں۔',
+      AppLanguage.romanUrdu:
+          'Medicine server par change kar di gayi thi, lekin local reminders completely rebuild nahi ho sake. Un ko reconcile karne ke liye app dobara kholein.',
+    },
+    'cpd_schedule_sign_in_required': {
+      AppLanguage.english: 'AI schedule generation is available after sign in.',
+      AppLanguage.urdu: 'AI شیڈول جنریشن سائن اِن کرنے کے بعد دستیاب ہے۔',
+      AppLanguage.romanUrdu:
+          'AI schedule generation sign in karne ke baad available hai.',
+    },
+    'cpd_schedule_generated': {
+      AppLanguage.english:
+          'Schedule draft generated from verified instructions.',
+      AppLanguage.urdu: 'تصدیق شدہ ہدایات سے شیڈول ڈرافٹ تیار کیا گیا۔',
+      AppLanguage.romanUrdu:
+          'Verified hidayat se schedule draft tayar kiya gaya.',
+    },
+    'cpd_save_state_choose_time': {
+      AppLanguage.english: 'Choose time',
+      AppLanguage.urdu: 'وقت منتخب کریں',
+      AppLanguage.romanUrdu: 'Waqt select karein',
+    },
+    'cpd_exact_time_locked_message': {
+      AppLanguage.english:
+          'This exact time comes from the verified instruction and cannot be edited here.',
+      AppLanguage.urdu:
+          'یہ عین وقت تصدیق شدہ ہدایت سے آتا ہے اور یہاں ترمیم نہیں کی جا سکتی۔',
+      AppLanguage.romanUrdu:
+          'Yeh ain waqt verified hidayat se aata hai aur yahan edit nahi kiya ja sakta.',
+    },
+    'cpd_period_already_used': {
+      AppLanguage.english:
+          '{period} is already used for another reminder for this instruction. Choose a different period.',
+      AppLanguage.urdu:
+          '{period} پہلے ہی اس ہدایت کے لیے دوسری یاد دہانی میں استعمال ہو چکا ہے۔ مختلف مدت منتخب کریں۔',
+      AppLanguage.romanUrdu:
+          '{period} pehle hi is hidayat ke liye doosri reminder mein use ho chuka hai. Mukhtalif period select karein.',
+    },
+    'cpd_time_already_used': {
+      AppLanguage.english:
+          '{time} is already used for another reminder for this instruction. Choose a different time.',
+      AppLanguage.urdu:
+          '{time} پہلے ہی اس ہدایت کے لیے دوسری یاد دہانی میں استعمال ہو چکا ہے۔ مختلف وقت منتخب کریں۔',
+      AppLanguage.romanUrdu:
+          '{time} pehle hi is hidayat ke liye doosri reminder mein use ho chuka hai. Mukhtalif waqt select karein.',
+    },
+    'cpd_reminder_set_for_time': {
+      AppLanguage.english: '{period} reminder set for {time}.',
+      AppLanguage.urdu: '{period} یاد دہانی {time} بجے مقرر ہے۔',
+      AppLanguage.romanUrdu: '{period} reminder {time} bajey set hai.',
+    },
+    'cpd_medical_timing_conflict': {
+      AppLanguage.english: 'Medical timing conflict',
+      AppLanguage.urdu: 'طبی ٹائمنگ کا تنازعہ',
+      AppLanguage.romanUrdu: 'Medical timing ka conflict',
+    },
+    'cpd_verified_instruction_label': {
+      AppLanguage.english: 'Verified instruction',
+      AppLanguage.urdu: 'تصدیق شدہ ہدایت',
+      AppLanguage.romanUrdu: 'Verified hidayat',
+    },
+    'cpd_prescription_not_changed': {
+      AppLanguage.english: 'The prescription instruction was not changed.',
+      AppLanguage.urdu: 'نسخے کی ہدایت تبدیل نہیں کی گئی تھی۔',
+      AppLanguage.romanUrdu: 'Nuskhe ki hidayat change nahi ki gayi thi.',
+    },
+    'cpd_choose_safe_time': {
+      AppLanguage.english: 'Choose a safe time',
+      AppLanguage.urdu: 'محفوظ وقت منتخب کریں',
+      AppLanguage.romanUrdu: 'Mehfooz waqt select karein',
+    },
+    'cpd_edit_time_period': {
+      AppLanguage.english: 'Edit time period',
+      AppLanguage.urdu: 'وقت کی مدت میں ترمیم کریں',
+      AppLanguage.romanUrdu: 'Waqt ki muddat edit karein',
+    },
+    'cpd_set_period_time': {
+      AppLanguage.english: 'Set {period} time',
+      AppLanguage.urdu: '{period} کا وقت مقرر کریں',
+      AppLanguage.romanUrdu: '{period} ka waqt set karein',
+    },
+    'cpd_allowed_time_range': {
+      AppLanguage.english: 'Allowed: {range}',
+      AppLanguage.urdu: 'اجازت: {range}',
+      AppLanguage.romanUrdu: 'Allowed: {range}',
+    },
+    'cpd_label_hour': {
+      AppLanguage.english: 'Hour',
+      AppLanguage.urdu: 'گھنٹہ',
+      AppLanguage.romanUrdu: 'Hour',
+    },
+    'cpd_label_minute': {
+      AppLanguage.english: 'Minute',
+      AppLanguage.urdu: 'منٹ',
+      AppLanguage.romanUrdu: 'Minute',
+    },
+    'cpd_use_this_time': {
+      AppLanguage.english: 'Use this time',
+      AppLanguage.urdu: 'یہ وقت استعمال کریں',
+      AppLanguage.romanUrdu: 'Yeh waqt use karein',
+    },
+    'cpd_period_morning_range': {
+      AppLanguage.english: '4:00 AM – 11:59 AM',
+      AppLanguage.urdu: '4:00 AM – 11:59 AM',
+      AppLanguage.romanUrdu: '4:00 AM – 11:59 AM',
+    },
+    'cpd_period_afternoon_range': {
+      AppLanguage.english: '12:00 PM – 4:59 PM',
+      AppLanguage.urdu: '12:00 PM – 4:59 PM',
+      AppLanguage.romanUrdu: '12:00 PM – 4:59 PM',
+    },
+    'cpd_period_evening_range': {
+      AppLanguage.english: '5:00 PM – 8:59 PM',
+      AppLanguage.urdu: '5:00 PM – 8:59 PM',
+      AppLanguage.romanUrdu: '5:00 PM – 8:59 PM',
+    },
+    'cpd_period_night_range': {
+      AppLanguage.english: '9:00 PM – 3:59 AM',
+      AppLanguage.urdu: '9:00 PM – 3:59 AM',
+      AppLanguage.romanUrdu: '9:00 PM – 3:59 AM',
+    },
+    'cpd_care_plan_not_found': {
+      AppLanguage.english: 'Care plan not found',
+      AppLanguage.urdu: 'نگہداشت کا منصوبہ نہیں ملا',
+      AppLanguage.romanUrdu: 'Care plan nahi mila',
+    },
+    'cpd_plan_removed': {
+      AppLanguage.english: 'This plan may have been removed.',
+      AppLanguage.urdu: 'یہ منصوبہ ہٹا دیا گیا ہو سکتا ہے۔',
+      AppLanguage.romanUrdu: 'Yeh plan remove kar diya gaya ho sakta hai.',
+    },
+    'cpd_back_to_care_plans': {
+      AppLanguage.english: 'Back to Care Plans',
+      AppLanguage.urdu: 'نگہداشت کے منصوبوں پر واپس جائیں',
+      AppLanguage.romanUrdu: 'Care Plans par wapas jayein',
+    },
+    'cpd_remove_medicine_tooltip': {
+      AppLanguage.english: 'Remove medicine from SehatMate',
+      AppLanguage.urdu: 'SehatMate سے دوا ہٹائیں',
+      AppLanguage.romanUrdu: 'SehatMate se medicine remove karein',
+    },
+    'cpd_choose_exact_time': {
+      AppLanguage.english: 'Choose exact time',
+      AppLanguage.urdu: 'عین وقت منتخب کریں',
+      AppLanguage.romanUrdu: 'Ain waqt select karein',
+    },
+    'cpd_exact_time_locked_note': {
+      AppLanguage.english:
+          'Exact time copied from the verified instruction. Reality Check can flag practical conflicts, but SehatRoute will not change this medical timing.',
+      AppLanguage.urdu:
+          'عین وقت تصدیق شدہ ہدایت سے کاپی کیا گیا۔ Reality Check عملی تنازعات کو جھنڈا کر سکتا ہے، لیکن SehatRoute اس طبی ٹائمنگ کو تبدیل نہیں کرے گا۔',
+      AppLanguage.romanUrdu:
+          'Ain waqt verified hidayat se copy kiya gaya. Reality Check practical conflicts ko flag kar sakta hai, lekin SehatRoute is medical timing ko change nahi karega.',
+    },
+    'cpd_period_changed_note': {
+      AppLanguage.english:
+          'Period changed. Choose an exact time inside this period to save it.',
+      AppLanguage.urdu:
+          'مدت بدل گئی۔ اس کو محفوظ کرنے کے لیے اس مدت کے اندر عین وقت منتخب کریں۔',
+      AppLanguage.romanUrdu:
+          'Period badal gaya. Is ko save karne ke liye is period ke andar ain waqt select karein.',
+    },
+    'cpd_verified_exact_time': {
+      AppLanguage.english: 'Verified exact time',
+      AppLanguage.urdu: 'تصدیق شدہ عین وقت',
+      AppLanguage.romanUrdu: 'Verified ain waqt',
+    },
+    'cpd_edit_period': {
+      AppLanguage.english: 'Edit period',
+      AppLanguage.urdu: 'مدت میں ترمیم کریں',
+      AppLanguage.romanUrdu: 'Period edit karein',
+    },
+    'cpd_set_time': {
+      AppLanguage.english: 'Set time',
+      AppLanguage.urdu: 'وقت مقرر کریں',
+      AppLanguage.romanUrdu: 'Waqt set karein',
+    },
+    'cpd_edit_time': {
+      AppLanguage.english: 'Edit time',
+      AppLanguage.urdu: 'وقت میں ترمیم کریں',
+      AppLanguage.romanUrdu: 'Waqt edit karein',
+    },
 
-'care_gap_next_step_label': {
-  AppLanguage.english: 'Next step',
-  AppLanguage.urdu: 'اگلا مرحلہ',
-  AppLanguage.romanUrdu: 'Agla step',
-},
+    // ── Care Gap Screens ──
+    'gap_load_failed': {
+      AppLanguage.english: 'Care gap could not be loaded.',
+      AppLanguage.urdu: 'نگہداشت کی کمی لوڈ نہیں ہو سکی۔',
+      AppLanguage.romanUrdu: 'Care gap load nahi ho saki.',
+    },
+    'gap_detail_title': {
+      AppLanguage.english: 'Care Gap',
+      AppLanguage.urdu: 'نگہداشت کی کمی',
+      AppLanguage.romanUrdu: 'Care Gap',
+    },
+    'gap_unavailable': {
+      AppLanguage.english: 'Care gap unavailable',
+      AppLanguage.urdu: 'نگہداشت کی کمی دستیاب نہیں',
+      AppLanguage.romanUrdu: 'Care gap unavailable',
+    },
+    'gap_unavailable_desc': {
+      AppLanguage.english: 'This care gap could not be loaded.',
+      AppLanguage.urdu: 'یہ نگہداشت کی کمی لوڈ نہیں ہو سکی۔',
+      AppLanguage.romanUrdu: 'Yeh care gap load nahi ho saki.',
+    },
+    'gap_problem_label': {
+      AppLanguage.english: 'Problem',
+      AppLanguage.urdu: 'مسئلہ',
+      AppLanguage.romanUrdu: 'Masla',
+    },
+    'gap_related_instruction_label': {
+      AppLanguage.english: 'Related care instruction',
+      AppLanguage.urdu: 'متعلقہ نگہداشت کی ہدایت',
+      AppLanguage.romanUrdu: 'Mutaliqah care hidayat',
+    },
+    'gap_why_flagged_label': {
+      AppLanguage.english: 'Why it was flagged',
+      AppLanguage.urdu: 'اسے کیوں نشان زد کیا گیا',
+      AppLanguage.romanUrdu: 'Isay kyun flag kiya gaya',
+    },
+    'gap_patient_reality_label': {
+      AppLanguage.english: 'Patient information causing the conflict',
+      AppLanguage.urdu: 'مریض کی معلومات جو تنازعہ کا باعث ہیں',
+      AppLanguage.romanUrdu: 'Patient ki maloomat jo conflict ka bais hain',
+    },
+    'gap_next_step_label': {
+      AppLanguage.english: 'What needs to happen',
+      AppLanguage.urdu: 'کیا ہونے کی ضرورت ہے',
+      AppLanguage.romanUrdu: 'Kya hone ki zaroorat hai',
+    },
+    'gap_when_due_label': {
+      AppLanguage.english: 'When / due',
+      AppLanguage.urdu: 'کب / مقرر',
+      AppLanguage.romanUrdu: 'Kab / due',
+    },
+    'gap_type_label': {
+      AppLanguage.english: 'Gap type',
+      AppLanguage.urdu: 'کمی کی قسم',
+      AppLanguage.romanUrdu: 'Gap ki type',
+    },
+    'gap_resolution_note_label': {
+      AppLanguage.english: 'Resolution note',
+      AppLanguage.urdu: 'حل کا نوٹ',
+      AppLanguage.romanUrdu: 'Resolution note',
+    },
+    'gap_not_provided': {
+      AppLanguage.english: 'Not provided',
+      AppLanguage.urdu: 'فراہم نہیں کیا گیا',
+      AppLanguage.romanUrdu: 'Provide nahi kiya gaya',
+    },
+    'gap_auto_recheck_note': {
+      AppLanguage.english:
+          'After you fix the underlying item and return here, SehatMate will re-check this gap automatically.',
+      AppLanguage.urdu:
+          'جب آپ بنیادی چیز کو ٹھیک کر کے یہاں واپس آئیں گے، SehatMate خودکار طور پر اس کمی کو دوبارہ چیک کرے گا۔',
+      AppLanguage.romanUrdu:
+          'Jab aap bunyadi cheez ko theek kar ke yahan wapas aayein ge, SehatMate automatically is gap ko dobara check karega.',
+    },
+    'gap_add_information': {
+      AppLanguage.english: 'Add information',
+      AppLanguage.urdu: 'معلومات شامل کریں',
+      AppLanguage.romanUrdu: 'Maloomat add karein',
+    },
+    'gap_update_information': {
+      AppLanguage.english: 'Update information',
+      AppLanguage.urdu: 'معلومات اپ ڈیٹ کریں',
+      AppLanguage.romanUrdu: 'Maloomat update karein',
+    },
+    'gap_note_auto_managed_hint': {
+      AppLanguage.english:
+          'Add a note while you work on the underlying item. The gap will resolve automatically when that item is fixed.',
+      AppLanguage.urdu:
+          'بنیادی چیز پر کام کرتے وقت نوٹ شامل کریں۔ جب وہ چیز ٹھیک ہو جائے گی تو کمی خودکار طور پر حل ہو جائے گی۔',
+      AppLanguage.romanUrdu:
+          'Bunyadi cheez par kaam karte waqt note add karein. Jab woh cheez theek ho jaye gi to gap automatically resolve ho jaye gi.',
+    },
+    'gap_add_information_hint': {
+      AppLanguage.english:
+          'Add information about how this gap is being handled.',
+      AppLanguage.urdu:
+          'اس کمی کو کیسے سنبھالا جا رہا ہے اس کے بارے میں معلومات شامل کریں۔',
+      AppLanguage.romanUrdu:
+          'Is gap ko kaise sambhala ja raha hai is ke bare mein maloomat add karein.',
+    },
+    'gap_resolution_note_hint': {
+      AppLanguage.english: 'Add an update or resolution note',
+      AppLanguage.urdu: 'اپ ڈیٹ یا حل کا نوٹ شامل کریں',
+      AppLanguage.romanUrdu: 'Update ya resolution note add karein',
+    },
+    'gap_save_information': {
+      AppLanguage.english: 'Save information',
+      AppLanguage.urdu: 'معلومات محفوظ کریں',
+      AppLanguage.romanUrdu: 'Maloomat save karein',
+    },
+    'gap_save_changes': {
+      AppLanguage.english: 'Save changes',
+      AppLanguage.urdu: 'تبدیلیاں محفوظ کریں',
+      AppLanguage.romanUrdu: 'Tabdeeliyan save karein',
+    },
+    'gap_doctor_questions_title': {
+      AppLanguage.english: 'Healthcare-professional questions',
+      AppLanguage.urdu: 'صحت کے پیشہ ور کے سوالات',
+      AppLanguage.romanUrdu: 'Healthcare professional ke sawalaat',
+    },
+    'gap_doctor_questions_subtitle': {
+      AppLanguage.english:
+          'Questions created for professional clarification are kept here.',
+      AppLanguage.urdu:
+          'پیشہ ورانہ وضاحت کے لیے بنائے گئے سوالات یہاں رکھے گئے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Professional wazahat ke liye banaye gaye sawalaat yahan rakhe gaye hain.',
+    },
+    'gap_answered': {
+      AppLanguage.english: 'Answered',
+      AppLanguage.urdu: 'جواب دیا گیا',
+      AppLanguage.romanUrdu: 'Jawab diya gaya',
+    },
+    'gap_waiting_for_answer': {
+      AppLanguage.english: 'Waiting for answer',
+      AppLanguage.urdu: 'جواب کا انتظار',
+      AppLanguage.romanUrdu: 'Jawab ka intezaar',
+    },
+    'gap_doctor_response_label': {
+      AppLanguage.english: 'Healthcare-professional response',
+      AppLanguage.urdu: 'صحت کے پیشہ ور کا جواب',
+      AppLanguage.romanUrdu: 'Healthcare professional ka jawab',
+    },
+    'gap_doctor_answer_hint': {
+      AppLanguage.english:
+          'Enter the answer you received from your healthcare professional',
+      AppLanguage.urdu: 'اپنے صحت کے پیشہ ور سے حاصل کردہ جواب درج کریں',
+      AppLanguage.romanUrdu:
+          'Apne healthcare professional se hasil karda jawab darj karein',
+    },
+    'gap_doctor_answer_disclaimer': {
+      AppLanguage.english:
+          'Only record the guidance you actually received from a qualified healthcare professional.',
+      AppLanguage.urdu:
+          'صرف وہ رہنمائی ریکارڈ کریں جو آپ نے واقعی کسی قابل صحت کے پیشہ ور سے حاصل کی ہے۔',
+      AppLanguage.romanUrdu:
+          'Sirf woh hidayat record karein jo aap ne waal kisi qabil healthcare professional se hasil ki hai.',
+    },
+    'gap_mark_answered': {
+      AppLanguage.english: 'Mark Answered',
+      AppLanguage.urdu: 'جواب دیا گیا نشان زد کریں',
+      AppLanguage.romanUrdu: 'Mark Answered',
+    },
+    'gap_verified_response': {
+      AppLanguage.english: 'Verified response',
+      AppLanguage.urdu: 'تصدیق شدہ جواب',
+      AppLanguage.romanUrdu: 'Verified jawab',
+    },
+    'gap_resolution_options': {
+      AppLanguage.english: 'Resolution options',
+      AppLanguage.urdu: 'حل کے اختیارات',
+      AppLanguage.romanUrdu: 'Resolution ke options',
+    },
+    'gap_mark_resolved': {
+      AppLanguage.english: 'Mark Resolved',
+      AppLanguage.urdu: 'حل شدہ نشان زد کریں',
+      AppLanguage.romanUrdu: 'Mark Resolved',
+    },
+    'gap_auto_managed_note': {
+      AppLanguage.english:
+          'This gap is checked automatically. Fix the underlying item, then refresh the status.',
+      AppLanguage.urdu:
+          'یہ کمی خودکار طور پر چیک کی جاتی ہے۔ بنیادی چیز کو ٹھیک کریں، پھر حالت کو تازہ کریں۔',
+      AppLanguage.romanUrdu:
+          'Yeh gap automatically check ki jati hai. Bunyadi cheez ko theek karein, phir status refresh karein.',
+    },
+    'gap_question_already_created': {
+      AppLanguage.english: 'Question already created',
+      AppLanguage.urdu: 'سوال پہلے ہی بنایا جا چکا ہے',
+      AppLanguage.romanUrdu: 'Sawwal pehle hi bana chuka hai',
+    },
+    'gap_create_doctor_question': {
+      AppLanguage.english: 'Create Doctor Question',
+      AppLanguage.urdu: 'ڈاکٹر کا سوال بنائیں',
+      AppLanguage.romanUrdu: 'Doctor Question banayein',
+    },
+    'gap_question_pending_hint': {
+      AppLanguage.english:
+          'A healthcare-professional question is already waiting for an answer.',
+      AppLanguage.urdu:
+          'صحت کے پیشہ ور کا سوال پہلے ہی جواب کا انتظار کر رہا ہے۔',
+      AppLanguage.romanUrdu:
+          'Healthcare professional ka sawwal pehle hi jawab ka intezaar kar raha hai.',
+    },
+    'gap_resolved_message': {
+      AppLanguage.english: 'This care gap is resolved.',
+      AppLanguage.urdu: 'یہ نگہداشت کی کمی حل ہو گئی ہے۔',
+      AppLanguage.romanUrdu: 'Yeh care gap resolve ho gayi hai.',
+    },
+    'gap_refresh_status': {
+      AppLanguage.english: 'Refresh status',
+      AppLanguage.urdu: 'حالت تازہ کریں',
+      AppLanguage.romanUrdu: 'Status refresh karein',
+    },
+    'gap_detail_safety_note': {
+      AppLanguage.english:
+          'Confirm treatment-related decisions with a qualified healthcare professional. SehatMate only helps resolve practical care-plan gaps.',
+      AppLanguage.urdu:
+          'علاج سے متعلق فیصلوں کی تصدیق کسی قابل صحت کے پیشہ ور سے کریں۔ SehatMate صرف عملی نگہداشت کے منصوبے کی کمیوں کو حل کرنے میں مدد کرتا ہے۔',
+      AppLanguage.romanUrdu:
+          'Treatment se mutaliq faislon ki tasdeeq kisi qabil healthcare professional se karein. SehatMate sirf practical care-plan gaps ko resolve karne mein madad karta hai.',
+    },
+    'gap_back_to_care_gaps': {
+      AppLanguage.english: 'Back to Care Gaps',
+      AppLanguage.urdu: 'نگہداشت کی کمیوں پر واپس جائیں',
+      AppLanguage.romanUrdu: 'Care Gaps par wapas jayein',
+    },
+    'gap_progress_saved': {
+      AppLanguage.english: 'Progress saved.',
+      AppLanguage.urdu: 'پیش رفت محفوظ ہو گئی۔',
+      AppLanguage.romanUrdu: 'Progress save ho gayi.',
+    },
+    'gap_resolved_snackbar': {
+      AppLanguage.english: 'Care gap resolved.',
+      AppLanguage.urdu: 'نگہداشت کی کمی حل ہو گئی۔',
+      AppLanguage.romanUrdu: 'Care gap resolve ho gayi.',
+    },
+    'gap_question_already_exists': {
+      AppLanguage.english:
+          'A healthcare-professional question already exists for this care gap.',
+      AppLanguage.urdu:
+          'اس نگہداشت کی کمی کے لیے صحت کے پیشہ ور کا سوال پہلے سے موجود ہے۔',
+      AppLanguage.romanUrdu:
+          'Is care gap ke liye healthcare professional ka sawwal pehle se maujood hai.',
+    },
+    'gap_question_saved': {
+      AppLanguage.english:
+          'Question saved for healthcare-professional verification.',
+      AppLanguage.urdu: 'سوال صحت کے پیشہ ور کی تصدیق کے لیے محفوظ ہو گیا۔',
+      AppLanguage.romanUrdu:
+          'Sawwal healthcare professional ki tasdeeq ke liye save ho gaya.',
+    },
+    'gap_answer_saved': {
+      AppLanguage.english: 'Healthcare-professional answer saved.',
+      AppLanguage.urdu: 'صحت کے پیشہ ور کا جواب محفوظ ہو گیا۔',
+      AppLanguage.romanUrdu: 'Healthcare professional ka jawab save ho gaya.',
+    },
+    'gap_care_instruction_fallback': {
+      AppLanguage.english: 'Care instruction',
+      AppLanguage.urdu: 'نگہداشت کی ہدایت',
+      AppLanguage.romanUrdu: 'Care hidayat',
+    },
+    'gap_resolved_default_note': {
+      AppLanguage.english: 'Resolved by the user.',
+      AppLanguage.urdu: 'صارف نے حل کر دیا۔',
+      AppLanguage.romanUrdu: 'User ne resolve kar diya.',
+    },
+    'gap_not_found_title': {
+      AppLanguage.english: 'Care gap not found',
+      AppLanguage.urdu: 'نگہداشت کی کمی نہیں ملی',
+      AppLanguage.romanUrdu: 'Care gap nahi mili',
+    },
+    'gap_not_found_desc': {
+      AppLanguage.english: 'This demo care gap no longer exists.',
+      AppLanguage.urdu: 'یہ ڈیمو نگہداشت کی کمی اب موجود نہیں ہے۔',
+      AppLanguage.romanUrdu: 'Yeh demo care gap ab maujood nahi hai.',
+    },
+    'gap_suggested_next_step': {
+      AppLanguage.english: 'Suggested next step',
+      AppLanguage.urdu: 'تجویز کردہ اگلا مرحلہ',
+      AppLanguage.romanUrdu: 'Tajweez karda agla step',
+    },
+    'gap_doctor_questions_screen_title': {
+      AppLanguage.english: 'Doctor Questions',
+      AppLanguage.urdu: 'ڈاکٹر کے سوالات',
+      AppLanguage.romanUrdu: 'Doctor Questions',
+    },
+    'gap_doctor_questions_header': {
+      AppLanguage.english:
+          'Questions to verify with your healthcare professional',
+      AppLanguage.urdu: 'اپنے صحت کے پیشہ ور کے ساتھ تصدیق کرنے کے لیے سوالات',
+      AppLanguage.romanUrdu:
+          'Apne healthcare professional ke sath tasdeeq karne ke liye sawalaat',
+    },
+    'gap_doctor_questions_header_sub': {
+      AppLanguage.english: 'Take these to your next appointment or phone call.',
+      AppLanguage.urdu: 'انہیں اپنی اگلی ملاقات یا فون کال پر لے جائیں۔',
+      AppLanguage.romanUrdu:
+          'Inhein apni agli mulaqaat ya phone call par le jayein.',
+    },
+    'gap_group_medicines': {
+      AppLanguage.english: 'Medicines',
+      AppLanguage.urdu: 'ادویات',
+      AppLanguage.romanUrdu: 'Medicines',
+    },
+    'gap_group_follow_up': {
+      AppLanguage.english: 'Follow-Up',
+      AppLanguage.urdu: 'فالو اپ',
+      AppLanguage.romanUrdu: 'Follow-Up',
+    },
+    'gap_group_tests': {
+      AppLanguage.english: 'Tests',
+      AppLanguage.urdu: 'ٹیسٹ',
+      AppLanguage.romanUrdu: 'Tests',
+    },
+    'gap_group_care_instructions': {
+      AppLanguage.english: 'Care Instructions',
+      AppLanguage.urdu: 'نگہداشت کی ہدایات',
+      AppLanguage.romanUrdu: 'Care Instructions',
+    },
+    'gap_add_answer_hint': {
+      AppLanguage.english: 'Add the answer you received',
+      AppLanguage.urdu: 'آپ نے جو جواب حاصل کیا وہ شامل کریں',
+      AppLanguage.romanUrdu: 'Aap ne jo jawab hasil kiya woh add karein',
+    },
+    'gap_answer_saved_simulation': {
+      AppLanguage.english:
+          'Answer saved. Simulation will use the verified timing.',
+      AppLanguage.urdu:
+          'جواب محفوظ ہو گیا۔ سیمیولیشن تصدیق شدہ ٹائمنگ استعمال کرے گی۔',
+      AppLanguage.romanUrdu:
+          'Jawab save ho gaya. Simulation verified timing use karegi.',
+    },
+    'gap_question_copied': {
+      AppLanguage.english: 'Question copied',
+      AppLanguage.urdu: 'سوال کاپی ہو گیا',
+      AppLanguage.romanUrdu: 'Sawwal copy ho gaya',
+    },
+    'gap_copy': {
+      AppLanguage.english: 'Copy',
+      AppLanguage.urdu: 'کاپی',
+      AppLanguage.romanUrdu: 'Copy',
+    },
+    'gap_doctor_questions_safety': {
+      AppLanguage.english:
+          'SehatMate does not generate or modify medical treatment. These questions help you clarify the existing care plan with a qualified healthcare professional.',
+      AppLanguage.urdu:
+          'SehatMate طبی علاج تیار یا تبدیل نہیں کرتا۔ یہ سوالات آپ کو کسی قابل صحت کے پیشہ ور کے ساتھ موجودہ نگہداشت کے منصوبے کی وضاحت کرنے میں مدد کرتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'SehatMate medical treatment generate ya modify nahi karta. Yeh sawalaat aap ko kisi qabil healthcare professional ke sath maujooda care plan ki wazahat karne mein madad karte hain.',
+    },
 
-'demo_care_gaps': {
-  AppLanguage.english: 'Demo care gaps',
-  AppLanguage.urdu: 'ڈیمو نگہداشت کی کمیاں',
-  AppLanguage.romanUrdu: 'Demo care gaps',
-},
-};
+    // ── Simulation Screen ──
+    'sim_title': {
+      AppLanguage.english: 'Care Simulation',
+      AppLanguage.urdu: 'نگہداشت کی سیمیولیشن',
+      AppLanguage.romanUrdu: 'Care Simulation',
+    },
+    'sim_back_to_reality_check': {
+      AppLanguage.english: 'Back to Reality Check',
+      AppLanguage.urdu: 'Reality Check پر واپس جائیں',
+      AppLanguage.romanUrdu: 'Reality Check par wapas jayein',
+    },
+    'sim_header_subtitle': {
+      AppLanguage.english:
+          'A real view built from this plan\'s verified schedule and routine answers.',
+      AppLanguage.urdu:
+          'اس منصوبے کے تصدیق شدہ شیڈول اور روزمرہ کے جوابات سے بنایا گیا حقیقی منظر۔',
+      AppLanguage.romanUrdu:
+          'Is plan ke verified schedule aur routine answers se banaya gaya haqeeqi manzar.',
+    },
+    'sim_my_routine_preferences': {
+      AppLanguage.english: 'My Routine & Preferences',
+      AppLanguage.urdu: 'میری روزمرہ اور ترجیحات',
+      AppLanguage.romanUrdu: 'Meri Routine aur Tarjeehat',
+    },
+    'sim_error_no_plan': {
+      AppLanguage.english: 'Open a care plan to view its real simulation.',
+      AppLanguage.urdu:
+          'اس کی حقیقی سیمیولیشن دیکھنے کے لیے نگہداشت کا منصوبہ کھولیں۔',
+      AppLanguage.romanUrdu:
+          'Is ki haqeeqi simulation dekhne ke liye care plan kholein.',
+    },
+    'sim_error_refresh_failed': {
+      AppLanguage.english: 'The simulation could not be refreshed.',
+      AppLanguage.urdu: 'سیمیولیشن کو تازہ نہیں کیا جا سکا۔',
+      AppLanguage.romanUrdu: 'Simulation ko refresh nahi kiya ja saka.',
+    },
+    'sim_unavailable': {
+      AppLanguage.english: 'Simulation unavailable',
+      AppLanguage.urdu: 'سیمیولیشن دستیاب نہیں',
+      AppLanguage.romanUrdu: 'Simulation available nahi',
+    },
+    'sim_no_data': {
+      AppLanguage.english: 'No simulation data found.',
+      AppLanguage.urdu: 'کوئی سیمیولیشن ڈیٹا نہیں ملا۔',
+      AppLanguage.romanUrdu: 'Koi simulation data nahi mila.',
+    },
+    'sim_open_care_plans': {
+      AppLanguage.english: 'Open Care Plans',
+      AppLanguage.urdu: 'نگہداشت کے منصوبے کھولیں',
+      AppLanguage.romanUrdu: 'Care Plans kholein',
+    },
+    'sim_score_title': {
+      AppLanguage.english: 'Care Feasibility Score',
+      AppLanguage.urdu: 'نگہداشت کی فزیبلٹی اسکور',
+      AppLanguage.romanUrdu: 'Care Feasibility Score',
+    },
+    'sim_status_needs_attention': {
+      AppLanguage.english: 'Needs Attention',
+      AppLanguage.urdu: 'توجہ درکار ہے',
+      AppLanguage.romanUrdu: 'Tawajjo darkar hai',
+    },
+    'sim_status_on_track': {
+      AppLanguage.english: 'On Track',
+      AppLanguage.urdu: 'ٹریک پر',
+      AppLanguage.romanUrdu: 'Track par',
+    },
+    'sim_score_card_title': {
+      AppLanguage.english: 'Plan-specific simulation',
+      AppLanguage.urdu: 'منصوبے کی مخصوص سیمیولیشن',
+      AppLanguage.romanUrdu: 'Plan-specific simulation',
+    },
+    'sim_score_card_subtitle': {
+      AppLanguage.english:
+          'Calculated from verified tasks and your saved practical answers.',
+      AppLanguage.urdu:
+          'تصدیق شدہ ٹاسک اور آپ کے محفوظ شدہ عملی جوابات سے حساب کیا گیا۔',
+      AppLanguage.romanUrdu:
+          'Verified tasks aur aap ke saved practical answers se calculate kiya gaya.',
+    },
+    'sim_metric_blocked': {
+      AppLanguage.english: 'Blocked',
+      AppLanguage.urdu: 'رک گیا',
+      AppLanguage.romanUrdu: 'Blocked',
+    },
+    'sim_metric_at_risk': {
+      AppLanguage.english: 'At Risk',
+      AppLanguage.urdu: 'خطرے میں',
+      AppLanguage.romanUrdu: 'At Risk',
+    },
+    'sim_metric_ready': {
+      AppLanguage.english: 'Ready',
+      AppLanguage.urdu: 'تیار',
+      AppLanguage.romanUrdu: 'Ready',
+    },
+    'sim_metric_unclear': {
+      AppLanguage.english: 'Unclear',
+      AppLanguage.urdu: 'غیر واضح',
+      AppLanguage.romanUrdu: 'Unclear',
+    },
+    'sim_score_disclaimer': {
+      AppLanguage.english:
+          'Care Feasibility measures practical fit only. It is not a medical-risk or clinical-outcome score.',
+      AppLanguage.urdu:
+          'Care Feasibility صرف عملی فٹ کو ماپتی ہے۔ یہ طبی خطرے یا کلینیکل نتیجے کا اسکور نہیں ہے۔',
+      AppLanguage.romanUrdu:
+          'Care Feasibility sirf practical fit ko measure karti hai. Yeh medical-risk ya clinical-outcome score nahi hai.',
+    },
+    'sim_unanswered_provisional': {
+      AppLanguage.english:
+          '{count} relevant question still needs an answer, so the score is provisional.',
+      AppLanguage.urdu:
+          '{count} متعلقہ سوال کو ابھی بھی جواب کی ضرورت ہے، اس لیے اسکور عارضی ہے۔',
+      AppLanguage.romanUrdu:
+          '{count} mutaliq sawwal ko abhi bhi jawab ki zaroorat hai, is liye score aarzi hai.',
+    },
+    'sim_adapt_title': {
+      AppLanguage.english: 'Adapt My Plan',
+      AppLanguage.urdu: 'میرے منصوبے کو ڈھالیں',
+      AppLanguage.romanUrdu: 'Mera Plan Adapt karein',
+    },
+    'sim_adapt_subtitle': {
+      AppLanguage.english:
+          '{count} practical routine adjustment can be reviewed together.',
+      AppLanguage.urdu:
+          '{count} عملی روزمرہ کی تبدیلی کو ایک ساتھ جانچا جا سکتا ہے۔',
+      AppLanguage.romanUrdu:
+          '{count} practical routine adjustment ko ek sath review kiya ja sakta hai.',
+    },
+    'sim_adapt_description': {
+      AppLanguage.english:
+          'Review all flexible reminder suggestions at once. You can accept, change, or keep each current time before anything is saved.',
+      AppLanguage.urdu:
+          'تمام لچکدار یاد دہانی کی تجاویز کو ایک ساتھ دیکھیں۔ آپ ہر موجودہ وقت کو قبول، تبدیل، یا برقرار رکھ سکتے ہیں اس سے پہلے کہ کچھ بھی محفوظ ہو۔',
+      AppLanguage.romanUrdu:
+          'Tamam flexible reminder suggestions ko ek sath dekhein. Aap har mojooda waqt ko accept, change, ya keep kar sakte hain is se pehle ke kuch bhi save ho.',
+    },
+    'sim_applying': {
+      AppLanguage.english: 'Applying…',
+      AppLanguage.urdu: 'لاگو ہو رہا ہے…',
+      AppLanguage.romanUrdu: 'Apply ho raha hai…',
+    },
+    'sim_no_auto_adapt_note': {
+      AppLanguage.english:
+          'Routine differences were found, but none can be safely moved automatically right now. Review the findings below; explicit verified timings stay protected.',
+      AppLanguage.urdu:
+          'روزمرہ کے اختلافات ملے، لیکن ابھی کوئی بھی خودکار طور پر محفوظ طریقے سے منتقل نہیں کیا جا سکتا۔ نیچے نتائج کا جائزہ لیں؛ واضح تصدیق شدہ ٹائمنگ محفوظ رہتی ہے۔',
+      AppLanguage.romanUrdu:
+          'Routine ke ikhtilaf mile, lekin abhi koi bhi automatically safely move nahi kiya ja sakta. Niche nataij ka jayza lein; wazeh verified timings protected rehti hain.',
+    },
+    'sim_insights_title': {
+      AppLanguage.english: 'AI Context Insights',
+      AppLanguage.urdu: 'AI سیاق و سباق کی بصیرت',
+      AppLanguage.romanUrdu: 'AI Context Insights',
+    },
+    'sim_insights_intro': {
+      AppLanguage.english:
+          'SehatMate has reviewed new practical information or healthcare-professional responses connected to this care plan.',
+      AppLanguage.urdu:
+          'SehatMate نے اس نگہداشت کے منصوبے سے جڑی نئی عملی معلومات یا صحت کے پیشہ ور کے جوابات کا جائزہ لیا ہے۔',
+      AppLanguage.romanUrdu:
+          'SehatMate ne is care plan se judi nai practical maloomat ya healthcare professional ke jawabaat ka jayza liya hai.',
+    },
+    'sim_insights_disclaimer': {
+      AppLanguage.english:
+          'These insights can guide the next practical step, but they never automatically change verified treatment instructions.',
+      AppLanguage.urdu:
+          'یہ بصیرت اگلے عملی قدم کی رہنمائی کر سکتی ہے، لیکن وہ کبھی بھی خودکار طور پر تصدیق شدہ علاج کی ہدایات کو تبدیل نہیں کرتی۔',
+      AppLanguage.romanUrdu:
+          'Yeh insights agle practical step ki hidayat kar sakti hain, lekin woh kabhi bhi automatically verified treatment hidayat ko change nahi karti.',
+    },
+    'sim_insight_default_summary': {
+      AppLanguage.english: 'New care context has been recorded.',
+      AppLanguage.urdu: 'نیا نگہداشت کا سیاق ریکارڈ کیا گیا ہے۔',
+      AppLanguage.romanUrdu: 'Naya care context record kiya gaya hai.',
+    },
+    'sim_insight_review_needed': {
+      AppLanguage.english: 'Professional instruction review needed',
+      AppLanguage.urdu: 'پیشہ ورانہ ہدایت کا جائزہ درکار ہے',
+      AppLanguage.romanUrdu: 'Professional hidayat ka jayza darkar hai',
+    },
+    'sim_insight_support': {
+      AppLanguage.english: 'New practical support detected',
+      AppLanguage.urdu: 'نئی عملی مدد کا پتہ چلا',
+      AppLanguage.romanUrdu: 'Nai practical support ka pata chala',
+    },
+    'sim_insight_constraint': {
+      AppLanguage.english: 'Practical constraint detected',
+      AppLanguage.urdu: 'عملی رکاوٹ کا پتہ چلا',
+      AppLanguage.romanUrdu: 'Practical rukawat ka pata chala',
+    },
+    'sim_insight_guidance': {
+      AppLanguage.english: 'Professional guidance added',
+      AppLanguage.urdu: 'پیشہ ورانہ رہنمائی شامل کی گئی',
+      AppLanguage.romanUrdu: 'Professional hidayat add ki gayi',
+    },
+    'sim_insight_default': {
+      AppLanguage.english: 'New care context',
+      AppLanguage.urdu: 'نیا نگہداشت کا سیاق',
+      AppLanguage.romanUrdu: 'Naya care context',
+    },
+    'sim_insight_follow_up': {
+      AppLanguage.english: 'What to confirm next',
+      AppLanguage.urdu: 'آگے کیا تصدیق کرنی ہے',
+      AppLanguage.romanUrdu: 'Aage kya tasdeeq karni hai',
+    },
+    'sim_insight_protected_note': {
+      AppLanguage.english:
+          'Verified treatment instructions are protected. This insight does not automatically change dose, frequency, treatment, or an explicit verified time.',
+      AppLanguage.urdu:
+          'تصدیق شدہ علاج کی ہدایات محفوظ ہیں۔ یہ بصیرت خودکار طور پر خوراک، تعدد، علاج، یا واضح تصدیق شدہ وقت کو تبدیل نہیں کرتی۔',
+      AppLanguage.romanUrdu:
+          'Verified treatment hidayat protected hain. Yeh insight automatically dose, frequency, treatment, ya wazeh verified waqt ko change nahi karti.',
+    },
+    'sim_signal_support': {
+      AppLanguage.english: 'Practical support',
+      AppLanguage.urdu: 'عملی مدد',
+      AppLanguage.romanUrdu: 'Practical support',
+    },
+    'sim_signal_constraint': {
+      AppLanguage.english: 'Practical constraint',
+      AppLanguage.urdu: 'عملی رکاوٹ',
+      AppLanguage.romanUrdu: 'Practical rukawat',
+    },
+    'sim_signal_professional': {
+      AppLanguage.english: 'Healthcare-professional context',
+      AppLanguage.urdu: 'صحت کے پیشہ ور کا سیاق',
+      AppLanguage.romanUrdu: 'Healthcare professional context',
+    },
+    'sim_signal_needs_review': {
+      AppLanguage.english: 'Needs verified instruction review',
+      AppLanguage.urdu: 'تصدیق شدہ ہدایت کے جائزے کی ضرورت ہے',
+      AppLanguage.romanUrdu: 'Verified hidayat ke jayze ki zaroorat hai',
+    },
+    'sim_signal_care_context': {
+      AppLanguage.english: 'Care context',
+      AppLanguage.urdu: 'نگہداشت کا سیاق',
+      AppLanguage.romanUrdu: 'Care context',
+    },
+    'sim_findings_title': {
+      AppLanguage.english: 'Practical findings',
+      AppLanguage.urdu: 'عملی نتائج',
+      AppLanguage.romanUrdu: 'Practical nataij',
+    },
+    'sim_findings_description': {
+      AppLanguage.english:
+          'These are the routine answers used by the simulation. Any reason or recommendation returned by the server is shown here too.',
+      AppLanguage.urdu:
+          'یہ وہ روزمرہ کے جوابات ہیں جو سیمیولیشن استعمال کرتی ہے۔ سرور کی طرف سے واپس کی گئی کوئی بھی وجہ یا سفارش یہاں بھی دکھائی جاتی ہے۔',
+      AppLanguage.romanUrdu:
+          'Yeh woh routine answers hain jo simulation use karti hai. Server ki taraf se wapas ki gayi koi bhi wajah ya sifarish yahan bhi dikhayi jati hai.',
+    },
+    'sim_finding_default_category': {
+      AppLanguage.english: 'Routine',
+      AppLanguage.urdu: 'روزمرہ',
+      AppLanguage.romanUrdu: 'Routine',
+    },
+    'sim_finding_default_question': {
+      AppLanguage.english: 'Routine finding',
+      AppLanguage.urdu: 'روزمرہ کی تلاش',
+      AppLanguage.romanUrdu: 'Routine finding',
+    },
+    'sim_finding_badge': {
+      AppLanguage.english: 'Routine adjustment',
+      AppLanguage.urdu: 'روزمرہ کی تبدیلی',
+      AppLanguage.romanUrdu: 'Routine adjustment',
+    },
+    'sim_finding_your_answer': {
+      AppLanguage.english: 'Your answer: {answer}',
+      AppLanguage.urdu: 'آپ کا جواب: {answer}',
+      AppLanguage.romanUrdu: 'Aap ka jawab: {answer}',
+    },
+    'sim_finding_what_this_means': {
+      AppLanguage.english: 'What this means',
+      AppLanguage.urdu: 'اس کا کیا مطلب ہے',
+      AppLanguage.romanUrdu: 'Is ka kya matlab hai',
+    },
+    'sim_finding_suggested_adjustment': {
+      AppLanguage.english: 'Suggested adjustment',
+      AppLanguage.urdu: 'تجویز کردہ تبدیلی',
+      AppLanguage.romanUrdu: 'Tajweez karda tabdeeli',
+    },
+    'sim_finding_reminder_change': {
+      AppLanguage.english: 'Reminder: {current} → {suggested} · {period}',
+      AppLanguage.urdu: 'یاد دہانی: {current} → {suggested} · {period}',
+      AppLanguage.romanUrdu: 'Reminder: {current} → {suggested} · {period}',
+    },
+    'sim_finding_reminder_suggested': {
+      AppLanguage.english: 'Suggested reminder: {suggested} · {period}',
+      AppLanguage.urdu: 'تجویز کردہ یاد دہانی: {suggested} · {period}',
+      AppLanguage.romanUrdu: 'Tajweez karda reminder: {suggested} · {period}',
+    },
+    'sim_finding_why': {
+      AppLanguage.english: 'Why this suggestion?',
+      AppLanguage.urdu: 'یہ تجویز کیوں؟',
+      AppLanguage.romanUrdu: 'Yeh tajweez kyun?',
+    },
+    'sim_finding_apply': {
+      AppLanguage.english: 'Apply suggestion',
+      AppLanguage.urdu: 'تجویز لاگو کریں',
+      AppLanguage.romanUrdu: 'Tajweez apply karein',
+    },
+    'sim_finding_kept_current': {
+      AppLanguage.english: 'Kept current',
+      AppLanguage.urdu: 'موجودہ برقرار رکھا',
+      AppLanguage.romanUrdu: 'Current rakha',
+    },
+    'sim_finding_keep_current': {
+      AppLanguage.english: 'Keep current',
+      AppLanguage.urdu: 'موجودہ برقرار رکھیں',
+      AppLanguage.romanUrdu: 'Current rakhein',
+    },
+    'sim_action_review_schedule': {
+      AppLanguage.english: 'Review schedule',
+      AppLanguage.urdu: 'شیڈول کا جائزہ لیں',
+      AppLanguage.romanUrdu: 'Schedule ka jayza lein',
+    },
+    'sim_action_open_family_care': {
+      AppLanguage.english: 'Open Family Care',
+      AppLanguage.urdu: 'فیملی کیئر کھولیں',
+      AppLanguage.romanUrdu: 'Family Care kholein',
+    },
+    'sim_action_open_calendar': {
+      AppLanguage.english: 'Open Calendar',
+      AppLanguage.urdu: 'کیلنڈر کھولیں',
+      AppLanguage.romanUrdu: 'Calendar kholein',
+    },
+    'sim_action_review_care_plan': {
+      AppLanguage.english: 'Review care plan',
+      AppLanguage.urdu: 'نگہداشت کے منصوبے کا جائزہ لیں',
+      AppLanguage.romanUrdu: 'Care plan ka jayza lein',
+    },
+    'sim_action_recheck_fit': {
+      AppLanguage.english: 'Re-check practical fit',
+      AppLanguage.urdu: 'عملی فٹ کو دوبارہ چیک کریں',
+      AppLanguage.romanUrdu: 'Practical fit ko dobara check karein',
+    },
+    'sim_action_review_instruction': {
+      AppLanguage.english: 'Review verified instruction',
+      AppLanguage.urdu: 'تصدیق شدہ ہدایت کا جائزہ لیں',
+      AppLanguage.romanUrdu: 'Verified hidayat ka jayza lein',
+    },
+    'sim_action_review': {
+      AppLanguage.english: 'Review',
+      AppLanguage.urdu: 'جائزہ',
+      AppLanguage.romanUrdu: 'Jayza',
+    },
+    'sim_tasks_title': {
+      AppLanguage.english: 'Scheduled tasks',
+      AppLanguage.urdu: 'مقررہ ٹاسک',
+      AppLanguage.romanUrdu: 'Scheduled tasks',
+    },
+    'sim_care_gaps_ready': {
+      AppLanguage.english: 'Care Gaps check is ready',
+      AppLanguage.urdu: 'Care Gaps چیک تیار ہے',
+      AppLanguage.romanUrdu: 'Care Gaps check ready hai',
+    },
+    'sim_care_gaps_needs_review': {
+      AppLanguage.english: '{count} care gap needs review',
+      AppLanguage.urdu: '{count} نگہداشت کی کمی کا جائزہ درکار ہے',
+      AppLanguage.romanUrdu: '{count} care gap ka jayza darkar hai',
+    },
+    'sim_care_gaps_ready_desc': {
+      AppLanguage.english:
+          'Continue through Care Gaps once so the guided setup confirms there are no required unresolved issues.',
+      AppLanguage.urdu:
+          'ایک بار Care Gaps سے گزریں تاکہ رہنمائی والا سیٹ اپ تصدیق کرے کہ کوئی ضروری حل طلب مسئلے نہیں ہیں۔',
+      AppLanguage.romanUrdu:
+          'Ek baar Care Gaps se guzrein taa ke guided setup tasdeeq kare ke koi zaroori unresolved maslay nahi hain.',
+    },
+    'sim_care_gaps_action_desc': {
+      AppLanguage.english:
+          'Continue to the plan-specific Care Gaps step. Review open practical issues and resolve required blockers, then run the final simulation before activation.',
+      AppLanguage.urdu:
+          'منصوبے کے مخصوص Care Gaps قدم پر جائیں۔ کھلے عملی مسائل کا جائزہ لیں اور ضروری رکاوٹوں کو حل کریں، پھر ایکٹیویشن سے پہلے حتمی سیمیولیشن چلائیں۔',
+      AppLanguage.romanUrdu:
+          'Plan-specific Care Gaps step par jayein. Khule practical masail ka jayza lein aur zaroori blockers ko resolve karein, phir activation se pehle final simulation chalayein.',
+    },
+    'sim_continue_to_care_gaps': {
+      AppLanguage.english: 'Continue to Care Gaps',
+      AppLanguage.urdu: 'Care Gaps پر جائیں',
+      AppLanguage.romanUrdu: 'Care Gaps par jayein',
+    },
+    'sim_activation_ready': {
+      AppLanguage.english: 'Ready to activate?',
+      AppLanguage.urdu: 'ایکٹیویٹ کرنے کے لیے تیار؟',
+      AppLanguage.romanUrdu: 'Activate karne ke liye ready?',
+    },
+    'sim_activation_requirements': {
+      AppLanguage.english: 'Activation requirements',
+      AppLanguage.urdu: 'ایکٹیویشن کی ضروریات',
+      AppLanguage.romanUrdu: 'Activation ki zaroorat',
+    },
+    'sim_activating': {
+      AppLanguage.english: 'Activating…',
+      AppLanguage.urdu: 'ایکٹیویٹ ہو رہا ہے…',
+      AppLanguage.romanUrdu: 'Activate ho raha hai…',
+    },
+    'sim_activate_care_plan': {
+      AppLanguage.english: 'Activate Care Plan',
+      AppLanguage.urdu: 'نگہداشت کا منصوبہ ایکٹیویٹ کریں',
+      AppLanguage.romanUrdu: 'Care Plan activate karein',
+    },
+    'sim_activation_with_adjustments': {
+      AppLanguage.english: 'Plan can activate with routine adjustments',
+      AppLanguage.urdu: 'منصوبہ روزمرہ کی تبدیلیوں کے ساتھ ایکٹیویٹ ہو سکتا ہے',
+      AppLanguage.romanUrdu:
+          'Plan routine adjustments ke sath activate ho sakta hai',
+    },
+    'sim_activation_all_passed': {
+      AppLanguage.english: 'All required activation checks passed',
+      AppLanguage.urdu: 'تمام ضروری ایکٹیویشن چیکس پاس ہو گئے',
+      AppLanguage.romanUrdu: 'Tamam zaroori activation checks pass ho gaye',
+    },
+    'sim_activation_adjustments_note': {
+      AppLanguage.english:
+          '{count} practical suggestion is shown above. They are recommendations, not blockers. Keep your honest Reality Check answers and apply only the adjustments that fit your routine.',
+      AppLanguage.urdu:
+          '{count} عملی تجویز اوپر دکھائی گئی ہے۔ وہ سفارشات ہیں، رکاوٹیں نہیں۔ اپنے ایماندارانہ Reality Check جوابات رکھیں اور صرف وہ تبدیلیاں لاگو کریں جو آپ کی روزمرہ کے مطابق ہوں۔',
+      AppLanguage.romanUrdu:
+          '{count} practical tajweez oopar dikhayi gayi hai. Woh sifarshaat hain, rukawatein nahi. Apne imandaranah Reality Check jawabaat rakhein aur sirf woh tabdeeliyan apply karein jo aap ki routine ke mutabiq hon.',
+    },
+    'sim_activation_complete_info': {
+      AppLanguage.english:
+          'The required instruction, schedule, and Reality Check information is complete.',
+      AppLanguage.urdu:
+          'ضروری ہدایت، شیڈول، اور Reality Check کی معلومات مکمل ہے۔',
+      AppLanguage.romanUrdu:
+          'Zaroori hidayat, schedule, aur Reality Check ki maloomat mukammal hai.',
+    },
+    'sim_blockers_title': {
+      AppLanguage.english: 'Required items before activation',
+      AppLanguage.urdu: 'ایکٹیویشن سے پہلے ضروری چیزیں',
+      AppLanguage.romanUrdu: 'Activation se pehle zaroori cheezein',
+    },
+    'sim_blockers_description': {
+      AppLanguage.english:
+          'Only required missing or unverified items block activation. Routine mismatches are shown separately as suggestions.',
+      AppLanguage.urdu:
+          'صرف ضروری غائب یا غیر تصدیق شدہ چیزیں ایکٹیویشن کو روکتی ہیں۔ روزمرہ کی بے میل چیزیں الگ سے تجاویز کے طور پر دکھائی جاتی ہیں۔',
+      AppLanguage.romanUrdu:
+          'Sirf zaroori missing ya unverified cheezein activation ko rokti hain. Routine ki mismatches alag se suggestions ke tor par dikhayi jati hain.',
+    },
+    'sim_refresh_check': {
+      AppLanguage.english: 'Refresh check',
+      AppLanguage.urdu: 'چیک تازہ کریں',
+      AppLanguage.romanUrdu: 'Check refresh karein',
+    },
+    'sim_blocker_default_title': {
+      AppLanguage.english: 'Required care-plan item',
+      AppLanguage.urdu: 'ضروری نگہداشت کی منصوبہ چیز',
+      AppLanguage.romanUrdu: 'Zaroori care-plan item',
+    },
+    'sim_blocker_default_reason': {
+      AppLanguage.english: 'This required item is not complete yet.',
+      AppLanguage.urdu: 'یہ ضروری چیز ابھی مکمل نہیں ہے۔',
+      AppLanguage.romanUrdu: 'Yeh zaroori cheez abhi complete nahi hai.',
+    },
+    'sim_blocker_default_fix': {
+      AppLanguage.english:
+          'Review this item and complete the required information.',
+      AppLanguage.urdu: 'اس چیز کا جائزہ لیں اور ضروری معلومات مکمل کریں۔',
+      AppLanguage.romanUrdu:
+          'Is cheez ka jayza lein aur zaroori maloomat complete karein.',
+    },
+    'sim_blocker_required': {
+      AppLanguage.english: 'Required',
+      AppLanguage.urdu: 'ضروری',
+      AppLanguage.romanUrdu: 'Zaroori',
+    },
+    'sim_blocker_summary': {
+      AppLanguage.english:
+          '{count} required item must be completed before activation.',
+      AppLanguage.urdu: '{count} ضروری چیز ایکٹیویشن سے پہلے مکمل ہونی چاہیے۔',
+      AppLanguage.romanUrdu:
+          '{count} zaroori cheez activation se pehle complete honi chahiye.',
+    },
+    'sim_issue_why': {
+      AppLanguage.english: 'Why',
+      AppLanguage.urdu: 'کیوں',
+      AppLanguage.romanUrdu: 'Kyun',
+    },
+    'sim_issue_how_to_fix': {
+      AppLanguage.english: 'How to fix',
+      AppLanguage.urdu: 'کیسے ٹھیک کریں',
+      AppLanguage.romanUrdu: 'Kaise theek karein',
+    },
+    'sim_activation_msg_care_gaps': {
+      AppLanguage.english:
+          'Continue to Care Gaps before activation. After that step, SehatMate will bring you back here for the final simulation.',
+      AppLanguage.urdu:
+          'ایکٹیویشن سے پہلے Care Gaps پر جائیں۔ اس قدم کے بعد، SehatMate آپ کو حتمی سیمیولیشن کے لیے یہاں واپس لائے گا۔',
+      AppLanguage.romanUrdu:
+          'Activation se pehle Care Gaps par jayein. Is step ke baad, SehatMate aap ko final simulation ke liye yahan wapas layega.',
+    },
+    'sim_activation_msg_with_suggestions': {
+      AppLanguage.english:
+          'The required checks are complete. You can activate now and keep the current routine, or apply any practical suggestions above first.',
+      AppLanguage.urdu:
+          'ضروری چیکس مکمل ہیں۔ آپ ابھی ایکٹیویٹ کر سکتے ہیں اور موجودہ روزمرہ رکھ سکتے ہیں، یا پہلے اوپر دی گئی کوئی عملی تجاویز لاگو کر سکتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Zaroori checks complete hain. Aap abhi activate kar sakte hain aur current routine rakh sakte hain, ya pehle oopar di gayi koi practical tajweez apply kar sakte hain.',
+    },
+    'sim_activation_msg_ready': {
+      AppLanguage.english:
+          'All required activation checks passed. Confirmed exact times will be used for reminders on this device.',
+      AppLanguage.urdu:
+          'تمام ضروری ایکٹیویشن چیکس پاس ہو گئے۔ تصدیق شدہ عین اوقات اس ڈیوائس پر یاد دہانی کے لیے استعمال ہوں گے۔',
+      AppLanguage.romanUrdu:
+          'Tamam zaroori activation checks pass ho gaye. Verified ain auqat is device par reminders ke liye use honge.',
+    },
+    'sim_activation_msg_waiting': {
+      AppLanguage.english:
+          'Activation is waiting for {count} required item. Routine suggestions do not block activation.',
+      AppLanguage.urdu:
+          'ایکٹیویشن {count} ضروری چیز کا انتظار کر رہی ہے۔ روزمرہ کی تجاویز ایکٹیویشن کو نہیں روکتیں۔',
+      AppLanguage.romanUrdu:
+          'Activation {count} zaroori cheez ka intezaar kar rahi hai. Routine suggestions activation ko nahi rokti.',
+    },
+    'sim_duration_title': {
+      AppLanguage.english: 'Plan duration',
+      AppLanguage.urdu: 'منصوبے کی مدت',
+      AppLanguage.romanUrdu: 'Plan ki muddat',
+    },
+    'sim_duration_note': {
+      AppLanguage.english: 'Medicine-specific durations remain unchanged.',
+      AppLanguage.urdu: 'دوائی کی مخصوص مدتیں بدستور برقرار ہیں۔',
+      AppLanguage.romanUrdu:
+          'Medicine-specific muddatein badastoor barqarar hain.',
+    },
+    'sim_duration_prescription': {
+      AppLanguage.english: 'Use prescription duration',
+      AppLanguage.urdu: 'نسخے کی مدت استعمال کریں',
+      AppLanguage.romanUrdu: 'Nuskhe ki muddat use karein',
+    },
+    'sim_duration_suggested_end': {
+      AppLanguage.english: 'Suggested end: {date}',
+      AppLanguage.urdu: 'تجویز کردہ اختتام: {date}',
+      AppLanguage.romanUrdu: 'Tajweez karda ikhtitam: {date}',
+    },
+    'sim_duration_prescription_hint': {
+      AppLanguage.english: 'Uses the latest verified instruction end date',
+      AppLanguage.urdu:
+          'تازہ ترین تصدیق شدہ ہدایت کی آخری تاریخ استعمال کرتا ہے',
+      AppLanguage.romanUrdu:
+          'Taza tareen verified hidayat ki aakhri tareekh use karta hai',
+    },
+    'sim_duration_choose_end': {
+      AppLanguage.english: 'Choose end date',
+      AppLanguage.urdu: 'آخری تاریخ منتخب کریں',
+      AppLanguage.romanUrdu: 'Aakhri tareekh select karein',
+    },
+    'sim_duration_no_date': {
+      AppLanguage.english: 'No date selected',
+      AppLanguage.urdu: 'کوئی تاریخ منتخب نہیں',
+      AppLanguage.romanUrdu: 'Koi tareekh select nahi',
+    },
+    'sim_duration_ongoing': {
+      AppLanguage.english: 'Ongoing plan',
+      AppLanguage.urdu: 'جاری منصوبہ',
+      AppLanguage.romanUrdu: 'Jari plan',
+    },
+    'sim_duration_ongoing_hint': {
+      AppLanguage.english:
+          'The plan stays active; fixed medicine durations still stop as prescribed.',
+      AppLanguage.urdu:
+          'منصوبہ فعال رہتا ہے؛ مقررہ دوائی کی مدتیں ابھی بھی مقررہ طور پر رکتی ہیں۔',
+      AppLanguage.romanUrdu:
+          'Plan faal rehta hai; muqarrar medicine muddatein abhi bhi muqarrar tor par rukti hain.',
+    },
+    'sim_duration_save': {
+      AppLanguage.english: 'Save duration',
+      AppLanguage.urdu: 'مدت محفوظ کریں',
+      AppLanguage.romanUrdu: 'Muddat save karein',
+    },
+    'sim_adapt_applied_snackbar': {
+      AppLanguage.english:
+          '{count} routine adjustment applied. Simulation and Care Gaps were re-checked.',
+      AppLanguage.urdu:
+          '{count} روزمرہ کی تبدیلی لاگو ہو گئی۔ سیمیولیشن اور Care Gaps کو دوبارہ چیک کیا گیا۔',
+      AppLanguage.romanUrdu:
+          '{count} routine adjustment apply ho gayi. Simulation aur Care Gaps ko dobara check kiya gaya.',
+    },
+    'sim_adapt_kept_snackbar': {
+      AppLanguage.english:
+          'Current reminders kept. SehatMate saved your choices for future suggestions.',
+      AppLanguage.urdu:
+          'موجودہ یاد دہانی برقرار رکھی گئی۔ SehatMate نے مستقبل کی تجاویز کے لیے آپ کے انتخاب محفوظ کر لیے۔',
+      AppLanguage.romanUrdu:
+          'Current reminders rakhe gaye. SehatMate ne future suggestions ke liye aap ke choices save kar liye.',
+    },
+    'sim_apply_moved_snackbar': {
+      AppLanguage.english:
+          'Reminder moved to {time}. Your Reality Check answer was kept unchanged.',
+      AppLanguage.urdu:
+          'یاد دہانی {time} بجے منتقل ہو گئی۔ آپ کا Reality Check جواب بدستور برقرار رکھا گیا۔',
+      AppLanguage.romanUrdu:
+          'Reminder {time} bajey move ho gayi. Aap ka Reality Check jawab badastoor rakha gaya.',
+    },
+    'sim_keep_current_snackbar': {
+      AppLanguage.english:
+          'Current reminder kept. SehatMate will use this choice as a learning signal.',
+      AppLanguage.urdu:
+          'موجودہ یاد دہانی برقرار رکھی گئی۔ SehatMate اس انتخاب کو سیکھنے کے سگنل کے طور پر استعمال کرے گا۔',
+      AppLanguage.romanUrdu:
+          'Current reminder rakhi gayi. SehatMate is choice ko seekhne ke signal ke tor par use karega.',
+    },
+    'sim_duration_saved_snackbar': {
+      AppLanguage.english: 'Plan duration saved.',
+      AppLanguage.urdu: 'منصوبے کی مدت محفوظ ہو گئی۔',
+      AppLanguage.romanUrdu: 'Plan ki muddat save ho gayi.',
+    },
+    'sim_activated_no_permission': {
+      AppLanguage.english:
+          'Care plan activated, but notification permission was not granted.',
+      AppLanguage.urdu:
+          'نگہداشت کا منصوبہ ایکٹیویٹ ہو گیا، لیکن اطلاع کی اجازت نہیں دی گئی۔',
+      AppLanguage.romanUrdu:
+          'Care plan activate ho gaya, lekin notification permission nahi di gayi.',
+    },
+    'sim_activated_no_exact_alarm': {
+      AppLanguage.english:
+          'Care plan activated. Allow exact alarms in Android settings to enable reminders.',
+      AppLanguage.urdu:
+          'نگہداشت کا منصوبہ ایکٹیویٹ ہو گیا۔ یاد دہانی فعال کرنے کے لیے Android کی ترتیبات میں عین الارم کی اجازت دیں۔',
+      AppLanguage.romanUrdu:
+          'Care plan activate ho gaya. Yaddahani faal karne ke liye Android ki settings mein ain alarm ki ijazat dein.',
+    },
+    'sim_activated_with_count': {
+      AppLanguage.english: 'Care plan activated. {count} reminder scheduled.',
+      AppLanguage.urdu:
+          'نگہداشت کا منصوبہ ایکٹیویٹ ہو گیا۔ {count} یاد دہانی مقرر ہے۔',
+      AppLanguage.romanUrdu:
+          'Care plan activate ho gaya. {count} reminder scheduled hai.',
+    },
+    'sim_activation_failed_snackbar': {
+      AppLanguage.english:
+          'The care plan could not be activated on this device.',
+      AppLanguage.urdu:
+          'اس ڈیوائس پر نگہداشت کا منصوبہ ایکٹیویٹ نہیں کیا جا سکا۔',
+      AppLanguage.romanUrdu:
+          'Is device par care plan activate nahi kiya ja saka.',
+    },
+    'sim_sheet_default_title': {
+      AppLanguage.english: 'Routine reminder',
+      AppLanguage.urdu: 'روزمرہ کی یاد دہانی',
+      AppLanguage.romanUrdu: 'Routine reminder',
+    },
+    'sim_sheet_time_picker_help': {
+      AppLanguage.english: 'Choose another {period} reminder',
+      AppLanguage.urdu: 'دوسری {period} یاد دہانی منتخب کریں',
+      AppLanguage.romanUrdu: 'Doosri {period} reminder select karein',
+    },
+    'sim_sheet_invalid_time': {
+      AppLanguage.english: 'Choose a time inside the {window} {period} period.',
+      AppLanguage.urdu: '{window} {period} مدت کے اندر وقت منتخب کریں۔',
+      AppLanguage.romanUrdu:
+          '{window} {period} period ke andar waqt select karein.',
+    },
+    'sim_sheet_select_at_least_one': {
+      AppLanguage.english:
+          'Select at least one adjustment or choose Keep current.',
+      AppLanguage.urdu:
+          'کم از کم ایک تبدیلی منتخب کریں یا موجودہ برقرار رکھیں منتخب کریں۔',
+      AppLanguage.romanUrdu:
+          'Kam az kam ek tabdeeli select karein ya Keep current select karein.',
+    },
+    'sim_sheet_close_tooltip': {
+      AppLanguage.english: 'Close',
+      AppLanguage.urdu: 'بند کریں',
+      AppLanguage.romanUrdu: 'Band karein',
+    },
+    'sim_sheet_description': {
+      AppLanguage.english:
+          'Review flexible reminder changes together. Medical instructions are not changed.',
+      AppLanguage.urdu:
+          'لچکدار یاد دہانی کی تبدیلیوں کو ایک ساتھ دیکھیں۔ طبی ہدایات تبدیل نہیں کی جاتیں۔',
+      AppLanguage.romanUrdu:
+          'Flexible reminder tabdeeliyon ko ek sath dekhein. Medical hidayat change nahi ki jati.',
+    },
+    'sim_sheet_safety_note': {
+      AppLanguage.english:
+          'SehatMate only applies flexible reminder changes shown here. Explicit clinician-specified times cannot be moved automatically.',
+      AppLanguage.urdu:
+          'SehatMate صرف یہاں دکھائی گئی لچکدار یاد دہانی کی تبدیلیاں لاگو کرتا ہے۔ واضح طور پر ماہر کی مقرر کردہ اوقات خودکار طور پر منتقل نہیں کی جا سکتیں۔',
+      AppLanguage.romanUrdu:
+          'SehatMate sirf yahan dikhayi gayi flexible reminder tabdeeliyan apply karta hai. Wazeh tor par mahir ke muqarrar karda auqat automatically move nahi ki ja sakti.',
+    },
+    'sim_sheet_selected_to_apply': {
+      AppLanguage.english: '{count} selected to apply',
+      AppLanguage.urdu: '{count} لاگو کرنے کے لیے منتخب',
+      AppLanguage.romanUrdu: '{count} apply karne ke liye select',
+    },
+    'sim_sheet_keep_current_count': {
+      AppLanguage.english: ' · {count} keep current',
+      AppLanguage.urdu: ' · {count} موجودہ برقرار',
+      AppLanguage.romanUrdu: ' · {count} keep current',
+    },
+    'sim_sheet_apply_button': {
+      AppLanguage.english: 'Apply {count} selected adjustment',
+      AppLanguage.urdu: '{count} منتخب تبدیلی لاگو کریں',
+      AppLanguage.romanUrdu: '{count} select tabdeeli apply karein',
+    },
+    'sim_sheet_save_keep_choices': {
+      AppLanguage.english: 'Save Keep current choices',
+      AppLanguage.urdu: 'موجودہ انتخاب کو محفوظ کریں',
+      AppLanguage.romanUrdu: 'Keep current choices save karein',
+    },
+    'sim_sheet_change': {
+      AppLanguage.english: 'Change',
+      AppLanguage.urdu: 'تبدیل کریں',
+      AppLanguage.romanUrdu: 'Change karein',
+    },
+    'sim_sheet_keeping_current': {
+      AppLanguage.english: 'Keeping current',
+      AppLanguage.urdu: 'موجودہ برقرار رکھ رہا ہے',
+      AppLanguage.romanUrdu: 'Current rakh raha hai',
+    },
+    'sim_sheet_keep_current': {
+      AppLanguage.english: 'Keep current',
+      AppLanguage.urdu: 'موجودہ برقرار رکھیں',
+      AppLanguage.romanUrdu: 'Current rakhein',
+    },
+  };
   static String get(
     String key,
     AppLanguage language, {
     Map<String, Object?> values = const {},
   }) {
-    var text = _values[key]?[language] ??
-        _values[key]?[AppLanguage.english] ??
-        key;
+    var text =
+        _values[key]?[language] ?? _values[key]?[AppLanguage.english] ?? key;
 
     for (final entry in values.entries) {
       text = text.replaceAll('{${entry.key}}', '${entry.value ?? ''}');
