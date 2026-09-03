@@ -26,9 +26,10 @@ void main() {
       AppRoutes.settings,
       AppRoutes.simpleCare,
       AppRoutes.teachBack,
+      AppRoutes.agent,
     };
 
-    expect(routes, hasLength(22));
+    expect(routes, hasLength(23));
     expect(AppRoutes.carePlan('p1'), '/care-plan/p1');
     expect(AppRoutes.careGap('g1'), '/care-gaps/g1');
     expect(AppRoutes.caregiver('c1'), '/family/c1');

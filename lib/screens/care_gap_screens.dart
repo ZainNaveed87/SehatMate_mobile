@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
+import '../features/agent/agent_entry.dart';
+import '../features/agent/models/agent_context.dart';
 import '../localization/language_scope.dart';
 import '../services/auth_service.dart';
 import '../services/care_plan_service.dart';
@@ -1736,6 +1738,26 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
               gap.whenText,
             ].where((value) => value.isNotEmpty).join(' · '),
           ),
+
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => openAgent(
+                context,
+                screenContext: AgentScreenContext(
+                  screenId: 'care_gap_detail',
+                  entity: AgentEntityContext(
+                    type: 'care_gap',
+                    id: widget.gapId,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.auto_awesome_outlined, size: 17),
+              label: Text(context.tr('ask_agent')),
+            ),
+          ),
+
+          const SizedBox(height: 12),
 
           LayoutBuilder(
             builder: (context, constraints) {

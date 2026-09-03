@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
+import '../features/agent/agent_entry.dart';
+import '../features/agent/models/agent_context.dart';
 import '../localization/app_language.dart';
 import '../localization/language_scope.dart';
 import '../services/auth_service.dart';
@@ -42,11 +44,7 @@ const shellNav = [
     Icons.checklist_outlined,
     mobileLabelKey: 'plans',
   ),
-  ShellNavItem(
-    AppRoutes.calendar,
-    'calendar',
-    Icons.calendar_month_outlined,
-  ),
+  ShellNavItem(AppRoutes.calendar, 'calendar', Icons.calendar_month_outlined),
   ShellNavItem(
     AppRoutes.family,
     'family_care',
@@ -58,16 +56,8 @@ const shellNav = [
     'teach_back',
     Icons.record_voice_over_outlined,
   ),
-  ShellNavItem(
-    AppRoutes.progress,
-    'progress',
-    Icons.speed_outlined,
-  ),
-  ShellNavItem(
-    AppRoutes.documents,
-    'documents',
-    Icons.description_outlined,
-  ),
+  ShellNavItem(AppRoutes.progress, 'progress', Icons.speed_outlined),
+  ShellNavItem(AppRoutes.documents, 'documents', Icons.description_outlined),
 ];
 
 class AppShell extends StatelessWidget {
@@ -97,8 +87,19 @@ class AppShell extends StatelessWidget {
     return Directionality(
       textDirection: language.textDirection,
       child: Scaffold(
-        bottomNavigationBar:
-            desktop ? null : _MobileNavigation(currentRoute: currentRoute),
+        floatingActionButton: AuthSession.instance.canAccessApp
+            ? FloatingActionButton.small(
+                tooltip: context.tr('agent_title'),
+                onPressed: () => openAgent(
+                  context,
+                  screenContext: _agentContextForRoute(currentRoute),
+                ),
+                child: const Icon(Icons.auto_awesome_outlined),
+              )
+            : null,
+        bottomNavigationBar: desktop
+            ? null
+            : _MobileNavigation(currentRoute: currentRoute),
         body: SafeArea(
           child: Row(
             children: [
@@ -143,11 +144,62 @@ class AppShell extends StatelessWidget {
   }
 }
 
+AgentScreenContext? _agentContextForRoute(String route) {
+  if (route == AppRoutes.dashboard) {
+    return const AgentScreenContext(screenId: 'home');
+  }
+  if (route == AppRoutes.calendar) {
+    return const AgentScreenContext(screenId: 'today');
+  }
+  if (route == AppRoutes.carePlans) {
+    return const AgentScreenContext(screenId: 'care_plans');
+  }
+  if (route == AppRoutes.realityCheck) {
+    return const AgentScreenContext(screenId: 'reality_check');
+  }
+  if (route == AppRoutes.simulation) {
+    return const AgentScreenContext(screenId: 'simulation');
+  }
+  if (route == AppRoutes.careGaps) {
+    return const AgentScreenContext(screenId: 'care_gaps');
+  }
+  if (route == AppRoutes.routinePreferences) {
+    return const AgentScreenContext(screenId: 'routine_settings');
+  }
+  if (route == AppRoutes.patientProfile) {
+    return const AgentScreenContext(screenId: 'profile');
+  }
+  if (route == AppRoutes.documents) {
+    return const AgentScreenContext(screenId: 'documents');
+  }
+  if (route == AppRoutes.notifications) {
+    return const AgentScreenContext(screenId: 'notifications');
+  }
+  if (route == AppRoutes.settings) {
+    return const AgentScreenContext(screenId: 'settings');
+  }
+
+  const carePlanPrefix = '/care-plan/';
+  if (route.startsWith(carePlanPrefix)) {
+    final id = route.split('/').last;
+    return AgentScreenContext(
+      screenId: 'care_plan_detail',
+      entity: AgentEntityContext(type: 'care_plan', id: id),
+    );
+  }
+  if (route.startsWith('${AppRoutes.careGaps}/')) {
+    final id = route.split('/').last;
+    return AgentScreenContext(
+      screenId: 'care_gap_detail',
+      entity: AgentEntityContext(type: 'care_gap', id: id),
+    );
+  }
+
+  return null;
+}
+
 class _DesktopSidebar extends StatelessWidget {
-  const _DesktopSidebar({
-    required this.currentRoute,
-    required this.onNavigate,
-  });
+  const _DesktopSidebar({required this.currentRoute, required this.onNavigate});
 
   final String currentRoute;
   final ValueChanged<String> onNavigate;
@@ -156,46 +208,44 @@ class _DesktopSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 248,
-        decoration: const BoxDecoration(
-          color: AppColors.card,
-          border: Border(
-            right: BorderSide(color: AppColors.border),
+    width: 248,
+    decoration: const BoxDecoration(
+      color: AppColors.card,
+      border: Border(right: BorderSide(color: AppColors.border)),
+    ),
+    child: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: InkWell(
+              onTap: () => onNavigate(AppRoutes.dashboard),
+              child: const BrandLogo(),
+            ),
           ),
         ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: InkWell(
-                  onTap: () => onNavigate(AppRoutes.dashboard),
-                  child: const BrandLogo(),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: shellNav.map((item) => _sideItem(context, item)).toList(),
-              ),
-            ),
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: _sideItem(
-                context,
-                const ShellNavItem(
-                  AppRoutes.settings,
-                  'settings',
-                  Icons.settings_outlined,
-                ),
-              ),
-            ),
-          ],
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            children: shellNav.map((item) => _sideItem(context, item)).toList(),
+          ),
         ),
-      );
+        const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: _sideItem(
+            context,
+            const ShellNavItem(
+              AppRoutes.settings,
+              'settings',
+              Icons.settings_outlined,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _sideItem(BuildContext context, ShellNavItem item) {
     final active = _active(item.route);
@@ -216,8 +266,7 @@ class _DesktopSidebar extends StatelessWidget {
               Icon(
                 item.icon,
                 size: 19,
-                color:
-                    active ? AppColors.accentForeground : AppColors.muted,
+                color: active ? AppColors.accentForeground : AppColors.muted,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -226,8 +275,9 @@ class _DesktopSidebar extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color:
-                        active ? AppColors.accentForeground : AppColors.muted,
+                    color: active
+                        ? AppColors.accentForeground
+                        : AppColors.muted,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -256,163 +306,154 @@ class _ShellHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-        animation: Listenable.merge([
-          CareDemoState.instance,
-          AuthSession.instance,
-        ]),
-        builder: (context, _) {
-          final user = AuthSession.instance.user;
-          final displayName = user?.name ?? context.tr('guest_user');
-          final displayEmail = user?.email ?? context.tr('demo_access');
-          final initials = user?.initials ?? 'G';
+    animation: Listenable.merge([CareDemoState.instance, AuthSession.instance]),
+    builder: (context, _) {
+      final user = AuthSession.instance.user;
+      final displayName = user?.name ?? context.tr('guest_user');
+      final displayEmail = user?.email ?? context.tr('demo_access');
+      final initials = user?.initials ?? 'G';
 
-          return Container(
-            height: 64,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: const BoxDecoration(
-              color: AppColors.card,
-              border: Border(
-                bottom: BorderSide(color: AppColors.border),
-              ),
-            ),
-            child: Row(
-              children: [
-                if (desktop)
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (subtitle != null)
-                          Text(
-                            subtitle!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.muted,
-                            ),
-                          ),
-                      ],
-                    ),
-                  )
-                else ...[
-                  InkWell(
-                    onTap: () => onNavigate(AppRoutes.dashboard),
-                    child: const BrandLogo(),
-                  ),
-                  const Spacer(),
-                ],
-                _LanguageMenu(compact: !desktop),
-                const SizedBox(width: 8),
-                Stack(
+      return Container(
+        height: 64,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: const BoxDecoration(
+          color: AppColors.card,
+          border: Border(bottom: BorderSide(color: AppColors.border)),
+        ),
+        child: Row(
+          children: [
+            if (desktop)
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      tooltip: context.tr('notifications'),
-                      onPressed: () =>
-                          onNavigate(AppRoutes.notifications),
-                      icon: const Icon(
-                        Icons.notifications_none,
-                        size: 20,
-                      ),
-                    ),
-                    if (CareDemoState.instance.unreadNotifications > 0)
-                      const PositionedDirectional(
-                        end: 10,
-                        top: 10,
-                        child: CircleAvatar(
-                          radius: 4,
-                          backgroundColor: AppColors.critical,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 4),
-                PopupMenuButton<String>(
-                  onSelected: (value) async {
-                    if (value != _logoutAction) {
-                      onNavigate(value);
-                      return;
-                    }
-
-                    await AuthSession.instance.logout();
-                    if (!context.mounted) return;
-
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      AppRoutes.landing,
-                      (_) => false,
-                    );
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem<String>(
-                      enabled: false,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            displayName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.foreground,
-                            ),
-                          ),
-                          Text(
-                            displayEmail,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.muted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem(
-                      value: AppRoutes.patientProfile,
-                      child: Text(context.tr('patient_profile')),
-                    ),
-                    PopupMenuItem(
-                      value: AppRoutes.settings,
-                      child: Text(context.tr('language')),
-                    ),
-                    PopupMenuItem(
-                      value: AppRoutes.settings,
-                      child: Text(context.tr('settings')),
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem(
-                      value: _logoutAction,
-                      child: Text(context.tr('logout')),
-                    ),
-                  ],
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.primaryLight,
-                    child: Text(
-                      initials,
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: AppColors.accentForeground,
-                        fontSize: 13,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                  ],
                 ),
+              )
+            else ...[
+              InkWell(
+                onTap: () => onNavigate(AppRoutes.dashboard),
+                child: const BrandLogo(),
+              ),
+              const Spacer(),
+            ],
+            _LanguageMenu(compact: !desktop),
+            const SizedBox(width: 8),
+            Stack(
+              children: [
+                IconButton(
+                  tooltip: context.tr('notifications'),
+                  onPressed: () => onNavigate(AppRoutes.notifications),
+                  icon: const Icon(Icons.notifications_none, size: 20),
+                ),
+                if (CareDemoState.instance.unreadNotifications > 0)
+                  const PositionedDirectional(
+                    end: 10,
+                    top: 10,
+                    child: CircleAvatar(
+                      radius: 4,
+                      backgroundColor: AppColors.critical,
+                    ),
+                  ),
               ],
             ),
-          );
-        },
+            const SizedBox(width: 4),
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                if (value != _logoutAction) {
+                  onNavigate(value);
+                  return;
+                }
+
+                await AuthSession.instance.logout();
+                if (!context.mounted) return;
+
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRoutes.landing,
+                  (_) => false,
+                );
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem<String>(
+                  enabled: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.foreground,
+                        ),
+                      ),
+                      Text(
+                        displayEmail,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                PopupMenuItem(
+                  value: AppRoutes.patientProfile,
+                  child: Text(context.tr('patient_profile')),
+                ),
+                PopupMenuItem(
+                  value: AppRoutes.settings,
+                  child: Text(context.tr('language')),
+                ),
+                PopupMenuItem(
+                  value: AppRoutes.settings,
+                  child: Text(context.tr('settings')),
+                ),
+                const PopupMenuDivider(),
+                PopupMenuItem(
+                  value: _logoutAction,
+                  child: Text(context.tr('logout')),
+                ),
+              ],
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primaryLight,
+                child: Text(
+                  initials,
+                  style: const TextStyle(
+                    color: AppColors.accentForeground,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       );
+    },
+  );
 }
 
 class _LanguageMenu extends StatelessWidget {
@@ -458,29 +499,19 @@ class _LanguageMenu extends StatelessWidget {
           .toList(),
       child: Container(
         height: 36,
-        constraints: BoxConstraints(
-          minWidth: compact ? 36 : 88,
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 8 : 12,
-        ),
+        constraints: BoxConstraints(minWidth: compact ? 36 : 88),
+        padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(AppRadii.md),
         ),
         alignment: Alignment.center,
         child: compact
-            ? const Icon(
-                Icons.language_outlined,
-                size: 19,
-              )
+            ? const Icon(Icons.language_outlined, size: 19)
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.language_outlined,
-                    size: 17,
-                  ),
+                  const Icon(Icons.language_outlined, size: 17),
                   const SizedBox(width: 7),
                   Text(
                     selected.shortLabel,
@@ -497,9 +528,7 @@ class _LanguageMenu extends StatelessWidget {
 }
 
 class _MobileNavigation extends StatelessWidget {
-  const _MobileNavigation({
-    required this.currentRoute,
-  });
+  const _MobileNavigation({required this.currentRoute});
 
   final String currentRoute;
 
@@ -510,9 +539,7 @@ class _MobileNavigation extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.card,
-        border: Border(
-          top: BorderSide(color: AppColors.border),
-        ),
+        border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: SafeArea(
         top: false,
@@ -520,10 +547,7 @@ class _MobileNavigation extends StatelessWidget {
           children: [
             ...items.map(
               (item) => Expanded(
-                child: _MobileItem(
-                  item: item,
-                  currentRoute: currentRoute,
-                ),
+                child: _MobileItem(item: item, currentRoute: currentRoute),
               ),
             ),
             Expanded(
@@ -593,10 +617,7 @@ class _MobileNavigation extends StatelessWidget {
 }
 
 class _MobileItem extends StatelessWidget {
-  const _MobileItem({
-    required this.item,
-    required this.currentRoute,
-  });
+  const _MobileItem({required this.item, required this.currentRoute});
 
   final ShellNavItem item;
   final String currentRoute;
@@ -607,8 +628,7 @@ class _MobileItem extends StatelessWidget {
     final color = active ? AppColors.primary : AppColors.muted;
 
     return InkWell(
-      onTap: () =>
-          Navigator.pushReplacementNamed(context, item.route),
+      onTap: () => Navigator.pushReplacementNamed(context, item.route),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 9),
         child: Column(
@@ -620,10 +640,7 @@ class _MobileItem extends StatelessWidget {
               item.mobileLabel(context),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                color: color,
-              ),
+              style: TextStyle(fontSize: 12, color: color),
             ),
           ],
         ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../features/agent/agent_entry.dart';
+import '../features/agent/screens/agent_screen.dart';
 import '../screens/auth_screen.dart';
 import '../screens/care_gap_screens.dart';
 import '../screens/care_plan_detail_screen.dart';
@@ -63,8 +65,7 @@ abstract final class AppRouter {
     } else if (name == AppRoutes.carePlanReview) {
       final arguments = settings.arguments;
 
-      final args =
-          arguments is CarePlanReviewArgs ? arguments : null;
+      final args = arguments is CarePlanReviewArgs ? arguments : null;
 
       page = CarePlanReviewScreen(
         planId: args?.planId,
@@ -74,11 +75,11 @@ abstract final class AppRouter {
     } else if (name == AppRoutes.realityCheck) {
       final arguments = settings.arguments;
 
-      final flowArgs =
-          arguments is CareFlowArgs ? arguments : null;
+      final flowArgs = arguments is CareFlowArgs ? arguments : null;
 
-      final focusedArgs =
-          arguments is FocusedRealityCheckArgs ? arguments : null;
+      final focusedArgs = arguments is FocusedRealityCheckArgs
+          ? arguments
+          : null;
 
       page = RealityCheckScreen(
         planId: focusedArgs?.planId ?? flowArgs?.planId,
@@ -87,14 +88,12 @@ abstract final class AppRouter {
             ? true
             : flowArgs?.returnToPrevious ?? false,
         focusedQuestionKey: focusedArgs?.questionKey,
-        reviewContextLabel:
-            focusedArgs?.reviewContextLabel ?? '',
+        reviewContextLabel: focusedArgs?.reviewContextLabel ?? '',
       );
     } else if (name == AppRoutes.simulation) {
       final arguments = settings.arguments;
 
-      final args =
-          arguments is CareFlowArgs ? arguments : null;
+      final args = arguments is CareFlowArgs ? arguments : null;
 
       page = SimulationScreen(
         planId: args?.planId,
@@ -116,8 +115,7 @@ abstract final class AppRouter {
     } else if (name == AppRoutes.careGaps) {
       final arguments = settings.arguments;
 
-      final args =
-          arguments is CareFlowArgs ? arguments : null;
+      final args = arguments is CareFlowArgs ? arguments : null;
 
       page = CareGapsScreen(
         planId: args?.planId,
@@ -136,6 +134,10 @@ abstract final class AppRouter {
       page = const SettingsScreen();
     } else if (name == AppRoutes.patientProfile) {
       page = const PatientProfileScreen();
+    } else if (name == AppRoutes.agent) {
+      final arguments = settings.arguments;
+
+      page = AgentScreen(args: arguments is AgentScreenArgs ? arguments : null);
     } else if (RegExp(r'^/care-plan/[^/]+$').hasMatch(name)) {
       final arguments = settings.arguments;
 
@@ -146,9 +148,7 @@ abstract final class AppRouter {
       } else if (arguments is int) {
         // Backward compatibility for any older navigation call
         // that still sends only an initial tab index.
-        args = CarePlanDetailArgs(
-          initialTab: arguments,
-        );
+        args = CarePlanDetailArgs(initialTab: arguments);
       } else {
         args = const CarePlanDetailArgs();
       }
@@ -160,42 +160,20 @@ abstract final class AppRouter {
         returnToPrevious: args.returnToPrevious,
       );
     } else if (RegExp(r'^/care-gaps/[^/]+$').hasMatch(name)) {
-      page = CareGapDetailScreen(
-        gapId: name.split('/').last,
-      );
+      page = CareGapDetailScreen(gapId: name.split('/').last);
     } else if (RegExp(r'^/family/[^/]+$').hasMatch(name)) {
-      page = CaregiverDetailScreen(
-        caregiverId: name.split('/').last,
-      );
+      page = CaregiverDetailScreen(caregiverId: name.split('/').last);
     } else {
       page = const _NotFoundScreen();
     }
 
     return PageRouteBuilder<void>(
-      settings: RouteSettings(
-        name: name,
-        arguments: settings.arguments,
-      ),
-      pageBuilder: (
-        _,
-        animation,
-        secondaryAnimation,
-      ) =>
-          page,
-      transitionDuration:
-          const Duration(milliseconds: 220),
-      reverseTransitionDuration:
-          const Duration(milliseconds: 180),
-      transitionsBuilder: (
-        _,
-        animation,
-        secondaryAnimation,
-        child,
-      ) {
-        final curve = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOut,
-        );
+      settings: RouteSettings(name: name, arguments: settings.arguments),
+      pageBuilder: (_, animation, secondaryAnimation) => page,
+      transitionDuration: const Duration(milliseconds: 220),
+      reverseTransitionDuration: const Duration(milliseconds: 180),
+      transitionsBuilder: (_, animation, secondaryAnimation, child) {
+        final curve = CurvedAnimation(parent: animation, curve: Curves.easeOut);
 
         return FadeTransition(
           opacity: curve,
@@ -204,10 +182,7 @@ abstract final class AppRouter {
             child: child,
             builder: (context, child) {
               return Transform.translate(
-                offset: Offset(
-                  0,
-                  6 * (1 - curve.value),
-                ),
+                offset: Offset(0, 6 * (1 - curve.value)),
                 child: child,
               );
             },
@@ -224,9 +199,7 @@ class _NotFoundScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('app_name')),
-      ),
+      appBar: AppBar(title: Text(context.tr('app_name'))),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -235,10 +208,7 @@ class _NotFoundScreen extends StatelessWidget {
             children: [
               const Text(
                 '404',
-                style: TextStyle(
-                  fontSize: 72,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 72, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
@@ -252,17 +222,12 @@ class _NotFoundScreen extends StatelessWidget {
               Text(
                 context.tr('page_not_found_description'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.muted,
-                ),
+                style: const TextStyle(color: AppColors.muted),
               ),
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: () =>
-                    Navigator.pushReplacementNamed(
-                  context,
-                  AppRoutes.landing,
-                ),
+                    Navigator.pushReplacementNamed(context, AppRoutes.landing),
                 child: Text(context.tr('go_home')),
               ),
             ],

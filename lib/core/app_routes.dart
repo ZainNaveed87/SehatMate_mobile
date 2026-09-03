@@ -22,6 +22,7 @@ abstract final class AppRoutes {
   static const patientProfile = '/patient-profile';
   static const settings = '/settings';
   static const routinePreferences = '/routine-preferences';
+  static const agent = '/agent';
 
   static const publicRoutes = {landing, auth};
 

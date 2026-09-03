@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
+import '../features/agent/agent_entry.dart';
+import '../features/agent/models/agent_context.dart';
 import '../localization/language_scope.dart';
 import '../localization/localized_errors.dart';
 import '../services/auth_service.dart';
@@ -188,6 +190,24 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               ),
               action: PlanStatusBadge(status: plan.status),
             ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () => openAgent(
+                  context,
+                  screenContext: AgentScreenContext(
+                    screenId: 'care_plan_detail',
+                    entity: AgentEntityContext(
+                      type: 'care_plan',
+                      id: widget.planId,
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.auto_awesome_outlined, size: 17),
+                label: Text(context.tr('ask_agent')),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (!widget.guidedSetup &&
                 !AuthSession.instance.isGuest &&
                 (plan.status == PlanStatus.active ||

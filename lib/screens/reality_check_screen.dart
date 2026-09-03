@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
+import '../features/agent/agent_entry.dart';
+import '../features/agent/models/agent_context.dart';
 import '../localization/language_scope.dart';
 import '../services/auth_service.dart';
 import '../services/care_plan_service.dart';
@@ -50,8 +52,7 @@ class RealityCheckScreen extends StatefulWidget {
   final String reviewContextLabel;
 
   @override
-  State<RealityCheckScreen> createState() =>
-      _RealityCheckScreenState();
+  State<RealityCheckScreen> createState() => _RealityCheckScreenState();
 }
 
 class _RealityCheckScreenState extends State<RealityCheckScreen> {
@@ -101,11 +102,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   /// reality_option_yes_reliably
   /// reality_check_safety_note
   /// why_this_question
-  String _trOrFallback(
-    BuildContext context,
-    String key,
-    String fallback,
-  ) {
+  String _trOrFallback(BuildContext context, String key, String fallback) {
     final translated = context.tr(key).trim();
 
     if (translated.isEmpty || translated == key) {
@@ -123,15 +120,13 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
     if (widget.planId == null || AuthSession.instance.isGuest) {
       setState(() {
         loading = false;
-        error =
-            'Open a reviewed care plan to start its reality check.';
+        error = 'Open a reviewed care plan to start its reality check.';
       });
       return;
     }
 
     try {
-      final result =
-          await CarePlanService.instance.fetchRealityQuestions(
+      final result = await CarePlanService.instance.fetchRealityQuestions(
         widget.planId!,
       );
 
@@ -157,14 +152,11 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
 
       var visibleQuestions = result;
 
-      final focusedKey =
-          widget.focusedQuestionKey?.trim() ?? '';
+      final focusedKey = widget.focusedQuestionKey?.trim() ?? '';
 
       if (focusedKey.isNotEmpty) {
         visibleQuestions = result
-            .where(
-              (item) => item.key == focusedKey,
-            )
+            .where((item) => item.key == focusedKey)
             .toList();
 
         if (visibleQuestions.isEmpty) {
@@ -222,28 +214,20 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
       currentRoute: AppRoutes.realityCheck,
       title: _isFocusedReview
           ? 'Review Reality Check'
-          : _trOrFallback(
-              context,
-              'life_reality_check',
-              'Reality Check',
-            ),
+          : _trOrFallback(context, 'life_reality_check', 'Reality Check'),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 620,
-          ),
+          constraints: const BoxConstraints(maxWidth: 620),
           child: loading
               ? const Padding(
                   padding: EdgeInsets.all(48),
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: Center(child: CircularProgressIndicator()),
                 )
               : error != null
-                  ? _errorState()
-                  : questions.isEmpty
-                      ? _emptyState()
-                      : _questionView(),
+              ? _errorState()
+              : questions.isEmpty
+              ? _emptyState()
+              : _questionView(),
         ),
       ),
     );
@@ -257,31 +241,20 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         'reality_check_unavailable',
         'Reality Check unavailable',
       ),
-      description: _localizedError(
-        context,
-        error!,
-      ),
+      description: _localizedError(context, error!),
       action: FilledButton(
         onPressed: () {
-          if (_isFocusedReview &&
-              Navigator.canPop(context)) {
+          if (_isFocusedReview && Navigator.canPop(context)) {
             Navigator.pop(context);
             return;
           }
 
-          Navigator.pushReplacementNamed(
-            context,
-            AppRoutes.carePlans,
-          );
+          Navigator.pushReplacementNamed(context, AppRoutes.carePlans);
         },
         child: Text(
           _isFocusedReview
               ? 'Back to Care Gap'
-              : _trOrFallback(
-                  context,
-                  'open_care_plans',
-                  'Open Care Plans',
-                ),
+              : _trOrFallback(context, 'open_care_plans', 'Open Care Plans'),
         ),
       ),
     );
@@ -302,8 +275,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
       ),
       action: FilledButton(
         onPressed: () {
-          if (widget.returnToPrevious &&
-              Navigator.canPop(context)) {
+          if (widget.returnToPrevious && Navigator.canPop(context)) {
             Navigator.pop(context);
             return;
           }
@@ -319,16 +291,8 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         },
         child: Text(
           widget.returnToPrevious
-              ? _trOrFallback(
-                  context,
-                  'done',
-                  'Done',
-                )
-              : _trOrFallback(
-                  context,
-                  'view_simulation',
-                  'View Simulation',
-                ),
+              ? _trOrFallback(context, 'done', 'Done')
+              : _trOrFallback(context, 'view_simulation', 'View Simulation'),
         ),
       ),
     );
@@ -345,10 +309,30 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (widget.planId != null) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => openAgent(
+                context,
+                screenContext: AgentScreenContext(
+                  screenId: 'reality_check',
+                  entity: AgentEntityContext(
+                    type: 'care_plan',
+                    id: widget.planId!,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.auto_awesome_outlined, size: 17),
+              label: Text(context.tr('ask_agent')),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
         // ---------------------------------------------------------------------
         // Focused Care Gap review information
         // ---------------------------------------------------------------------
-
         if (_isFocusedReview) ...[
           AppCard(
             padding: const EdgeInsets.all(16),
@@ -407,7 +391,6 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         // ---------------------------------------------------------------------
         // Guided setup progress
         // ---------------------------------------------------------------------
-
         if (widget.guidedSetup &&
             widget.planId != null &&
             !_isFocusedReview) ...[
@@ -422,27 +405,18 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         // ---------------------------------------------------------------------
         // Question header
         // ---------------------------------------------------------------------
-
         Row(
           children: [
             Expanded(
               child: Text(
-                _isFocusedReview
-                    ? 'Focused review'
-                    : _questionCounterText(),
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.muted,
-                ),
+                _isFocusedReview ? 'Focused review' : _questionCounterText(),
+                style: const TextStyle(fontSize: 14, color: AppColors.muted),
               ),
             ),
             const SizedBox(width: 12),
             Flexible(
               child: Text(
-                _categoryText(
-                  context,
-                  question,
-                ),
+                _categoryText(context, question),
                 textAlign: TextAlign.end,
                 style: const TextStyle(
                   fontSize: 14,
@@ -472,17 +446,13 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         // ---------------------------------------------------------------------
         // Main question card
         // ---------------------------------------------------------------------
-
         AppCard(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                _questionText(
-                  context,
-                  question,
-                ),
+                _questionText(context, question),
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -493,14 +463,11 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
               // -----------------------------------------------------------------
               // Why this question
               // -----------------------------------------------------------------
-
               if (question.reasonForAsking.trim().isNotEmpty) ...[
                 const SizedBox(height: 14),
                 ExpansionTile(
                   tilePadding: EdgeInsets.zero,
-                  childrenPadding: const EdgeInsets.only(
-                    bottom: 10,
-                  ),
+                  childrenPadding: const EdgeInsets.only(bottom: 10),
                   leading: const Icon(
                     Icons.info_outline,
                     color: AppColors.primary,
@@ -511,9 +478,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
                       'why_this_question',
                       'Why this question',
                     ),
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                    ),
+                    style: const TextStyle(color: AppColors.primary),
                   ),
                   children: [
                     Container(
@@ -521,9 +486,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: AppColors.secondary,
-                        borderRadius: BorderRadius.circular(
-                          AppRadii.xl,
-                        ),
+                        borderRadius: BorderRadius.circular(AppRadii.xl),
                       ),
                       child: Text(
                         question.reasonForAsking,
@@ -543,22 +506,13 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
               // -----------------------------------------------------------------
               // Options
               // -----------------------------------------------------------------
-
               ...question.options.map(
                 (option) => Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: 12,
-                  ),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: OptionCard(
-                    label: _optionText(
-                      context,
-                      option,
-                    ),
+                    label: _optionText(context, option),
                     selected: selected == option,
-                    onTap: () => _selectAnswer(
-                      question.key,
-                      option,
-                    ),
+                    onTap: () => _selectAnswer(question.key, option),
                   ),
                 ),
               ),
@@ -568,7 +522,6 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
               // -----------------------------------------------------------------
               // Optional note
               // -----------------------------------------------------------------
-
               TextField(
                 controller: note,
                 maxLines: 3,
@@ -584,7 +537,8 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
                   }
                 },
                 decoration: InputDecoration(
-                  hintText: selected != null &&
+                  hintText:
+                      selected != null &&
                           question.options.isNotEmpty &&
                           selected != question.options.first
                       ? _trOrFallback(
@@ -638,79 +592,55 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
               // -----------------------------------------------------------------
               // Responsive buttons
               // -----------------------------------------------------------------
-
               LayoutBuilder(
-                builder: (
-                  context,
-                  constraints,
-                ) {
+                builder: (context, constraints) {
                   final backButton = TextButton.icon(
                     onPressed: _isFocusedReview
                         ? Navigator.canPop(context)
-                            ? () => Navigator.pop(context)
-                            : null
+                              ? () => Navigator.pop(context)
+                              : null
                         : index > 0
-                            ? _back
-                            : widget.guidedSetup &&
-                                    widget.planId != null
-                                ? _backToSchedule
-                                : null,
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      size: 17,
-                    ),
+                        ? _back
+                        : widget.guidedSetup && widget.planId != null
+                        ? _backToSchedule
+                        : null,
+                    icon: const Icon(Icons.arrow_back, size: 17),
                     label: Text(
                       _isFocusedReview
                           ? 'Back to Care Gap'
-                          : index == 0 &&
-                                  widget.guidedSetup
-                              ? _trOrFallback(
-                                  context,
-                                  'back_to_schedule',
-                                  'Back to Schedule',
-                                )
-                              : _trOrFallback(
-                                  context,
-                                  'back',
-                                  'Back',
-                                ),
+                          : index == 0 && widget.guidedSetup
+                          ? _trOrFallback(
+                              context,
+                              'back_to_schedule',
+                              'Back to Schedule',
+                            )
+                          : _trOrFallback(context, 'back', 'Back'),
                     ),
                   );
 
                   final saveButton = FilledButton(
                     onPressed:
-                        (selected == null &&
-                                    note.text.trim().isEmpty) ||
-                                saving
-                            ? null
-                            : _next,
+                        (selected == null && note.text.trim().isEmpty) || saving
+                        ? null
+                        : _next,
                     child: Text(
                       saving
-                          ? _trOrFallback(
-                              context,
-                              'saving',
-                              'Saving…',
-                            )
+                          ? _trOrFallback(context, 'saving', 'Saving…')
                           : _isFocusedReview
-                              ? 'Save & return'
-                              : index ==
-                                      questions.length - 1
-                                  ? widget.returnToPrevious
-                                      ? _trOrFallback(
-                                          context,
-                                          'save_changes',
-                                          'Save changes',
-                                        )
-                                      : _trOrFallback(
-                                          context,
-                                          'build_simulation',
-                                          'Build Simulation',
-                                        )
-                                  : _trOrFallback(
-                                      context,
-                                      'continue',
-                                      'Continue',
-                                    ),
+                          ? 'Save & return'
+                          : index == questions.length - 1
+                          ? widget.returnToPrevious
+                                ? _trOrFallback(
+                                    context,
+                                    'save_changes',
+                                    'Save changes',
+                                  )
+                                : _trOrFallback(
+                                    context,
+                                    'build_simulation',
+                                    'Build Simulation',
+                                  )
+                          : _trOrFallback(context, 'continue', 'Continue'),
                     ),
                   );
 
@@ -724,13 +654,9 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
                   // on narrow phones.
                   if (constraints.maxWidth < 420) {
                     return Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.stretch,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: saveButton,
-                        ),
+                        SizedBox(width: double.infinity, child: saveButton),
                         const SizedBox(height: 8),
                         Align(
                           alignment: Alignment.centerLeft,
@@ -741,11 +667,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
                   }
 
                   return Row(
-                    children: [
-                      backButton,
-                      const Spacer(),
-                      saveButton,
-                    ],
+                    children: [backButton, const Spacer(), saveButton],
                   );
                 },
               ),
@@ -769,14 +691,10 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   String _questionCounterText() {
     final translated = context.tr(
       'question_of_total',
-      values: {
-        'current': index + 1,
-        'total': questions.length,
-      },
+      values: {'current': index + 1, 'total': questions.length},
     );
 
-    if (translated.trim().isEmpty ||
-        translated.trim() == 'question_of_total') {
+    if (translated.trim().isEmpty || translated.trim() == 'question_of_total') {
       return 'Question ${index + 1} of ${questions.length}';
     }
 
@@ -787,35 +705,25 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   // ERROR TEXT
   // ---------------------------------------------------------------------------
 
-  String _localizedError(
-    BuildContext context,
-    String value,
-  ) {
+  String _localizedError(BuildContext context, String value) {
     return switch (value) {
-      'Open a reviewed care plan to start its reality check.' =>
-        _trOrFallback(
-          context,
-          'reality_open_reviewed_plan_error',
-          value,
-        ),
+      'Open a reviewed care plan to start its reality check.' => _trOrFallback(
+        context,
+        'reality_open_reviewed_plan_error',
+        value,
+      ),
       'Generate the schedule before starting the reality check.' =>
-        _trOrFallback(
-          context,
-          'reality_generate_schedule_error',
-          value,
-        ),
-      'Care plan not found.' =>
-        _trOrFallback(
-          context,
-          'care_plan_not_found',
-          value,
-        ),
-      'Complete the relevant reality-check questions.' =>
-        _trOrFallback(
-          context,
-          'reality_complete_questions_error',
-          value,
-        ),
+        _trOrFallback(context, 'reality_generate_schedule_error', value),
+      'Care plan not found.' => _trOrFallback(
+        context,
+        'care_plan_not_found',
+        value,
+      ),
+      'Complete the relevant reality-check questions.' => _trOrFallback(
+        context,
+        'reality_complete_questions_error',
+        value,
+      ),
       _ => value,
     };
   }
@@ -824,41 +732,29 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   // CATEGORY
   // ---------------------------------------------------------------------------
 
-  String _categoryText(
-    BuildContext context,
-    PlanRealityQuestion question,
-  ) {
+  String _categoryText(BuildContext context, PlanRealityQuestion question) {
     final fallback = question.category.trim().isEmpty
         ? 'Routine'
         : question.category;
 
     return switch (question.key) {
-      'morning_routine' ||
-      'daytime_access' ||
-      'evening_routine' =>
-        _trOrFallback(
-          context,
-          'reality_category_routine',
-          fallback,
-        ),
-      'caregiver_support' =>
-        _trOrFallback(
-          context,
-          'reality_category_support',
-          fallback,
-        ),
-      'travel_access' =>
-        _trOrFallback(
-          context,
-          'reality_category_visits_tests',
-          fallback,
-        ),
-      'medicine_access' =>
-        _trOrFallback(
-          context,
-          'reality_category_medicine_access',
-          fallback,
-        ),
+      'morning_routine' || 'daytime_access' || 'evening_routine' =>
+        _trOrFallback(context, 'reality_category_routine', fallback),
+      'caregiver_support' => _trOrFallback(
+        context,
+        'reality_category_support',
+        fallback,
+      ),
+      'travel_access' => _trOrFallback(
+        context,
+        'reality_category_visits_tests',
+        fallback,
+      ),
+      'medicine_access' => _trOrFallback(
+        context,
+        'reality_category_medicine_access',
+        fallback,
+      ),
       _ => fallback,
     };
   }
@@ -867,49 +763,40 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   // QUESTION TEXT
   // ---------------------------------------------------------------------------
 
-  String _questionText(
-    BuildContext context,
-    PlanRealityQuestion question,
-  ) {
+  String _questionText(BuildContext context, PlanRealityQuestion question) {
     final fallback = question.question;
 
     return switch (question.key) {
-      'morning_routine' =>
-        _trOrFallback(
-          context,
-          'reality_question_morning_routine',
-          fallback,
-        ),
-      'daytime_access' =>
-        _trOrFallback(
-          context,
-          'reality_question_daytime_access',
-          fallback,
-        ),
-      'evening_routine' =>
-        _trOrFallback(
-          context,
-          'reality_question_evening_routine',
-          fallback,
-        ),
-      'caregiver_support' =>
-        _trOrFallback(
-          context,
-          'reality_question_caregiver_support',
-          fallback,
-        ),
-      'travel_access' =>
-        _trOrFallback(
-          context,
-          'reality_question_travel_access',
-          fallback,
-        ),
-      'medicine_access' =>
-        _trOrFallback(
-          context,
-          'reality_question_medicine_access',
-          fallback,
-        ),
+      'morning_routine' => _trOrFallback(
+        context,
+        'reality_question_morning_routine',
+        fallback,
+      ),
+      'daytime_access' => _trOrFallback(
+        context,
+        'reality_question_daytime_access',
+        fallback,
+      ),
+      'evening_routine' => _trOrFallback(
+        context,
+        'reality_question_evening_routine',
+        fallback,
+      ),
+      'caregiver_support' => _trOrFallback(
+        context,
+        'reality_question_caregiver_support',
+        fallback,
+      ),
+      'travel_access' => _trOrFallback(
+        context,
+        'reality_question_travel_access',
+        fallback,
+      ),
+      'medicine_access' => _trOrFallback(
+        context,
+        'reality_question_medicine_access',
+        fallback,
+      ),
       _ => fallback,
     };
   }
@@ -918,10 +805,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   // OPTION TEXT
   // ---------------------------------------------------------------------------
 
-  String _optionText(
-    BuildContext context,
-    String option,
-  ) {
+  String _optionText(BuildContext context, String option) {
     final translationKey = switch (option) {
       'I can follow the stated morning or meal instruction' =>
         'reality_option_morning_can_follow',
@@ -929,34 +813,21 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         'reality_option_morning_changes',
       'This timing is usually difficult for me' =>
         'reality_option_timing_difficult_for_me',
-      'Yes, reliably' =>
-        'reality_option_yes_reliably',
-      'Sometimes' =>
-        'reality_option_sometimes',
-      'Usually not' =>
-        'reality_option_usually_not',
-      'My evening routine changes' =>
-        'reality_option_evening_changes',
-      'This timing is usually difficult' =>
-        'reality_option_timing_difficult',
-      'Yes, when needed' =>
-        'reality_option_yes_when_needed',
-      'Only sometimes' =>
-        'reality_option_only_sometimes',
-      'No help is currently available' =>
-        'reality_option_no_help_available',
-      'Yes, transport is arranged' =>
-        'reality_option_transport_arranged',
+      'Yes, reliably' => 'reality_option_yes_reliably',
+      'Sometimes' => 'reality_option_sometimes',
+      'Usually not' => 'reality_option_usually_not',
+      'My evening routine changes' => 'reality_option_evening_changes',
+      'This timing is usually difficult' => 'reality_option_timing_difficult',
+      'Yes, when needed' => 'reality_option_yes_when_needed',
+      'Only sometimes' => 'reality_option_only_sometimes',
+      'No help is currently available' => 'reality_option_no_help_available',
+      'Yes, transport is arranged' => 'reality_option_transport_arranged',
       'Transport still needs arranging' =>
         'reality_option_transport_needs_arranging',
-      'I cannot reach it at that time' =>
-        'reality_option_cannot_reach',
-      'Yes, all of them' =>
-        'reality_option_all_medicines',
-      'Some are still missing' =>
-        'reality_option_some_missing',
-      'None yet' =>
-        'reality_option_none_yet',
+      'I cannot reach it at that time' => 'reality_option_cannot_reach',
+      'Yes, all of them' => 'reality_option_all_medicines',
+      'Some are still missing' => 'reality_option_some_missing',
+      'None yet' => 'reality_option_none_yet',
       _ => '',
     };
 
@@ -964,11 +835,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
       return option;
     }
 
-    return _trOrFallback(
-      context,
-      translationKey,
-      option,
-    );
+    return _trOrFallback(context, translationKey, option);
   }
 
   // ---------------------------------------------------------------------------
@@ -977,15 +844,11 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
 
   void _storeNote() {
     if (questions.isNotEmpty) {
-      notes[questions[index].key] =
-          note.text.trim();
+      notes[questions[index].key] = note.text.trim();
     }
   }
 
-  void _selectAnswer(
-    String key,
-    String option,
-  ) {
+  void _selectAnswer(String key, String option) {
     setState(() {
       if (answers[key] == option) {
         answers.remove(key);
@@ -993,9 +856,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         answers[key] = option;
       }
 
-      _saveState = _isFocusedReview
-          ? 'Unsaved changes'
-          : 'Saving…';
+      _saveState = _isFocusedReview ? 'Unsaved changes' : 'Saving…';
     });
 
     // Normal Reality Check keeps autosave.
@@ -1003,9 +864,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
     // Focused Care Gap review waits until the user explicitly
     // presses Save & return. This prevents accidental changes.
     if (!_isFocusedReview) {
-      _scheduleAutosave(
-        immediate: true,
-      );
+      _scheduleAutosave(immediate: true);
     }
   }
 
@@ -1013,9 +872,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   // AUTOSAVE
   // ---------------------------------------------------------------------------
 
-  void _scheduleAutosave({
-    bool immediate = false,
-  }) {
+  void _scheduleAutosave({bool immediate = false}) {
     if (widget.planId == null ||
         AuthSession.instance.isGuest ||
         _isFocusedReview) {
@@ -1034,16 +891,10 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
 
     _autosaveTimer = Timer(
       immediate
-          ? const Duration(
-              milliseconds: 250,
-            )
-          : const Duration(
-              milliseconds: 700,
-            ),
+          ? const Duration(milliseconds: 250)
+          : const Duration(milliseconds: 700),
       () {
-        _saveCurrent(
-          showError: false,
-        );
+        _saveCurrent(showError: false);
       },
     );
   }
@@ -1052,9 +903,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   // SAVE CURRENT QUESTION
   // ---------------------------------------------------------------------------
 
-  Future<bool> _saveCurrent({
-    required bool showError,
-  }) async {
+  Future<bool> _saveCurrent({required bool showError}) async {
     if (widget.planId == null ||
         AuthSession.instance.isGuest ||
         questions.isEmpty) {
@@ -1065,24 +914,20 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
 
     final question = questions[index];
 
-    final selectedAnswer =
-        answers[question.key];
+    final selectedAnswer = answers[question.key];
 
-    final writtenAnswer =
-        (notes[question.key] ?? '').trim();
+    final writtenAnswer = (notes[question.key] ?? '').trim();
 
     final hasSelectedAnswer =
-        selectedAnswer != null &&
-            selectedAnswer.isNotEmpty;
+        selectedAnswer != null && selectedAnswer.isNotEmpty;
 
-    final hasWrittenAnswer =
-        writtenAnswer.isNotEmpty;
+    final hasWrittenAnswer = writtenAnswer.isNotEmpty;
 
     final answer = hasSelectedAnswer
         ? selectedAnswer
         : hasWrittenAnswer
-            ? '__custom__'
-            : '__clear__';
+        ? '__custom__'
+        : '__clear__';
 
     if (showError && answer == '__clear__') {
       return false;
@@ -1095,17 +940,9 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         });
       }
 
-      await CarePlanService.instance
-          .saveRealityAnswers(
-        widget.planId!,
-        [
-          {
-            'key': question.key,
-            'answer': answer,
-            'note': writtenAnswer,
-          },
-        ],
-      );
+      await CarePlanService.instance.saveRealityAnswers(widget.planId!, [
+        {'key': question.key, 'answer': answer, 'note': writtenAnswer},
+      ]);
 
       if (mounted) {
         setState(() {
@@ -1121,14 +958,9 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         });
 
         if (showError) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(
-            SnackBar(
-              content: Text(
-                exception.message,
-              ),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(exception.message)));
         }
       }
 
@@ -1140,8 +972,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         });
 
         if (showError) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
                 'Reality Check could not be saved. Please try again.',
@@ -1162,11 +993,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   void _back() {
     _storeNote();
 
-    unawaited(
-      _saveCurrent(
-        showError: false,
-      ),
-    );
+    unawaited(_saveCurrent(showError: false));
 
     setState(() {
       index--;
@@ -1178,21 +1005,12 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   void _backToSchedule() {
     _storeNote();
 
-    unawaited(
-      _saveCurrent(
-        showError: false,
-      ),
-    );
+    unawaited(_saveCurrent(showError: false));
 
     Navigator.pushReplacementNamed(
       context,
-      AppRoutes.carePlan(
-        widget.planId!,
-      ),
-      arguments: const CarePlanDetailArgs(
-        initialTab: 1,
-        guidedSetup: true,
-      ),
+      AppRoutes.carePlan(widget.planId!),
+      arguments: const CarePlanDetailArgs(initialTab: 1, guidedSetup: true),
     );
   }
 
@@ -1214,10 +1032,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
       });
 
       try {
-        final saved =
-            await _saveCurrent(
-          showError: true,
-        );
+        final saved = await _saveCurrent(showError: true);
 
         if (!saved || !mounted) {
           return;
@@ -1225,10 +1040,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
 
         // Return directly to the same Care Gap screen.
         if (Navigator.canPop(context)) {
-          Navigator.pop(
-            context,
-            true,
-          );
+          Navigator.pop(context, true);
           return;
         }
 
@@ -1237,9 +1049,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         Navigator.pushReplacementNamed(
           context,
           AppRoutes.careGaps,
-          arguments: CareFlowArgs(
-            planId: widget.planId!,
-          ),
+          arguments: CareFlowArgs(planId: widget.planId!),
         );
       } finally {
         if (mounted) {
@@ -1256,10 +1066,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
     // NORMAL COMPLETE REALITY CHECK FLOW
     // =========================================================================
 
-    final saved =
-        await _saveCurrent(
-      showError: true,
-    );
+    final saved = await _saveCurrent(showError: true);
 
     if (!saved) return;
 
@@ -1279,36 +1086,27 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
     try {
       // Final consistency save for the complete currently visible
       // Reality Check question set.
-      await CarePlanService.instance
-          .saveRealityAnswers(
+      await CarePlanService.instance.saveRealityAnswers(
         widget.planId!,
-        questions.map(
-          (item) {
-            final savedAnswer =
-                answers[item.key];
+        questions.map((item) {
+          final savedAnswer = answers[item.key];
 
-            final savedNote =
-                (notes[item.key] ?? '').trim();
+          final savedNote = (notes[item.key] ?? '').trim();
 
-            return {
-              'key': item.key,
-              'answer':
-                  savedAnswer != null &&
-                          savedAnswer.isNotEmpty
-                      ? savedAnswer
-                      : savedNote.isNotEmpty
-                          ? '__custom__'
-                          : '__clear__',
-              'note': savedNote,
-            };
-          },
-        ).toList(),
+          return {
+            'key': item.key,
+            'answer': savedAnswer != null && savedAnswer.isNotEmpty
+                ? savedAnswer
+                : savedNote.isNotEmpty
+                ? '__custom__'
+                : '__clear__',
+            'note': savedNote,
+          };
+        }).toList(),
       );
 
-      if (widget.guidedSetup &&
-          !widget.returnToPrevious) {
-        await CarePlanService.instance
-            .updateSetupStep(
+      if (widget.guidedSetup && !widget.returnToPrevious) {
+        await CarePlanService.instance.updateSetupStep(
           widget.planId!,
           CareSetupStep.simulation,
         );
@@ -1316,8 +1114,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
 
       if (!mounted) return;
 
-      if (widget.returnToPrevious &&
-          Navigator.canPop(context)) {
+      if (widget.returnToPrevious && Navigator.canPop(context)) {
         Navigator.pop(context);
         return;
       }
@@ -1327,8 +1124,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         AppRoutes.simulation,
         arguments: CareFlowArgs(
           planId: widget.planId!,
-          guidedSetup:
-              widget.guidedSetup,
+          guidedSetup: widget.guidedSetup,
         ),
       );
     } on CarePlanException catch (exception) {
@@ -1337,14 +1133,9 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
           _saveState = 'Retry needed';
         });
 
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
-          SnackBar(
-            content: Text(
-              exception.message,
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(exception.message)));
       }
     } finally {
       if (mounted) {

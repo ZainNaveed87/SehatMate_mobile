@@ -6029,6 +6029,96 @@ class AppStrings {
       AppLanguage.urdu: '{subject} وضاحت',
       AppLanguage.romanUrdu: '{subject} wazahat',
     },
+
+    // Agent Copilot
+    'agent_title': {
+      AppLanguage.english: 'SehatMate AI',
+      AppLanguage.urdu: 'صحت میٹ اے آئی',
+      AppLanguage.romanUrdu: 'SehatMate AI',
+    },
+    'agent_status_subtitle': {
+      AppLanguage.english: 'Reads your verified care plan',
+      AppLanguage.urdu: 'آپ کے تصدیق شدہ نگہداشت منصوبے سے مدد لیتا ہے',
+      AppLanguage.romanUrdu: 'Aap ke verified care plan se madad leta hai',
+    },
+    'agent_safety_note': {
+      AppLanguage.english:
+          'SehatMate helps explain and organize your verified care plan. It does not independently change prescribed treatment.',
+      AppLanguage.urdu:
+          'صحت میٹ آپ کے تصدیق شدہ نگہداشت منصوبے کو سمجھانے اور منظم کرنے میں مدد دیتا ہے۔ یہ خود سے تجویز کردہ علاج تبدیل نہیں کرتا۔',
+      AppLanguage.romanUrdu:
+          'SehatMate aap ke verified care plan ko samjhane aur organize karne mein madad karta hai. Yeh khud se prescribed treatment change nahi karta.',
+    },
+    'agent_empty_title': {
+      AppLanguage.english: 'Ask about your care plan',
+      AppLanguage.urdu: 'اپنے نگہداشت منصوبے کے بارے میں پوچھیں',
+      AppLanguage.romanUrdu: 'Apne care plan ke bare mein poochein',
+    },
+    'agent_empty_desc': {
+      AppLanguage.english:
+          'Use natural language. SehatMate AI answers from verified app data.',
+      AppLanguage.urdu:
+          'سادہ زبان استعمال کریں۔ صحت میٹ اے آئی تصدیق شدہ ایپ ڈیٹا سے جواب دیتا ہے۔',
+      AppLanguage.romanUrdu:
+          'Seedhi zuban use karein. SehatMate AI verified app data se jawab deta hai.',
+    },
+    'agent_input_hint': {
+      AppLanguage.english: 'Ask SehatMate AI...',
+      AppLanguage.urdu: 'صحت میٹ اے آئی سے پوچھیں...',
+      AppLanguage.romanUrdu: 'SehatMate AI se poochein...',
+    },
+    'agent_thinking': {
+      AppLanguage.english: 'Checking...',
+      AppLanguage.urdu: 'دیکھ رہا ہے...',
+      AppLanguage.romanUrdu: 'Check kar raha hai...',
+    },
+    'agent_sign_in_required_title': {
+      AppLanguage.english: 'Sign in to use SehatMate AI',
+      AppLanguage.urdu: 'صحت میٹ اے آئی استعمال کرنے کے لیے سائن اِن کریں',
+      AppLanguage.romanUrdu: 'SehatMate AI use karne ke liye sign in karein',
+    },
+    'agent_sign_in_required_desc': {
+      AppLanguage.english:
+          'The Copilot only works with your authenticated verified care data.',
+      AppLanguage.urdu:
+          'کوپائلٹ صرف آپ کے authenticated تصدیق شدہ نگہداشت ڈیٹا کے ساتھ کام کرتا ہے۔',
+      AppLanguage.romanUrdu:
+          'Copilot sirf aap ke authenticated verified care data ke sath kaam karta hai.',
+    },
+    'ask_agent': {
+      AppLanguage.english: 'Ask SehatMate AI',
+      AppLanguage.urdu: 'صحت میٹ اے آئی سے پوچھیں',
+      AppLanguage.romanUrdu: 'SehatMate AI se poochein',
+    },
+    'agent_error_unavailable': {
+      AppLanguage.english:
+          'SehatMate AI is temporarily unavailable. Please try again.',
+      AppLanguage.urdu:
+          'صحت میٹ اے آئی عارضی طور پر دستیاب نہیں ہے۔ براہ کرم دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu:
+          'SehatMate AI filhal available nahi hai. Dobara try karein.',
+    },
+    'agent_error_auth': {
+      AppLanguage.english: 'Please sign in to continue.',
+      AppLanguage.urdu: 'جاری رکھنے کے لیے سائن اِن کریں۔',
+      AppLanguage.romanUrdu: 'Jari rakhne ke liye sign in karein.',
+    },
+    'agent_error_malformed': {
+      AppLanguage.english:
+          'SehatMate AI returned an invalid response. Please try again.',
+      AppLanguage.urdu:
+          'صحت میٹ اے آئی سے درست جواب نہیں ملا۔ براہ کرم دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu:
+          'SehatMate AI se valid jawab nahi mila. Dobara try karein.',
+    },
+    'agent_error_rate_limited': {
+      AppLanguage.english:
+          'SehatMate AI is busy right now. Please try again shortly.',
+      AppLanguage.urdu:
+          'صحت میٹ اے آئی اس وقت مصروف ہے۔ براہ کرم تھوڑی دیر بعد کوشش کریں۔',
+      AppLanguage.romanUrdu:
+          'SehatMate AI abhi busy hai. Thori der baad dobara try karein.',
+    },
   };
   static String get(
     String key,

@@ -6,6 +6,8 @@ import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../core/schedule_time.dart';
 import '../data/demo_data.dart';
+import '../features/agent/agent_entry.dart';
+import '../features/agent/models/agent_context.dart';
 import '../services/care_plan_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/app_shell.dart';
@@ -196,6 +198,26 @@ class _SimulationViewState extends State<SimulationView> {
             title: context.tr('care_simulation'),
             subtitle: context.tr('sim_header_subtitle'),
           ),
+        ],
+        if (widget.planId != null) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => openAgent(
+                context,
+                screenContext: AgentScreenContext(
+                  screenId: 'simulation',
+                  entity: AgentEntityContext(
+                    type: 'care_plan',
+                    id: widget.planId!,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.auto_awesome_outlined, size: 17),
+              label: Text(context.tr('ask_agent')),
+            ),
+          ),
+          const SizedBox(height: 8),
         ],
         Align(
           alignment: Alignment.centerLeft,
