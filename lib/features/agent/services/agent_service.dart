@@ -110,7 +110,10 @@ class AgentService {
           ? decoded['data'] as Map<String, dynamic>
           : decoded;
 
-      return AgentResponse.fromJson(payload);
+      return AgentResponse.fromJson({
+        'success': decoded['success'],
+        ...payload,
+      });
     } on AgentException {
       rethrow;
     } on TimeoutException {

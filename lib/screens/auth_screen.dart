@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../localization/app_language.dart';
+import '../localization/language_controller.dart';
 import '../localization/language_scope.dart';
 import '../services/auth_service.dart';
 import '../widgets/brand_logo.dart';
@@ -66,45 +67,35 @@ class _AuthScreenState extends State<AuthScreen>
   bool _validEmail(String value) {
     return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim());
   }
-  String _localizedAuthError(
-  AuthException error,
-) {
-  final message = error.message.trim();
 
-  switch (message) {
-    case 'Incorrect email or password.':
-      return context.tr(
-        'auth_incorrect_credentials',
-      );
+  String _localizedAuthError(AuthException error) {
+    final message = error.message.trim();
 
-    case 'An account with this email already exists.':
-      return context.tr(
-        'auth_account_exists',
-      );
+    switch (message) {
+      case 'Incorrect email or password.':
+        return context.tr('auth_incorrect_credentials');
 
-    case 'Google Sign-In failed. Please try again.':
-      return context.tr(
-        'google_sign_in_failed',
-      );
+      case 'An account with this email already exists.':
+        return context.tr('auth_account_exists');
 
-    default:
-      if (context.appLanguage ==
-          AppLanguage.english) {
-        return message;
-      }
+      case 'Google Sign-In failed. Please try again.':
+        return context.tr('google_sign_in_failed');
 
-      return context.tr(
-        'auth_request_failed',
-      );
+      default:
+        if (context.appLanguage == AppLanguage.english) {
+          return message;
+        }
+
+        return context.tr('auth_request_failed');
+    }
   }
-}
 
   Future<void> _signInUser() async {
     final email = _email.text.trim();
 
     if (!_validEmail(email)) {
       setState(() {
-       _error = context.tr('enter_valid_email');
+        _error = context.tr('enter_valid_email');
       });
       return;
     }
@@ -128,6 +119,13 @@ class _AuthScreenState extends State<AuthScreen>
         return;
       }
 
+      if (!AuthSession.instance.needsOnboarding) {
+        await LanguageController.instance.reconcileWithServerProfile();
+      }
+      if (!mounted) {
+        return;
+      }
+
       final destination = AuthSession.instance.needsOnboarding
           ? AppRoutes.onboarding
           : AppRoutes.dashboard;
@@ -135,9 +133,7 @@ class _AuthScreenState extends State<AuthScreen>
     } on AuthException catch (error) {
       if (mounted) {
         setState(() {
-          _error = _localizedAuthError(
-  error,
-);
+          _error = _localizedAuthError(error);
         });
       }
     } catch (_) {
@@ -202,19 +198,15 @@ class _AuthScreenState extends State<AuthScreen>
         (_) => false,
       );
     } on AuthException catch (error) {
-  if (mounted) {
-    setState(() {
-      _error = _localizedAuthError(
-        error,
-      );
-    });
-  }
-}catch (_) {
       if (mounted) {
         setState(() {
-          _error = context.tr(
-  'account_creation_failed',
-);
+          _error = _localizedAuthError(error);
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = context.tr('account_creation_failed');
         });
       }
     } finally {
@@ -239,20 +231,25 @@ class _AuthScreenState extends State<AuthScreen>
         return;
       }
 
+      if (!AuthSession.instance.needsOnboarding) {
+        await LanguageController.instance.reconcileWithServerProfile();
+      }
+      if (!mounted) {
+        return;
+      }
+
       final destination = AuthSession.instance.needsOnboarding
           ? AppRoutes.onboarding
           : AppRoutes.dashboard;
 
       Navigator.pushNamedAndRemoveUntil(context, destination, (_) => false);
     } on AuthException catch (error) {
-  if (mounted) {
-    setState(() {
-      _error = _localizedAuthError(
-        error,
-      );
-    });
-  }
-} catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = _localizedAuthError(error);
+        });
+      }
+    } catch (_) {
       if (mounted) {
         setState(() {
           _error = context.tr('google_sign_in_failed');
@@ -314,9 +311,7 @@ class _AuthScreenState extends State<AuthScreen>
                                 AppRoutes.landing,
                               );
                             },
-                            child: Text(
-  context.tr('back_to_home'),
-),
+                            child: Text(context.tr('back_to_home')),
                           ),
                         ],
                       ),
@@ -350,14 +345,10 @@ class _AuthScreenState extends State<AuthScreen>
                                           AppRadii.md,
                                         ),
                                       ),
-                                     tabs: [
-  Tab(
-    text: context.tr('sign_in'),
-  ),
-  Tab(
-    text: context.tr('sign_up'),
-  ),
-],
+                                      tabs: [
+                                        Tab(text: context.tr('sign_in')),
+                                        Tab(text: context.tr('sign_up')),
+                                      ],
                                     ),
                                   ),
                                   SizedBox(
@@ -375,22 +366,19 @@ class _AuthScreenState extends State<AuthScreen>
                                         ? null
                                         : _continueAsGuest,
                                     child: SizedBox(
-  width: double.infinity,
-  child: Text(
-    context.tr(
-      'continue_as_guest',
-    ),
-    textAlign: TextAlign.center,
-  ),
-),
+                                      width: double.infinity,
+                                      child: Text(
+                                        context.tr('continue_as_guest'),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                           );
 
-                          final explainer =
-    const _AuthExplainer();
+                          final explainer = const _AuthExplainer();
 
                           if (narrow) {
                             return Column(
@@ -408,10 +396,7 @@ class _AuthScreenState extends State<AuthScreen>
                             children: [
                               Expanded(child: Center(child: form)),
                               const SizedBox(width: 56),
-                             SizedBox(
-  width: 360,
-  child: explainer,
-),
+                              SizedBox(width: 360, child: explainer),
                             ],
                           );
                         },
@@ -427,361 +412,248 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-Widget _signIn() {
-  return SingleChildScrollView(
-    padding: const EdgeInsets.only(
-      top: 20,
-    ),
-    child: Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.stretch,
-      children: [
-        OutlinedButton(
-          onPressed: _submitting
-              ? null
-              : _continueWithGoogle,
-          child: _submitting
-              ? const _ButtonLoader(
-                  color: AppColors.primary,
-                )
-              : Text(
-                  context.tr(
-                    'continue_with_google',
+  Widget _signIn() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OutlinedButton(
+            onPressed: _submitting ? null : _continueWithGoogle,
+            child: _submitting
+                ? const _ButtonLoader(color: AppColors.primary)
+                : Text(context.tr('continue_with_google')),
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              const Expanded(child: Divider()),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  context.tr('or'),
+                  style: const TextStyle(fontSize: 13, color: AppColors.muted),
+                ),
+              ),
+              const Expanded(child: Divider()),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          Text(
+            context.tr('email'),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+
+          const SizedBox(height: 6),
+
+          TextField(
+            controller: _email,
+            enabled: !_submitting,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.email],
+
+            // Email example ko
+            // translate nahi karna.
+            decoration: const InputDecoration(hintText: 'you@example.com'),
+          ),
+
+          const SizedBox(height: 14),
+
+          Row(
+            children: [
+              Text(
+                context.tr('password'),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              const Spacer(),
+
+              InkWell(
+                onTap: _submitting
+                    ? null
+                    : () {
+                        showDemoMessage(
+                          context,
+                          context.tr('password_reset_coming'),
+                        );
+                      },
+                child: Text(
+                  context.tr('forgot_password'),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primary,
                   ),
                 ),
-        ),
-
-        const SizedBox(height: 16),
-
-        Row(
-          children: [
-            const Expanded(
-              child: Divider(),
-            ),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 12,
               ),
-              child: Text(
-                context.tr('or'),
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.muted,
+            ],
+          ),
+
+          const SizedBox(height: 6),
+
+          TextField(
+            controller: _password,
+            enabled: !_submitting,
+            obscureText: _hideSignInPassword,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.password],
+            onSubmitted: (_) {
+              if (!_submitting) {
+                _signInUser();
+              }
+            },
+            decoration: InputDecoration(
+              hintText: context.tr('your_password'),
+              suffixIcon: IconButton(
+                onPressed: _submitting
+                    ? null
+                    : () {
+                        setState(() {
+                          _hideSignInPassword = !_hideSignInPassword;
+                        });
+                      },
+                icon: Icon(
+                  _hideSignInPassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                 ),
               ),
             ),
-            const Expanded(
-              child: Divider(),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-
-        Text(
-          context.tr('email'),
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight:
-                FontWeight.w500,
           ),
-        ),
 
-        const SizedBox(height: 6),
-
-        TextField(
-          controller: _email,
-          enabled: !_submitting,
-          keyboardType:
-              TextInputType.emailAddress,
-          textInputAction:
-              TextInputAction.next,
-          autofillHints: const [
-            AutofillHints.email,
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            _AuthError(message: _error!),
           ],
 
-          // Email example ko
-          // translate nahi karna.
-          decoration:
-              const InputDecoration(
-            hintText:
-                'you@example.com',
-          ),
-        ),
+          const SizedBox(height: 16),
 
-        const SizedBox(height: 14),
-
-        Row(
-          children: [
-            Text(
-              context.tr('password'),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight:
-                    FontWeight.w500,
-              ),
-            ),
-
-            const Spacer(),
-
-            InkWell(
-              onTap: _submitting
-                  ? null
-                  : () {
-                      showDemoMessage(
-                        context,
-                        context.tr(
-                          'password_reset_coming',
-                        ),
-                      );
-                    },
-              child: Text(
-                context.tr(
-                  'forgot_password',
-                ),
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight:
-                      FontWeight.w500,
-                  color:
-                      AppColors.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 6),
-
-        TextField(
-          controller: _password,
-          enabled: !_submitting,
-          obscureText:
-              _hideSignInPassword,
-          textInputAction:
-              TextInputAction.done,
-          autofillHints: const [
-            AutofillHints.password,
-          ],
-          onSubmitted: (_) {
-            if (!_submitting) {
-              _signInUser();
-            }
-          },
-          decoration: InputDecoration(
-            hintText: context.tr(
-              'your_password',
-            ),
-            suffixIcon: IconButton(
-              onPressed: _submitting
-                  ? null
-                  : () {
-                      setState(() {
-                        _hideSignInPassword =
-                            !_hideSignInPassword;
-                      });
-                    },
-              icon: Icon(
-                _hideSignInPassword
-                    ? Icons
-                        .visibility_outlined
-                    : Icons
-                        .visibility_off_outlined,
-              ),
-            ),
-          ),
-        ),
-
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          _AuthError(
-            message: _error!,
+          FilledButton(
+            onPressed: _submitting ? null : _signInUser,
+            child: _submitting
+                ? const _ButtonLoader()
+                : Text(context.tr('sign_in')),
           ),
         ],
+      ),
+    );
+  }
 
-        const SizedBox(height: 16),
+  Widget _signUp() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OutlinedButton(
+            onPressed: _submitting ? null : _continueWithGoogle,
+            child: _submitting
+                ? const _ButtonLoader(color: AppColors.primary)
+                : Text(context.tr('continue_with_google')),
+          ),
 
-        FilledButton(
-          onPressed: _submitting
-              ? null
-              : _signInUser,
-          child: _submitting
-              ? const _ButtonLoader()
-              : Text(
-                  context.tr(
-                    'sign_in',
-                  ),
+          const SizedBox(height: 16),
+
+          Text(
+            context.tr('full_name'),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+
+          const SizedBox(height: 6),
+
+          TextField(
+            controller: _newName,
+            enabled: !_submitting,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.name],
+            decoration: InputDecoration(hintText: context.tr('your_full_name')),
+          ),
+
+          const SizedBox(height: 12),
+
+          Text(
+            context.tr('email'),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+
+          const SizedBox(height: 6),
+
+          TextField(
+            controller: _newEmail,
+            enabled: !_submitting,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.newUsername],
+
+            // Isko same rehne do.
+            decoration: const InputDecoration(hintText: 'you@example.com'),
+          ),
+
+          const SizedBox(height: 12),
+
+          Text(
+            context.tr('password'),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+
+          const SizedBox(height: 6),
+
+          TextField(
+            controller: _newPassword,
+            enabled: !_submitting,
+            obscureText: _hideSignUpPassword,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.newPassword],
+            onSubmitted: (_) {
+              if (!_submitting) {
+                _registerUser();
+              }
+            },
+            decoration: InputDecoration(
+              hintText: context.tr('password_min_8_hint'),
+              suffixIcon: IconButton(
+                onPressed: _submitting
+                    ? null
+                    : () {
+                        setState(() {
+                          _hideSignUpPassword = !_hideSignUpPassword;
+                        });
+                      },
+                icon: Icon(
+                  _hideSignUpPassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                 ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _signUp() {
-  return SingleChildScrollView(
-    padding: const EdgeInsets.only(
-      top: 20,
-    ),
-    child: Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.stretch,
-      children: [
-        OutlinedButton(
-          onPressed: _submitting
-              ? null
-              : _continueWithGoogle,
-          child: _submitting
-              ? const _ButtonLoader(
-                  color: AppColors.primary,
-                )
-              : Text(
-                  context.tr(
-                    'continue_with_google',
-                  ),
-                ),
-        ),
-
-        const SizedBox(height: 16),
-
-        Text(
-          context.tr('full_name'),
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight:
-                FontWeight.w500,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        TextField(
-          controller: _newName,
-          enabled: !_submitting,
-          textCapitalization:
-              TextCapitalization.words,
-          textInputAction:
-              TextInputAction.next,
-          autofillHints: const [
-            AutofillHints.name,
-          ],
-          decoration: InputDecoration(
-            hintText: context.tr(
-              'your_full_name',
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        Text(
-          context.tr('email'),
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight:
-                FontWeight.w500,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        TextField(
-          controller: _newEmail,
-          enabled: !_submitting,
-          keyboardType:
-              TextInputType.emailAddress,
-          textInputAction:
-              TextInputAction.next,
-          autofillHints: const [
-            AutofillHints.newUsername,
-          ],
-
-          // Isko same rehne do.
-          decoration:
-              const InputDecoration(
-            hintText:
-                'you@example.com',
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        Text(
-          context.tr('password'),
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight:
-                FontWeight.w500,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        TextField(
-          controller: _newPassword,
-          enabled: !_submitting,
-          obscureText:
-              _hideSignUpPassword,
-          textInputAction:
-              TextInputAction.done,
-          autofillHints: const [
-            AutofillHints.newPassword,
-          ],
-          onSubmitted: (_) {
-            if (!_submitting) {
-              _registerUser();
-            }
-          },
-          decoration: InputDecoration(
-            hintText: context.tr(
-              'password_min_8_hint',
-            ),
-            suffixIcon: IconButton(
-              onPressed: _submitting
-                  ? null
-                  : () {
-                      setState(() {
-                        _hideSignUpPassword =
-                            !_hideSignUpPassword;
-                      });
-                    },
-              icon: Icon(
-                _hideSignUpPassword
-                    ? Icons
-                        .visibility_outlined
-                    : Icons
-                        .visibility_off_outlined,
               ),
             ),
           ),
-        ),
 
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          _AuthError(
-            message: _error!,
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            _AuthError(message: _error!),
+          ],
+
+          const SizedBox(height: 16),
+
+          FilledButton(
+            onPressed: _submitting ? null : _registerUser,
+            child: _submitting
+                ? const _ButtonLoader()
+                : Text(context.tr('create_account')),
           ),
         ],
-
-        const SizedBox(height: 16),
-
-        FilledButton(
-          onPressed: _submitting
-              ? null
-              : _registerUser,
-          child: _submitting
-              ? const _ButtonLoader()
-              : Text(
-                  context.tr(
-                    'create_account',
-                  ),
-                ),
-        ),
-      ],
-    ),
-  );
-}
+      ),
+    );
+  }
 }
 
 class _ButtonLoader extends StatelessWidget {
@@ -833,77 +705,48 @@ class _AuthError extends StatelessWidget {
   }
 }
 
-class _AuthExplainer
-    extends StatelessWidget {
+class _AuthExplainer extends StatelessWidget {
   const _AuthExplainer();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return AppCard(
-      padding:
-          const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color:
-                  AppColors.primaryLight,
-              borderRadius:
-                  BorderRadius.circular(
-                AppRadii.xl,
-              ),
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(AppRadii.xl),
             ),
             child: const Icon(
-              Icons
-                  .verified_user_outlined,
+              Icons.verified_user_outlined,
               size: 21,
-              color:
-                  AppColors.primary,
+              color: AppColors.primary,
             ),
           ),
 
           const SizedBox(height: 16),
 
           Text(
-            context.tr(
-              'auth_explainer_title',
-            ),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight:
-                  FontWeight.w600,
-            ),
+            context.tr('auth_explainer_title'),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
 
           const SizedBox(height: 16),
 
-          _ExplainerItem(
-            text: context.tr(
-              'auth_verified_instructions',
-            ),
-          ),
+          _ExplainerItem(text: context.tr('auth_verified_instructions')),
 
           const SizedBox(height: 12),
 
-          _ExplainerItem(
-            text: context.tr(
-              'auth_7_day_simulation',
-            ),
-          ),
+          _ExplainerItem(text: context.tr('auth_7_day_simulation')),
 
           const SizedBox(height: 12),
 
-          _ExplainerItem(
-            text: context.tr(
-              'auth_family_access',
-            ),
-          ),
+          _ExplainerItem(text: context.tr('auth_family_access')),
         ],
       ),
     );

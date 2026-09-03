@@ -9,11 +9,7 @@ import 'package:http/http.dart' as http;
 import '../core/api_config.dart';
 
 class AuthUser {
-  const AuthUser({
-    required this.id,
-    required this.name,
-    required this.email,
-  });
+  const AuthUser({required this.id, required this.name, required this.email});
 
   final String id;
   final String name;
@@ -28,11 +24,7 @@ class AuthUser {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'email': email,
-    };
+    return {'id': id, 'name': name, 'email': email};
   }
 
   String get initials {
@@ -57,10 +49,7 @@ class AuthUser {
 }
 
 class GoogleAuthResult {
-  const GoogleAuthResult({
-    required this.user,
-    required this.isNewUser,
-  });
+  const GoogleAuthResult({required this.user, required this.isNewUser});
 
   final AuthUser user;
   final bool isNewUser;
@@ -87,16 +76,36 @@ class PatientProfile {
   final bool caregiverSupport;
   final bool onboardingCompleted;
 
+  PatientProfile copyWith({
+    String? usingFor,
+    String? patientName,
+    String? ageGroup,
+    String? city,
+    String? preferredLanguage,
+    String? accessibilityMode,
+    bool? caregiverSupport,
+    bool? onboardingCompleted,
+  }) {
+    return PatientProfile(
+      usingFor: usingFor ?? this.usingFor,
+      patientName: patientName ?? this.patientName,
+      ageGroup: ageGroup ?? this.ageGroup,
+      city: city ?? this.city,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
+      accessibilityMode: accessibilityMode ?? this.accessibilityMode,
+      caregiverSupport: caregiverSupport ?? this.caregiverSupport,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+    );
+  }
+
   factory PatientProfile.fromJson(Map<String, dynamic> json) {
     return PatientProfile(
       usingFor: json['usingFor']?.toString() ?? 'Myself',
       patientName: json['patientName']?.toString() ?? '',
       ageGroup: json['ageGroup']?.toString() ?? '60 – 70',
       city: json['city']?.toString() ?? '',
-      preferredLanguage:
-          json['preferredLanguage']?.toString() ?? 'Roman Urdu',
-      accessibilityMode:
-          json['accessibilityMode']?.toString() ?? 'Standard',
+      preferredLanguage: json['preferredLanguage']?.toString() ?? 'Roman Urdu',
+      accessibilityMode: json['accessibilityMode']?.toString() ?? 'Standard',
       caregiverSupport: json['caregiverSupport'] == true,
       onboardingCompleted: json['onboardingCompleted'] == true,
     );
@@ -199,13 +208,10 @@ class AuthSession extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    final data = await _post(
-      '/auth/login',
-      {
-        'email': email.trim(),
-        'password': password,
-      },
-    );
+    final data = await _post('/auth/login', {
+      'email': email.trim(),
+      'password': password,
+    });
 
     return _saveSession(data);
   }
@@ -215,23 +221,18 @@ class AuthSession extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    final data = await _post(
-      '/auth/register',
-      {
-        'name': name.trim(),
-        'email': email.trim(),
-        'password': password,
-      },
-    );
+    final data = await _post('/auth/register', {
+      'name': name.trim(),
+      'email': email.trim(),
+      'password': password,
+    });
 
     return _saveSession(data);
   }
 
   Future<GoogleAuthResult> loginWithGoogle() async {
     if (_googleWebClientId.trim().isEmpty) {
-      throw const AuthException(
-        'Google Web Client ID is not configured.',
-      );
+      throw const AuthException('Google Web Client ID is not configured.');
     }
 
     await _initializeGoogleSignIn();
@@ -247,31 +248,19 @@ class AuthSession extends ChangeNotifier {
       final idToken = account.authentication.idToken;
 
       if (idToken == null || idToken.isEmpty) {
-        throw const AuthException(
-          'Google did not return a valid ID token.',
-        );
+        throw const AuthException('Google did not return a valid ID token.');
       }
 
-      final data = await _post(
-        '/auth/google',
-        {
-          'idToken': idToken,
-        },
-      );
+      final data = await _post('/auth/google', {'idToken': idToken});
 
       final isNewUser = data['isNewUser'] == true;
       final user = await _saveSession(data);
 
-      return GoogleAuthResult(
-        user: user,
-        isNewUser: isNewUser,
-      );
+      return GoogleAuthResult(user: user, isNewUser: isNewUser);
     } on GoogleSignInException catch (error) {
       switch (error.code) {
         case GoogleSignInExceptionCode.canceled:
-          throw const AuthException(
-            'Google Sign-In was cancelled.',
-          );
+          throw const AuthException('Google Sign-In was cancelled.');
 
         case GoogleSignInExceptionCode.clientConfigurationError:
           throw const AuthException(
@@ -289,9 +278,7 @@ class AuthSession extends ChangeNotifier {
           );
 
         default:
-          throw const AuthException(
-            'Google Sign-In failed. Please try again.',
-          );
+          throw const AuthException('Google Sign-In failed. Please try again.');
       }
     }
   }
@@ -332,19 +319,15 @@ class AuthSession extends ChangeNotifier {
     required String accessibilityMode,
     required bool caregiverSupport,
   }) async {
-    final data = await _post(
-      '/onboarding/complete',
-      {
-        'usingFor': usingFor,
-        'patientName': patientName.trim(),
-        'ageGroup': ageGroup,
-        'city': city.trim(),
-        'preferredLanguage': preferredLanguage,
-        'accessibilityMode': accessibilityMode,
-        'caregiverSupport': caregiverSupport,
-      },
-      authenticated: true,
-    );
+    final data = await _post('/onboarding/complete', {
+      'usingFor': usingFor,
+      'patientName': patientName.trim(),
+      'ageGroup': ageGroup,
+      'city': city.trim(),
+      'preferredLanguage': preferredLanguage,
+      'accessibilityMode': accessibilityMode,
+      'caregiverSupport': caregiverSupport,
+    }, authenticated: true);
 
     final profileJson = data['profile'];
     if (profileJson is! Map<String, dynamic>) {
@@ -353,8 +336,8 @@ class AuthSession extends ChangeNotifier {
 
     final profile = PatientProfile.fromJson(profileJson);
     _profile = profile;
-    _onboardingComplete = data['onboardingCompleted'] == true ||
-        profile.onboardingCompleted;
+    _onboardingComplete =
+        data['onboardingCompleted'] == true || profile.onboardingCompleted;
     await _saveOnboardingState();
     notifyListeners();
     return profile;
@@ -425,22 +408,17 @@ class AuthSession extends ChangeNotifier {
     }
 
     try {
-      await _googleSignIn.initialize(
-        serverClientId: _googleWebClientId.trim(),
-      );
+      await _googleSignIn.initialize(serverClientId: _googleWebClientId.trim());
 
       _googleInitialized = true;
     } on GoogleSignInException catch (error) {
-      if (error.code ==
-          GoogleSignInExceptionCode.clientConfigurationError) {
+      if (error.code == GoogleSignInExceptionCode.clientConfigurationError) {
         throw const AuthException(
           'Google Sign-In configuration is incorrect. Check the Web Client ID.',
         );
       }
 
-      throw const AuthException(
-        'Google Sign-In could not be initialized.',
-      );
+      throw const AuthException('Google Sign-In could not be initialized.');
     }
   }
 
@@ -449,12 +427,7 @@ class AuthSession extends ChangeNotifier {
     Map<String, dynamic> body, {
     bool authenticated = false,
   }) {
-    return _request(
-      'POST',
-      path,
-      body: body,
-      authenticated: authenticated,
-    );
+    return _request('POST', path, body: body, authenticated: authenticated);
   }
 
   Future<Map<String, dynamic>> _put(
@@ -462,18 +435,10 @@ class AuthSession extends ChangeNotifier {
     Map<String, dynamic> body, {
     bool authenticated = false,
   }) {
-    return _request(
-      'PUT',
-      path,
-      body: body,
-      authenticated: authenticated,
-    );
+    return _request('PUT', path, body: body, authenticated: authenticated);
   }
 
-  Future<Map<String, dynamic>> _get(
-    String path, {
-    bool authenticated = false,
-  }) {
+  Future<Map<String, dynamic>> _get(String path, {bool authenticated = false}) {
     return _request('GET', path, authenticated: authenticated);
   }
 
@@ -519,8 +484,7 @@ class AuthSession extends ChangeNotifier {
 
       final decoded = _decodeResponse(response);
 
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300) {
+      if (response.statusCode < 200 || response.statusCode >= 300) {
         throw AuthException(
           decoded['message']?.toString() ??
               'The request could not be completed.',
@@ -530,9 +494,7 @@ class AuthSession extends ChangeNotifier {
       final data = decoded['data'];
 
       if (data is! Map<String, dynamic>) {
-        throw const AuthException(
-          'The server returned an invalid response.',
-        );
+        throw const AuthException('The server returned an invalid response.');
       }
 
       return data;
@@ -545,9 +507,7 @@ class AuthSession extends ChangeNotifier {
         'Could not connect to the server. Check the API URL and internet connection.',
       );
     } on FormatException {
-      throw const AuthException(
-        'The server returned an invalid response.',
-      );
+      throw const AuthException('The server returned an invalid response.');
     }
   }
 
@@ -556,31 +516,21 @@ class AuthSession extends ChangeNotifier {
       return <String, dynamic>{};
     }
 
-    final value = jsonDecode(
-      utf8.decode(response.bodyBytes),
-    );
+    final value = jsonDecode(utf8.decode(response.bodyBytes));
 
     if (value is Map<String, dynamic>) {
       return value;
     }
 
-    throw const FormatException(
-      'Expected a JSON object.',
-    );
+    throw const FormatException('Expected a JSON object.');
   }
 
-  Future<AuthUser> _saveSession(
-    Map<String, dynamic> data,
-  ) async {
+  Future<AuthUser> _saveSession(Map<String, dynamic> data) async {
     final token = data['token']?.toString();
     final userJson = data['user'];
 
-    if (token == null ||
-        token.isEmpty ||
-        userJson is! Map<String, dynamic>) {
-      throw const AuthException(
-        'The server did not return a valid session.',
-      );
+    if (token == null || token.isEmpty || userJson is! Map<String, dynamic>) {
+      throw const AuthException('The server did not return a valid session.');
     }
 
     final user = AuthUser.fromJson(userJson);
@@ -592,15 +542,9 @@ class AuthSession extends ChangeNotifier {
     _onboardingComplete = onboardingComplete;
     _guestMode = false;
 
-    await _storage.write(
-      key: _tokenKey,
-      value: token,
-    );
+    await _storage.write(key: _tokenKey, value: token);
 
-    await _storage.write(
-      key: _userKey,
-      value: jsonEncode(user.toJson()),
-    );
+    await _storage.write(key: _userKey, value: jsonEncode(user.toJson()));
 
     await _saveOnboardingState();
 

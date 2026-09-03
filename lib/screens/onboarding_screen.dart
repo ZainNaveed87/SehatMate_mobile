@@ -29,7 +29,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    name = TextEditingController(text: AuthSession.instance.user?.name ?? 'Ali Khan');
+    name = TextEditingController(
+      text: AuthSession.instance.user?.name ?? 'Ali Khan',
+    );
   }
 
   @override
@@ -56,7 +58,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Row(
                         children: [
                           InkWell(
-                            onTap: () => Navigator.pushReplacementNamed(context, AppRoutes.landing),
+                            onTap: () => Navigator.pushReplacementNamed(
+                              context,
+                              AppRoutes.landing,
+                            ),
                             child: const BrandLogo(),
                           ),
                           const Spacer(),
@@ -65,7 +70,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               'onboarding_step_of_total',
                               values: {'step': step, 'total': 4},
                             ),
-                            style: const TextStyle(fontSize: 13, color: AppColors.muted),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.muted,
+                            ),
                           ),
                         ],
                       ),
@@ -101,8 +109,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 FilledButton.icon(
                                   onPressed: _submitting ? null : _next,
                                   iconAlignment: IconAlignment.end,
-                                  icon: step < 4 ? const Icon(Icons.arrow_forward, size: 17) : const SizedBox.shrink(),
-                                  label: Text(step < 4 ? context.tr('continue') : context.tr('go_to_dashboard')),
+                                  icon: step < 4
+                                      ? const Icon(
+                                          Icons.arrow_forward,
+                                          size: 17,
+                                        )
+                                      : const SizedBox.shrink(),
+                                  label: Text(
+                                    step < 4
+                                        ? context.tr('continue')
+                                        : context.tr('go_to_dashboard'),
+                                  ),
                                 ),
                               ],
                             ),
@@ -176,7 +193,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ('Standard', 'standard', 'standard_accessibility_description'),
           ('Large Text', 'large_text', 'large_text_description'),
           ('Voice Guidance', 'voice_guidance', 'voice_guidance_description'),
-          ('Simple Care Mode', 'simple_care_mode', 'simple_care_mode_description'),
+          (
+            'Simple Care Mode',
+            'simple_care_mode',
+            'simple_care_mode_description',
+          ),
         ];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,11 +236,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               subtitle: context.tr('basic_setup_subtitle'),
             ),
             const SizedBox(height: 20),
-            Text(context.tr('patient_name'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(
+              context.tr('patient_name'),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
             const SizedBox(height: 6),
             TextField(controller: name),
             const SizedBox(height: 16),
-            Text(context.tr('age_group'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(
+              context.tr('age_group'),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
               initialValue: ageGroup,
@@ -238,7 +265,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               },
             ),
             const SizedBox(height: 16),
-            Text(context.tr('city'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(
+              context.tr('city'),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
             const SizedBox(height: 6),
             TextField(controller: city),
             const SizedBox(height: 16),
@@ -250,12 +280,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               clipBehavior: Clip.antiAlias,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 child: SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: caregiver,
                   onChanged: (value) => setState(() => caregiver = value),
-                  title: Text(context.tr('caregiver_support_available'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  title: Text(
+                    context.tr('caregiver_support_available'),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -285,15 +324,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return;
     }
     if (city.text.trim().length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('enter_valid_city'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('enter_valid_city'))));
       return;
     }
 
     setState(() => _submitting = true);
     try {
-      await AuthSession.instance.completeOnboarding(
+      final profile = await AuthSession.instance.completeOnboarding(
         usingFor: who,
         patientName: name.text,
         ageGroup: ageGroup,
@@ -303,6 +342,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         caregiverSupport: caregiver,
       );
       if (!mounted) return;
+      await LanguageScope.read(
+        context,
+      ).setFromServerPreferredLanguage(profile.preferredLanguage);
+      if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(
         context,
         AppRoutes.dashboard,
@@ -310,15 +353,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
     } on AuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.tr('onboarding_save_failed')),
-        ),
+        SnackBar(content: Text(context.tr('onboarding_save_failed'))),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -333,11 +374,14 @@ class _StepHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(color: AppColors.muted)),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        title,
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+      ),
+      const SizedBox(height: 4),
+      Text(subtitle, style: const TextStyle(color: AppColors.muted)),
+    ],
+  );
 }
