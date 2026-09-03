@@ -33,6 +33,7 @@ class AgentResponse {
     required this.reply,
     required this.referencedEntities,
     this.navigation,
+    this.fallbackCode,
   });
 
   final String sessionId;
@@ -40,6 +41,7 @@ class AgentResponse {
   final String reply;
   final AgentNavigation? navigation;
   final List<AgentReferencedEntity> referencedEntities;
+  final String? fallbackCode;
 
   factory AgentResponse.fromJson(Map<String, dynamic> json) {
     if (json['success'] != true) {
@@ -49,6 +51,7 @@ class AgentResponse {
     final sessionId = json['sessionId']?.toString().trim() ?? '';
     final language = json['language']?.toString().trim() ?? '';
     final reply = json['reply']?.toString() ?? '';
+    final fallbackCode = json['fallbackCode']?.toString().trim();
 
     if (sessionId.isEmpty ||
         !AgentResponse.supportedLanguages.contains(language) ||
@@ -81,6 +84,9 @@ class AgentResponse {
       reply: reply,
       navigation: navigation,
       referencedEntities: referencedEntities,
+      fallbackCode: fallbackCode == null || fallbackCode.isEmpty
+          ? null
+          : fallbackCode,
     );
   }
 

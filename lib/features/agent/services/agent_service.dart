@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/api_config.dart';
@@ -110,10 +111,16 @@ class AgentService {
           ? decoded['data'] as Map<String, dynamic>
           : decoded;
 
-      return AgentResponse.fromJson({
+      final agentResponse = AgentResponse.fromJson({
         'success': decoded['success'],
         ...payload,
       });
+      if (kDebugMode && agentResponse.fallbackCode != null) {
+        debugPrint(
+          'SehatMate Agent fallbackCode: ${agentResponse.fallbackCode}',
+        );
+      }
+      return agentResponse;
     } on AgentException {
       rethrow;
     } on TimeoutException {

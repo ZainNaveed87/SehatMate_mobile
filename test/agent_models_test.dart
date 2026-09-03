@@ -26,6 +26,22 @@ void main() {
       expect(response.navigation?.target, 'care_plan_detail');
       expect(response.navigation?.params['carePlanId'], 'cp1');
       expect(response.referencedEntities.single.type, 'care_plan');
+      expect(response.fallbackCode, isNull);
+    });
+
+    test('parse optional fallback code without surfacing it as UI text', () {
+      final response = AgentResponse.fromJson(const {
+        'success': true,
+        'sessionId': 's1',
+        'language': 'roman_ur',
+        'reply': 'Main abhi yeh request complete nahi kar saka.',
+        'navigation': null,
+        'referencedEntities': [],
+        'fallbackCode': 'AGENT_REPLY_INVALID',
+      });
+
+      expect(response.fallbackCode, 'AGENT_REPLY_INVALID');
+      expect(response.reply, isNot(contains('AGENT_REPLY_INVALID')));
     });
 
     test('parse null navigation', () {
