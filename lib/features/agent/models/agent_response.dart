@@ -1,4 +1,5 @@
 import 'agent_navigation.dart';
+import 'agent_speech.dart';
 import 'agent_validation.dart';
 
 class AgentReferencedEntity {
@@ -71,6 +72,7 @@ class AgentResponse {
     required this.referencedEntities,
     this.navigation,
     this.confirmation,
+    this.speech,
     this.actionStatus,
     this.fallbackCode,
   });
@@ -80,6 +82,7 @@ class AgentResponse {
   final String reply;
   final AgentNavigation? navigation;
   final AgentConfirmation? confirmation;
+  final AgentSpeech? speech;
   final String? actionStatus;
   final List<AgentReferencedEntity> referencedEntities;
   final String? fallbackCode;
@@ -126,6 +129,15 @@ class AgentResponse {
       );
     }
 
+    AgentSpeech? speech;
+    if (json['speech'] != null) {
+      try {
+        speech = AgentSpeech.fromJson(json['speech']);
+      } on FormatException {
+        speech = null;
+      }
+    }
+
     final referencedJson = json['referencedEntities'];
     if (referencedJson != null && referencedJson is! List) {
       throw const FormatException('Agent referencedEntities must be a list.');
@@ -141,6 +153,7 @@ class AgentResponse {
       reply: reply,
       navigation: navigation,
       confirmation: confirmation,
+      speech: speech,
       actionStatus: actionStatus,
       referencedEntities: referencedEntities,
       fallbackCode: fallbackCode == null || fallbackCode.isEmpty

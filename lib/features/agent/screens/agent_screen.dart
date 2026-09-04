@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/app_theme.dart';
@@ -10,6 +12,16 @@ import '../controllers/agent_controller.dart';
 import '../models/agent_message.dart';
 import '../navigation/agent_navigation_handler.dart';
 import '../services/agent_service.dart';
+import '../services/agent_voice_service.dart';
+
+enum AgentVoiceUiState {
+  idle,
+  recording,
+  transcribing,
+  processing,
+  speaking,
+  error,
+}
 
 class AgentScreen extends StatefulWidget {
   const AgentScreen({
@@ -17,11 +29,17 @@ class AgentScreen extends StatefulWidget {
     this.args,
     this.controller,
     this.navigationHandler = const AgentNavigationHandler(),
+    this.voiceRecorder,
+    this.voiceTranscriber,
+    this.voicePlayer,
   });
 
   final AgentScreenArgs? args;
   final AgentController? controller;
   final AgentNavigationHandler navigationHandler;
+  final AgentVoiceRecorder? voiceRecorder;
+  final AgentVoiceTranscriber? voiceTranscriber;
+  final AgentVoicePlayer? voicePlayer;
 
   @override
   State<AgentScreen> createState() => _AgentScreenState();
@@ -30,9 +48,16 @@ class AgentScreen extends StatefulWidget {
 class _AgentScreenState extends State<AgentScreen> {
   late final AgentController _controller;
   late final bool _ownsController;
+  late final AgentVoiceRecorder _voiceRecorder;
+  late final AgentVoiceTranscriber _voiceTranscriber;
+  late final AgentVoicePlayer _voicePlayer;
+  late final bool _ownsVoiceRecorder;
+  late final bool _ownsVoicePlayer;
   final _composer = TextEditingController();
   final _scroll = ScrollController();
   final _focus = FocusNode();
+  AgentVoiceUiState _voiceState = AgentVoiceUiState.idle;
+  bool _stoppingRecording = false;
 
   @override
   void initState() {
@@ -46,10 +71,21 @@ class _AgentScreenState extends State<AgentScreen> {
         );
     _controller.addListener(_onControllerChanged);
     _controller.initialize();
+    _ownsVoiceRecorder = widget.voiceRecorder == null;
+    _ownsVoicePlayer = widget.voicePlayer == null;
+    _voiceRecorder = widget.voiceRecorder ?? RecordAgentVoiceRecorder();
+    _voiceTranscriber = widget.voiceTranscriber ?? AgentVoiceService.instance;
+    _voicePlayer = widget.voicePlayer ?? AudioPlayersAgentVoicePlayer();
   }
 
   @override
   void dispose() {
+    if (_voiceState == AgentVoiceUiState.recording) {
+      unawaited(_voiceRecorder.stop());
+    }
+    unawaited(_voicePlayer.stop());
+    if (_ownsVoiceRecorder) unawaited(_voiceRecorder.dispose());
+    if (_ownsVoicePlayer) unawaited(_voicePlayer.dispose());
     _controller.removeListener(_onControllerChanged);
     if (_ownsController) _controller.dispose();
     _composer.dispose();
@@ -84,7 +120,109 @@ class _AgentScreenState extends State<AgentScreen> {
     await _controller.sendText(text);
   }
 
-  Future<void> _retry() => _controller.retryLast();
+  Future<void> _retry() async {
+    await _controller.retryLast();
+  }
+
+  bool get _voiceBusy =>
+      _voiceState == AgentVoiceUiState.recording ||
+      _voiceState == AgentVoiceUiState.transcribing ||
+      _voiceState == AgentVoiceUiState.processing ||
+      _voiceState == AgentVoiceUiState.speaking ||
+      _stoppingRecording;
+
+  Future<void> _toggleVoice() async {
+    if (_voiceState == AgentVoiceUiState.recording) {
+      await _stopVoiceRecording();
+      return;
+    }
+    if (_voiceBusy || _controller.loading || _controller.confirmationLoading) {
+      return;
+    }
+
+    await _voicePlayer.stop();
+    final allowed = await _voiceRecorder.hasPermission();
+    if (!mounted) return;
+    if (!allowed) {
+      _showVoiceMessage(context.tr('agent_voice_permission_denied'));
+      setState(() => _voiceState = AgentVoiceUiState.error);
+      return;
+    }
+
+    try {
+      await _voiceRecorder.start();
+      if (!mounted) return;
+      setState(() => _voiceState = AgentVoiceUiState.recording);
+    } catch (_) {
+      if (!mounted) return;
+      _showVoiceMessage(context.tr('agent_voice_error'));
+      setState(() => _voiceState = AgentVoiceUiState.error);
+    }
+  }
+
+  Future<void> _stopVoiceRecording() async {
+    if (_voiceState != AgentVoiceUiState.recording || _stoppingRecording) {
+      return;
+    }
+    _stoppingRecording = true;
+    setState(() => _voiceState = AgentVoiceUiState.transcribing);
+
+    try {
+      final recording = await _voiceRecorder.stop();
+      if (!mounted) return;
+      if (recording == null || recording.duration <= Duration.zero) {
+        _showVoiceMessage(context.tr('agent_voice_no_speech'));
+        setState(() => _voiceState = AgentVoiceUiState.error);
+        return;
+      }
+
+      final transcript = await _voiceTranscriber.transcribe(recording);
+      if (!mounted) return;
+      final text = transcript.text.trim();
+      if (text.isEmpty) {
+        _showVoiceMessage(context.tr('agent_voice_no_speech'));
+        setState(() => _voiceState = AgentVoiceUiState.error);
+        return;
+      }
+
+      setState(() => _voiceState = AgentVoiceUiState.processing);
+      final response = await _controller.sendText(text, requestSpeech: true);
+      if (!mounted) return;
+      final speech = response?.speech;
+      if (speech == null) {
+        setState(() => _voiceState = AgentVoiceUiState.idle);
+        return;
+      }
+
+      setState(() => _voiceState = AgentVoiceUiState.speaking);
+      try {
+        await _voicePlayer.play(speech);
+      } catch (_) {
+        if (mounted) _showVoiceMessage(context.tr('agent_voice_tts_error'));
+      }
+      if (mounted) setState(() => _voiceState = AgentVoiceUiState.idle);
+    } on AgentException catch (error) {
+      if (!mounted) return;
+      _showVoiceMessage(
+        error.code == AgentErrorCode.noSpeech
+            ? context.tr('agent_voice_no_speech')
+            : context.tr('agent_voice_error'),
+      );
+      setState(() => _voiceState = AgentVoiceUiState.error);
+    } catch (_) {
+      if (!mounted) return;
+      _showVoiceMessage(context.tr('agent_voice_error'));
+      setState(() => _voiceState = AgentVoiceUiState.error);
+    } finally {
+      _stoppingRecording = false;
+    }
+  }
+
+  void _showVoiceMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +252,9 @@ class _AgentScreenState extends State<AgentScreen> {
                       _controller.loading ||
                       _controller.confirmationLoading ||
                       !_controller.initialized,
+                  voiceState: _voiceState,
+                  voiceBusy: _voiceBusy,
+                  onVoice: _toggleVoice,
                   onSend: () => _send(),
                 ),
             ],
@@ -561,12 +702,18 @@ class _Composer extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.loading,
+    required this.voiceState,
+    required this.voiceBusy,
+    required this.onVoice,
     required this.onSend,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool loading;
+  final AgentVoiceUiState voiceState;
+  final bool voiceBusy;
+  final VoidCallback onVoice;
   final VoidCallback onSend;
 
   @override
@@ -584,49 +731,140 @@ class _Composer extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: TextField(
-                key: const ValueKey('agent_composer'),
-                controller: controller,
-                focusNode: focusNode,
-                enabled: !loading,
-                minLines: 1,
-                maxLines: 5,
-                maxLength: 2000,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  counterText: '',
-                  hintText: context.tr('agent_input_hint'),
-                ),
+            if (voiceState != AgentVoiceUiState.idle) ...[
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: _VoiceStatusPill(state: voiceState),
               ),
-            ),
-            const SizedBox(width: 8),
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: controller,
-              builder: (context, value, _) {
-                final canSend = value.text.trim().isNotEmpty && !loading;
-                return IconButton.filled(
-                  tooltip: context.tr('send'),
-                  onPressed: canSend ? onSend : null,
-                  icon: loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.send_outlined),
-                );
-              },
+              const SizedBox(height: 8),
+            ],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey('agent_composer'),
+                    controller: controller,
+                    focusNode: focusNode,
+                    enabled: !loading && !voiceBusy,
+                    minLines: 1,
+                    maxLines: 5,
+                    maxLength: 2000,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      counterText: '',
+                      hintText: context.tr('agent_input_hint'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  key: const ValueKey('agent_mic_button'),
+                  tooltip: _voiceTooltip(context, voiceState),
+                  onPressed:
+                      loading && voiceState != AgentVoiceUiState.recording
+                      ? null
+                      : onVoice,
+                  icon: _voiceIcon(voiceState),
+                ),
+                const SizedBox(width: 8),
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: controller,
+                  builder: (context, value, _) {
+                    final canSend =
+                        value.text.trim().isNotEmpty && !loading && !voiceBusy;
+                    return IconButton.filled(
+                      tooltip: context.tr('send'),
+                      onPressed: canSend ? onSend : null,
+                      icon: loading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.send_outlined),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _VoiceStatusPill extends StatelessWidget {
+  const _VoiceStatusPill({required this.state});
+
+  final AgentVoiceUiState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final textKey = switch (state) {
+      AgentVoiceUiState.recording => 'agent_voice_recording',
+      AgentVoiceUiState.transcribing => 'agent_voice_transcribing',
+      AgentVoiceUiState.processing => 'agent_voice_processing',
+      AgentVoiceUiState.speaking => 'agent_voice_speaking',
+      AgentVoiceUiState.error => 'agent_voice_error_short',
+      AgentVoiceUiState.idle => 'agent_voice_idle',
+    };
+    return Container(
+      key: const ValueKey('agent_voice_status'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (state == AgentVoiceUiState.transcribing ||
+              state == AgentVoiceUiState.processing ||
+              state == AgentVoiceUiState.speaking) ...[
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            context.tr(textKey),
+            style: const TextStyle(fontSize: 13, color: AppColors.foreground),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _voiceIcon(AgentVoiceUiState state) {
+  return switch (state) {
+    AgentVoiceUiState.recording => const Icon(Icons.stop),
+    AgentVoiceUiState.transcribing ||
+    AgentVoiceUiState.processing ||
+    AgentVoiceUiState.speaking => const SizedBox(
+      width: 18,
+      height: 18,
+      child: CircularProgressIndicator(strokeWidth: 2),
+    ),
+    AgentVoiceUiState.error ||
+    AgentVoiceUiState.idle => const Icon(Icons.mic_none),
+  };
+}
+
+String _voiceTooltip(BuildContext context, AgentVoiceUiState state) {
+  if (state == AgentVoiceUiState.recording) {
+    return context.tr('agent_voice_stop');
+  }
+  return context.tr('agent_voice_start');
 }

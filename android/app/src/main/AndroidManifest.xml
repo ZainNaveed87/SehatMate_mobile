@@ -3,6 +3,9 @@
     <!-- Notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Push-to-talk Agent voice recording only -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- Device restart ke baad reminders restore karne ke liye -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 

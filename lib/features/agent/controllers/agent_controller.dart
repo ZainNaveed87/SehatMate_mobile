@@ -76,26 +76,37 @@ class AgentController extends ChangeNotifier {
     await future;
   }
 
-  Future<void> sendText(String text) async {
+  Future<AgentResponse?> sendText(
+    String text, {
+    bool requestSpeech = false,
+  }) async {
     final trimmed = text.trim();
-    if (_loading || _confirmationLoading || trimmed.isEmpty) return;
-    await _send(trimmed, appendUserMessage: true);
+    if (_loading || _confirmationLoading || trimmed.isEmpty) return null;
+    return _send(
+      trimmed,
+      appendUserMessage: true,
+      requestSpeech: requestSpeech,
+    );
   }
 
-  Future<void> retryLast() async {
+  Future<AgentResponse?> retryLast() async {
     final text = _lastFailedText;
     if (_loading ||
         _confirmationLoading ||
         text == null ||
         text.trim().isEmpty) {
-      return;
+      return null;
     }
     _messages.removeWhere((message) => message.failed);
     notifyListeners();
-    await _send(text, appendUserMessage: false);
+    return _send(text, appendUserMessage: false);
   }
 
-  Future<void> _send(String text, {required bool appendUserMessage}) async {
+  Future<AgentResponse?> _send(
+    String text, {
+    required bool appendUserMessage,
+    bool requestSpeech = false,
+  }) async {
     _loading = true;
     _error = null;
     _lastFailedText = null;
@@ -115,7 +126,10 @@ class AgentController extends ChangeNotifier {
 
     try {
       await initialize();
-      final response = await _sendWithSessionRetry(text);
+      final response = await _sendWithSessionRetry(
+        text,
+        requestSpeech: requestSpeech,
+      );
       _sessionId = response.sessionId;
       await _sessionStore.save(response.sessionId);
       _append(
@@ -126,10 +140,12 @@ class AgentController extends ChangeNotifier {
           createdAt: DateTime.now(),
           navigation: response.navigation,
           confirmation: response.confirmation,
+          speech: response.speech,
           actionStatus: response.actionStatus,
         ),
       );
       _applyActionState(response);
+      return response;
     } on AgentException catch (exception) {
       _error = exception;
       _lastFailedText = text;
@@ -142,16 +158,25 @@ class AgentController extends ChangeNotifier {
           failed: true,
         ),
       );
+      return null;
     } finally {
       _loading = false;
       notifyListeners();
     }
   }
 
-  Future<AgentResponse> _sendWithSessionRetry(String text) async {
+  Future<AgentResponse> _sendWithSessionRetry(
+    String text, {
+    bool requestSpeech = false,
+  }) async {
     try {
       return await _client.send(
-        AgentRequest(sessionId: _sessionId, message: text, context: context),
+        AgentRequest(
+          sessionId: _sessionId,
+          message: text,
+          context: context,
+          requestSpeech: requestSpeech,
+        ),
       );
     } on AgentException catch (exception) {
       if (!exception.isSessionNotFound || _sessionId == null) {
@@ -161,7 +186,13 @@ class AgentController extends ChangeNotifier {
       _sessionId = null;
       await _sessionStore.clear();
 
-      return _client.send(AgentRequest(message: text, context: context));
+      return _client.send(
+        AgentRequest(
+          message: text,
+          context: context,
+          requestSpeech: requestSpeech,
+        ),
+      );
     }
   }
 

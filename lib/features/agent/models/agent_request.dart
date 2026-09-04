@@ -1,16 +1,21 @@
 import 'agent_context.dart';
 
 class AgentRequest {
-  const AgentRequest({required this.message, this.sessionId, this.context})
-    : confirmationId = null,
-      confirmationDecision = null;
+  const AgentRequest({
+    required this.message,
+    this.sessionId,
+    this.context,
+    this.requestSpeech = false,
+  }) : confirmationId = null,
+       confirmationDecision = null;
 
   const AgentRequest.confirmation({
     required this.sessionId,
     required this.confirmationId,
     required this.confirmationDecision,
   }) : message = '',
-       context = null;
+       context = null,
+       requestSpeech = false;
 
   static const maxMessageLength = 2000;
   static const _confirmationDecisions = {'confirm', 'cancel'};
@@ -18,6 +23,7 @@ class AgentRequest {
   final String message;
   final String? sessionId;
   final AgentScreenContext? context;
+  final bool requestSpeech;
   final String? confirmationId;
   final String? confirmationDecision;
 
@@ -55,6 +61,7 @@ class AgentRequest {
       if (trimmedSessionId.isNotEmpty) 'sessionId': trimmedSessionId,
       'message': trimmedMessage,
       if (semanticContext != null) 'context': semanticContext.toJson(),
+      if (requestSpeech) 'voice': {'requestSpeech': true},
     };
   }
 }

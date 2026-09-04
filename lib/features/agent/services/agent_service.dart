@@ -30,6 +30,7 @@ enum AgentErrorCode {
   rateLimited,
   network,
   timeout,
+  noSpeech,
   unavailable,
   malformed,
   unknown,
@@ -200,6 +201,7 @@ class AgentService {
       AgentErrorCode.sessionNotFound ||
       AgentErrorCode.network ||
       AgentErrorCode.timeout ||
+      AgentErrorCode.noSpeech ||
       AgentErrorCode.unavailable ||
       AgentErrorCode.unknown =>
         'SehatMate AI is temporarily unavailable. Please try again.',

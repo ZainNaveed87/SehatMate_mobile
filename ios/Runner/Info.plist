@@ -18,6 +18,8 @@
 	<string>SehatMate_ai</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SehatMate uses the microphone only when you tap the voice button to record an Agent message.</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>

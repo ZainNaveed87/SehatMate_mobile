@@ -1,5 +1,6 @@
 import 'agent_navigation.dart';
 import 'agent_response.dart';
+import 'agent_speech.dart';
 
 enum AgentMessageAuthor { user, assistant }
 
@@ -11,6 +12,7 @@ class AgentChatMessage {
     required this.createdAt,
     this.navigation,
     this.confirmation,
+    this.speech,
     this.actionStatus,
     this.failed = false,
   });
@@ -21,12 +23,14 @@ class AgentChatMessage {
   final DateTime createdAt;
   final AgentNavigation? navigation;
   final AgentConfirmation? confirmation;
+  final AgentSpeech? speech;
   final String? actionStatus;
   final bool failed;
 
   AgentChatMessage copyWith({
     AgentNavigation? navigation,
     AgentConfirmation? confirmation,
+    AgentSpeech? speech,
     String? actionStatus,
     bool? failed,
   }) {
@@ -37,6 +41,7 @@ class AgentChatMessage {
       createdAt: createdAt,
       navigation: navigation ?? this.navigation,
       confirmation: confirmation ?? this.confirmation,
+      speech: speech ?? this.speech,
       actionStatus: actionStatus ?? this.actionStatus,
       failed: failed ?? this.failed,
     );

@@ -6067,6 +6067,68 @@ class AppStrings {
       AppLanguage.urdu: 'صحت میٹ اے آئی سے پوچھیں...',
       AppLanguage.romanUrdu: 'SehatMate AI se poochein...',
     },
+    'agent_voice_start': {
+      AppLanguage.english: 'Start voice',
+      AppLanguage.urdu: 'آواز شروع کریں',
+      AppLanguage.romanUrdu: 'Voice shuru karein',
+    },
+    'agent_voice_stop': {
+      AppLanguage.english: 'Stop recording',
+      AppLanguage.urdu: 'ریکارڈنگ روکیں',
+      AppLanguage.romanUrdu: 'Recording rokein',
+    },
+    'agent_voice_idle': {
+      AppLanguage.english: 'Voice ready',
+      AppLanguage.urdu: 'آواز تیار ہے',
+      AppLanguage.romanUrdu: 'Voice tayyar hai',
+    },
+    'agent_voice_recording': {
+      AppLanguage.english: 'Recording',
+      AppLanguage.urdu: 'ریکارڈ ہو رہا ہے',
+      AppLanguage.romanUrdu: 'Record ho raha hai',
+    },
+    'agent_voice_transcribing': {
+      AppLanguage.english: 'Transcribing',
+      AppLanguage.urdu: 'آواز لکھی جا رہی ہے',
+      AppLanguage.romanUrdu: 'Voice likh raha hai',
+    },
+    'agent_voice_processing': {
+      AppLanguage.english: 'Checking',
+      AppLanguage.urdu: 'دیکھ رہا ہے',
+      AppLanguage.romanUrdu: 'Check kar raha hai',
+    },
+    'agent_voice_speaking': {
+      AppLanguage.english: 'Speaking',
+      AppLanguage.urdu: 'بول رہا ہے',
+      AppLanguage.romanUrdu: 'Bol raha hai',
+    },
+    'agent_voice_error_short': {
+      AppLanguage.english: 'Voice unavailable',
+      AppLanguage.urdu: 'آواز دستیاب نہیں',
+      AppLanguage.romanUrdu: 'Voice available nahi',
+    },
+    'agent_voice_permission_denied': {
+      AppLanguage.english: 'Microphone permission is needed for voice.',
+      AppLanguage.urdu: 'آواز کے لیے microphone permission ضروری ہے۔',
+      AppLanguage.romanUrdu: 'Voice ke liye microphone permission zaroori hai.',
+    },
+    'agent_voice_no_speech': {
+      AppLanguage.english: 'No understandable speech was detected.',
+      AppLanguage.urdu: 'واضح آواز سمجھ نہیں آئی۔',
+      AppLanguage.romanUrdu: 'Clear voice samajh nahi aayi.',
+    },
+    'agent_voice_error': {
+      AppLanguage.english: 'Voice is temporarily unavailable.',
+      AppLanguage.urdu: 'آواز عارضی طور پر دستیاب نہیں ہے۔',
+      AppLanguage.romanUrdu: 'Voice filhal available nahi hai.',
+    },
+    'agent_voice_tts_error': {
+      AppLanguage.english: 'The answer is shown, but audio playback failed.',
+      AppLanguage.urdu:
+          'جواب دکھا دیا گیا ہے، مگر audio playback ناکام ہو گئی۔',
+      AppLanguage.romanUrdu:
+          'Jawab dikh gaya hai, lekin audio playback fail ho gayi.',
+    },
     'agent_thinking': {
       AppLanguage.english: 'Checking...',
       AppLanguage.urdu: 'دیکھ رہا ہے...',
