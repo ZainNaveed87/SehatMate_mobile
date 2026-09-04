@@ -29,39 +29,33 @@ class AgentScreen extends StatefulWidget {
     this.args,
     this.controller,
     this.navigationHandler = const AgentNavigationHandler(),
-    this.voiceRecorder,
-    this.voiceTranscriber,
-    this.voicePlayer,
+    this.voiceService,
   });
 
   final AgentScreenArgs? args;
   final AgentController? controller;
   final AgentNavigationHandler navigationHandler;
-  final AgentVoiceRecorder? voiceRecorder;
-  final AgentVoiceTranscriber? voiceTranscriber;
-  final AgentVoicePlayer? voicePlayer;
+  final AgentVoiceClient? voiceService;
 
   @override
   State<AgentScreen> createState() => _AgentScreenState();
 }
 
-class _AgentScreenState extends State<AgentScreen> {
+class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
   late final AgentController _controller;
   late final bool _ownsController;
-  late final AgentVoiceRecorder _voiceRecorder;
-  late final AgentVoiceTranscriber _voiceTranscriber;
-  late final AgentVoicePlayer _voicePlayer;
-  late final bool _ownsVoiceRecorder;
-  late final bool _ownsVoicePlayer;
+  late final AgentVoiceClient _voiceService;
+  late final bool _ownsVoiceService;
   final _composer = TextEditingController();
   final _scroll = ScrollController();
   final _focus = FocusNode();
   AgentVoiceUiState _voiceState = AgentVoiceUiState.idle;
-  bool _stoppingRecording = false;
+  bool _finishingVoiceCapture = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _ownsController = widget.controller == null;
     _controller =
         widget.controller ??
@@ -71,27 +65,32 @@ class _AgentScreenState extends State<AgentScreen> {
         );
     _controller.addListener(_onControllerChanged);
     _controller.initialize();
-    _ownsVoiceRecorder = widget.voiceRecorder == null;
-    _ownsVoicePlayer = widget.voicePlayer == null;
-    _voiceRecorder = widget.voiceRecorder ?? RecordAgentVoiceRecorder();
-    _voiceTranscriber = widget.voiceTranscriber ?? AgentVoiceService.instance;
-    _voicePlayer = widget.voicePlayer ?? AudioPlayersAgentVoicePlayer();
+    _ownsVoiceService = widget.voiceService == null;
+    _voiceService = widget.voiceService ?? AgentVoiceService.instance;
   }
 
   @override
   void dispose() {
-    if (_voiceState == AgentVoiceUiState.recording) {
-      unawaited(_voiceRecorder.stop());
-    }
-    unawaited(_voicePlayer.stop());
-    if (_ownsVoiceRecorder) unawaited(_voiceRecorder.dispose());
-    if (_ownsVoicePlayer) unawaited(_voicePlayer.dispose());
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_voiceService.cancelListening());
+    unawaited(_voiceService.stopSpeaking());
+    if (_ownsVoiceService) unawaited(_voiceService.dispose());
     _controller.removeListener(_onControllerChanged);
     if (_ownsController) _controller.dispose();
     _composer.dispose();
     _scroll.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) return;
+    unawaited(_voiceService.cancelListening());
+    unawaited(_voiceService.stopSpeaking());
+    if (mounted && _voiceState != AgentVoiceUiState.idle) {
+      setState(() => _voiceState = AgentVoiceUiState.idle);
+    }
   }
 
   void _onControllerChanged() {
@@ -129,30 +128,34 @@ class _AgentScreenState extends State<AgentScreen> {
       _voiceState == AgentVoiceUiState.transcribing ||
       _voiceState == AgentVoiceUiState.processing ||
       _voiceState == AgentVoiceUiState.speaking ||
-      _stoppingRecording;
+      _finishingVoiceCapture;
 
   Future<void> _toggleVoice() async {
     if (_voiceState == AgentVoiceUiState.recording) {
-      await _stopVoiceRecording();
+      await _completeVoiceCapture();
       return;
     }
     if (_voiceBusy || _controller.loading || _controller.confirmationLoading) {
       return;
     }
 
-    await _voicePlayer.stop();
-    final allowed = await _voiceRecorder.hasPermission();
+    final language = context.appLanguage;
+    await _voiceService.stopSpeaking();
+    final available = await _voiceService.initializeSpeech(language);
     if (!mounted) return;
-    if (!allowed) {
-      _showVoiceMessage(context.tr('agent_voice_permission_denied'));
+    if (!available) {
+      _showVoiceMessage(context.tr('agent_voice_error'));
       setState(() => _voiceState = AgentVoiceUiState.error);
       return;
     }
 
     try {
-      await _voiceRecorder.start();
-      if (!mounted) return;
       setState(() => _voiceState = AgentVoiceUiState.recording);
+      await _voiceService.startListening(
+        language: language,
+        onListeningComplete: () => unawaited(_completeVoiceCapture()),
+      );
+      if (!mounted) return;
     } catch (_) {
       if (!mounted) return;
       _showVoiceMessage(context.tr('agent_voice_error'));
@@ -160,23 +163,15 @@ class _AgentScreenState extends State<AgentScreen> {
     }
   }
 
-  Future<void> _stopVoiceRecording() async {
-    if (_voiceState != AgentVoiceUiState.recording || _stoppingRecording) {
+  Future<void> _completeVoiceCapture() async {
+    if (_voiceState != AgentVoiceUiState.recording || _finishingVoiceCapture) {
       return;
     }
-    _stoppingRecording = true;
+    _finishingVoiceCapture = true;
     setState(() => _voiceState = AgentVoiceUiState.transcribing);
 
     try {
-      final recording = await _voiceRecorder.stop();
-      if (!mounted) return;
-      if (recording == null || recording.duration <= Duration.zero) {
-        _showVoiceMessage(context.tr('agent_voice_no_speech'));
-        setState(() => _voiceState = AgentVoiceUiState.error);
-        return;
-      }
-
-      final transcript = await _voiceTranscriber.transcribe(recording);
+      final transcript = await _voiceService.stopListening();
       if (!mounted) return;
       final text = transcript.text.trim();
       if (text.isEmpty) {
@@ -186,17 +181,17 @@ class _AgentScreenState extends State<AgentScreen> {
       }
 
       setState(() => _voiceState = AgentVoiceUiState.processing);
-      final response = await _controller.sendText(text, requestSpeech: true);
+      final response = await _controller.sendText(text);
       if (!mounted) return;
-      final speech = response?.speech;
-      if (speech == null) {
+      final reply = response?.reply;
+      if (reply == null || reply.trim().isEmpty) {
         setState(() => _voiceState = AgentVoiceUiState.idle);
         return;
       }
 
       setState(() => _voiceState = AgentVoiceUiState.speaking);
       try {
-        await _voicePlayer.play(speech);
+        await _voiceService.speak(reply, language: context.appLanguage);
       } catch (_) {
         if (mounted) _showVoiceMessage(context.tr('agent_voice_tts_error'));
       }
@@ -214,7 +209,7 @@ class _AgentScreenState extends State<AgentScreen> {
       _showVoiceMessage(context.tr('agent_voice_error'));
       setState(() => _voiceState = AgentVoiceUiState.error);
     } finally {
-      _stoppingRecording = false;
+      _finishingVoiceCapture = false;
     }
   }
 

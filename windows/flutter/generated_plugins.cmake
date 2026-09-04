@@ -3,12 +3,12 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  audioplayers_windows
   connectivity_plus
   file_selector_windows
   flutter_secure_storage_windows
   flutter_timezone
-  record_windows
+  flutter_tts
+  speech_to_text_windows
   url_launcher_windows
 )
 

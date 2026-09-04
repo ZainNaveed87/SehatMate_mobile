@@ -1,27 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:audioplayers/audioplayers.dart';
-import 'package:http/http.dart' as http;
-import 'package:record/record.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
-import '../../../core/api_config.dart';
-import '../../../services/auth_service.dart';
-import '../models/agent_speech.dart';
+import '../../../localization/app_language.dart';
 import 'agent_service.dart';
-
-class AgentVoiceRecording {
-  const AgentVoiceRecording({
-    required this.path,
-    required this.duration,
-    this.contentType = AgentVoiceService.recordingContentType,
-  });
-
-  final String path;
-  final Duration duration;
-  final String contentType;
-}
 
 class AgentVoiceTranscript {
   const AgentVoiceTranscript({required this.text});
@@ -29,232 +13,387 @@ class AgentVoiceTranscript {
   final String text;
 }
 
-abstract interface class AgentVoiceRecorder {
-  Future<bool> hasPermission();
-  Future<void> start();
-  Future<AgentVoiceRecording?> stop();
-  Future<void> dispose();
+class AgentSpeechRecognitionFailure {
+  const AgentSpeechRecognitionFailure(this.message, {required this.permanent});
+
+  final String message;
+  final bool permanent;
 }
 
-abstract interface class AgentVoiceTranscriber {
-  Future<AgentVoiceTranscript> transcribe(AgentVoiceRecording recording);
-}
+typedef AgentSpeechResultListener =
+    void Function(String recognizedWords, bool finalResult);
+typedef AgentSpeechStatusListener = void Function(String status);
+typedef AgentSpeechErrorListener =
+    void Function(AgentSpeechRecognitionFailure error);
 
-abstract interface class AgentVoicePlayer {
+abstract interface class AgentDeviceSpeechRecognizer {
+  bool get isListening;
+
+  Future<bool> initialize({
+    required AgentSpeechStatusListener onStatus,
+    required AgentSpeechErrorListener onError,
+  });
+  Future<List<String>> locales();
+  Future<void> listen({
+    required AgentSpeechResultListener onResult,
+    Duration? listenFor,
+    Duration? pauseFor,
+    String? localeId,
+  });
   Future<void> stop();
-  Future<void> play(AgentSpeech speech);
+  Future<void> cancel();
+}
+
+abstract interface class AgentDeviceTextToSpeech {
+  Future<void> awaitSpeakCompletion(bool enabled);
+  Future<List<String>> languages();
+  Future<void> setLanguage(String language);
+  Future<void> speak(String text);
+  Future<void> stop();
+}
+
+abstract interface class AgentVoiceClient {
+  bool get speechAvailable;
+  bool get isListening;
+
+  Future<bool> initializeSpeech(AppLanguage language);
+  Future<void> startListening({
+    required AppLanguage language,
+    VoidCallback? onListeningComplete,
+  });
+  Future<AgentVoiceTranscript> stopListening();
+  Future<void> cancelListening();
+  Future<void> speak(String text, {required AppLanguage language});
+  Future<void> stopSpeaking();
   Future<void> dispose();
 }
 
-class RecordAgentVoiceRecorder implements AgentVoiceRecorder {
-  RecordAgentVoiceRecorder({AudioRecorder? recorder})
-    : _recorder = recorder ?? AudioRecorder();
-
-  final AudioRecorder _recorder;
-  DateTime? _startedAt;
-  String? _path;
-
-  @override
-  Future<bool> hasPermission() => _recorder.hasPermission();
-
-  @override
-  Future<void> start() async {
-    final path =
-        '${Directory.systemTemp.path}${Platform.pathSeparator}sehatmate_voice_${DateTime.now().microsecondsSinceEpoch}.m4a';
-    _path = path;
-    _startedAt = DateTime.now();
-    await _recorder.start(
-      const RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        bitRate: 64000,
-        sampleRate: 16000,
-        numChannels: 1,
-      ),
-      path: path,
-    );
-  }
-
-  @override
-  Future<AgentVoiceRecording?> stop() async {
-    final path = await _recorder.stop();
-    final startedAt = _startedAt;
-    _startedAt = null;
-    final resolvedPath = path ?? _path;
-    _path = null;
-    if (resolvedPath == null || resolvedPath.trim().isEmpty) return null;
-    return AgentVoiceRecording(
-      path: resolvedPath,
-      duration: startedAt == null
-          ? Duration.zero
-          : DateTime.now().difference(startedAt),
-    );
-  }
-
-  @override
-  Future<void> dispose() => _recorder.dispose();
-}
-
-class AgentVoiceService implements AgentVoiceTranscriber {
+class AgentVoiceService implements AgentVoiceClient {
   AgentVoiceService({
-    http.Client? client,
-    AuthSession? authSession,
-    AgentAuthTokenProvider? tokenProvider,
-  }) : _client = client ?? http.Client(),
-       _tokenProvider =
-           tokenProvider ??
-           AuthSessionAgentTokenProvider(authSession ?? AuthSession.instance);
+    AgentDeviceSpeechRecognizer? speechRecognizer,
+    AgentDeviceTextToSpeech? textToSpeech,
+  }) : _speech = speechRecognizer ?? SpeechToTextAgentDeviceSpeechRecognizer(),
+       _tts = textToSpeech;
 
   static final instance = AgentVoiceService();
-  static const recordingContentType = 'audio/mp4';
-  static const maxAudioBytes = 1500000;
-  static const maxDuration = Duration(seconds: 30);
-  static const _timeout = Duration(seconds: 45);
 
-  final http.Client _client;
-  final AgentAuthTokenProvider _tokenProvider;
+  static const maxListenDuration = Duration(seconds: 30);
+  static const pauseForSilenceDuration = Duration(seconds: 3);
+
+  final AgentDeviceSpeechRecognizer _speech;
+  AgentDeviceTextToSpeech? _tts;
+
+  AgentDeviceTextToSpeech get _textToSpeech =>
+      _tts ??= FlutterTtsAgentDeviceTextToSpeech();
+
+  bool _speechInitialized = false;
+  bool _speechAvailable = false;
+  bool _ttsInitialized = false;
+  bool _isListening = false;
+  String _latestTranscript = '';
+  AgentSpeechRecognitionFailure? _lastSpeechError;
+  VoidCallback? _onListeningComplete;
 
   @override
-  Future<AgentVoiceTranscript> transcribe(AgentVoiceRecording recording) async {
-    if (!ApiConfig.isConfigured) {
-      throw const AgentException(
-        'SehatMate AI is temporarily unavailable. Please try again.',
-        code: AgentErrorCode.unavailable,
-        retryable: true,
-      );
-    }
+  bool get speechAvailable => _speechAvailable;
 
-    final token = _tokenProvider.token;
-    if (token == null || token.isEmpty) {
-      throw const AgentException(
-        'Please sign in to continue.',
-        code: AgentErrorCode.unauthenticated,
-      );
-    }
+  @override
+  bool get isListening => _isListening || _speech.isListening;
 
-    final file = File(recording.path);
+  @override
+  Future<bool> initializeSpeech(AppLanguage language) async {
+    if (_speechInitialized) return _speechAvailable;
+
     try {
-      final bytes = await file.readAsBytes();
-      if (bytes.isEmpty) {
-        throw const AgentException(
-          'No speech was detected.',
-          code: AgentErrorCode.noSpeech,
-        );
+      _speechAvailable = await _speech.initialize(
+        onStatus: _handleSpeechStatus,
+        onError: _handleSpeechError,
+      );
+      _speechInitialized = true;
+      if (_speechAvailable) {
+        await _speechLocaleFor(language);
       }
-      if (bytes.length > maxAudioBytes || recording.duration > maxDuration) {
+      return _speechAvailable;
+    } catch (_) {
+      _speechInitialized = true;
+      _speechAvailable = false;
+      return false;
+    }
+  }
+
+  @override
+  Future<void> startListening({
+    required AppLanguage language,
+    VoidCallback? onListeningComplete,
+  }) async {
+    final available = await initializeSpeech(language);
+    if (!available) {
+      throw const AgentException(
+        'Device speech recognition is unavailable.',
+        code: AgentErrorCode.unavailable,
+      );
+    }
+
+    _latestTranscript = '';
+    _lastSpeechError = null;
+    _onListeningComplete = onListeningComplete;
+    final localeId = await _speechLocaleFor(language);
+
+    try {
+      _isListening = true;
+      await _speech.listen(
+        onResult: _handleSpeechResult,
+        listenFor: maxListenDuration,
+        pauseFor: pauseForSilenceDuration,
+        localeId: localeId,
+      );
+    } catch (_) {
+      _isListening = false;
+      _onListeningComplete = null;
+      throw const AgentException(
+        'Device speech recognition is unavailable.',
+        code: AgentErrorCode.unavailable,
+      );
+    }
+  }
+
+  @override
+  Future<AgentVoiceTranscript> stopListening() async {
+    if (_speech.isListening || _isListening) {
+      await _speech.stop();
+    }
+    _isListening = false;
+    _onListeningComplete = null;
+
+    final transcript = _latestTranscript.trim();
+    if (transcript.isEmpty) {
+      final error = _lastSpeechError;
+      if (error != null && error.permanent) {
         throw const AgentException(
-          'The voice recording is too long.',
+          'Device speech recognition is unavailable.',
           code: AgentErrorCode.unavailable,
         );
       }
-
-      final response = await _client
-          .post(
-            ApiConfig.endpoint('/agent/voice/transcribe'),
-            headers: {
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $token',
-              'Content-Type': recording.contentType,
-              'X-SehatMate-Recording-Duration-Ms': recording
-                  .duration
-                  .inMilliseconds
-                  .toString(),
-            },
-            body: bytes,
-          )
-          .timeout(_timeout);
-
-      final decoded = _decode(response);
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw _exceptionFromVoiceError(response.statusCode, decoded);
-      }
-
-      final data = decoded['data'] is Map<String, dynamic>
-          ? decoded['data'] as Map<String, dynamic>
-          : decoded;
-      final transcript = data['transcript']?.toString().trim() ?? '';
-      if (transcript.isEmpty) {
-        throw const AgentException(
-          'No speech was detected.',
-          code: AgentErrorCode.noSpeech,
-        );
-      }
-      return AgentVoiceTranscript(text: transcript);
-    } on AgentException {
-      rethrow;
-    } on TimeoutException {
       throw const AgentException(
-        'SehatMate AI is temporarily unavailable. Please try again.',
-        code: AgentErrorCode.timeout,
-        retryable: true,
-      );
-    } on FormatException {
-      throw const AgentException(
-        'SehatMate AI returned an invalid response.',
-        code: AgentErrorCode.malformed,
-      );
-    } finally {
-      unawaited(file.delete().catchError((_) => file));
-    }
-  }
-
-  Map<String, dynamic> _decode(http.Response response) {
-    if (response.bodyBytes.isEmpty) return <String, dynamic>{};
-    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-    if (decoded is Map<String, dynamic>) return decoded;
-    throw const FormatException('Expected a JSON object.');
-  }
-
-  AgentException _exceptionFromVoiceError(
-    int statusCode,
-    Map<String, dynamic> decoded,
-  ) {
-    final rawCode = decoded['code']?.toString().toUpperCase() ?? '';
-    if (rawCode == 'VOICE_NO_SPEECH' || rawCode == 'VOICE_EMPTY_AUDIO') {
-      return const AgentException(
         'No speech was detected.',
         code: AgentErrorCode.noSpeech,
       );
     }
-    if (statusCode == 401) {
-      return const AgentException(
-        'Please sign in to continue.',
-        code: AgentErrorCode.unauthenticated,
-      );
-    }
-    if (statusCode == 429) {
-      return const AgentException(
-        'SehatMate AI is busy right now. Please try again shortly.',
-        code: AgentErrorCode.rateLimited,
-        retryable: true,
-      );
-    }
-    return AgentException(
-      'SehatMate AI is temporarily unavailable. Please try again.',
-      code: statusCode >= 500
-          ? AgentErrorCode.unavailable
-          : AgentErrorCode.unknown,
-      statusCode: statusCode,
-      retryable: statusCode == 408 || statusCode == 429 || statusCode >= 500,
-    );
+
+    return AgentVoiceTranscript(text: transcript);
   }
+
+  @override
+  Future<void> cancelListening() async {
+    if (_speech.isListening || _isListening) {
+      await _speech.cancel();
+    }
+    _isListening = false;
+    _onListeningComplete = null;
+    _latestTranscript = '';
+  }
+
+  @override
+  Future<void> speak(String text, {required AppLanguage language}) async {
+    final speechText = text.trim();
+    if (speechText.isEmpty) return;
+
+    await _initializeTts();
+    final locale = await _ttsLocaleFor(language);
+    if (locale != null && locale.trim().isNotEmpty) {
+      await _textToSpeech.setLanguage(locale);
+    }
+    await _textToSpeech.speak(speechText);
+  }
+
+  @override
+  Future<void> stopSpeaking() async {
+    final tts = _tts;
+    if (tts != null) {
+      await tts.stop();
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    await cancelListening();
+    await stopSpeaking();
+  }
+
+  void _handleSpeechResult(String recognizedWords, bool finalResult) {
+    final text = recognizedWords.trim();
+    if (text.isNotEmpty) _latestTranscript = text;
+  }
+
+  void _handleSpeechError(AgentSpeechRecognitionFailure error) {
+    _lastSpeechError = error;
+    _isListening = false;
+    _notifyListeningComplete();
+  }
+
+  void _handleSpeechStatus(String status) {
+    final normalized = status.toLowerCase().trim();
+    if (normalized == 'done' || normalized == 'notlistening') {
+      _isListening = false;
+      _notifyListeningComplete();
+    }
+  }
+
+  void _notifyListeningComplete() {
+    final callback = _onListeningComplete;
+    if (callback == null) return;
+    _onListeningComplete = null;
+    callback();
+  }
+
+  Future<String?> _speechLocaleFor(AppLanguage language) async {
+    try {
+      final locales = await _speech.locales();
+      return _bestLocale(
+        locales,
+        preferred: language.speechRecognitionLocale,
+        languageCode: language == AppLanguage.english ? 'en' : 'ur',
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _ttsLocaleFor(AppLanguage language) async {
+    try {
+      final languages = await _textToSpeech.languages();
+      return _bestLocale(
+        languages,
+        preferred: language.ttsLocale,
+        languageCode: language == AppLanguage.english ? 'en' : 'ur',
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _initializeTts() async {
+    if (_ttsInitialized) return;
+    await _textToSpeech.awaitSpeakCompletion(true);
+    _ttsInitialized = true;
+  }
+
+  String? _bestLocale(
+    Iterable<String> available, {
+    required String preferred,
+    required String languageCode,
+  }) {
+    final normalizedPreferred = _normalizeLocale(preferred);
+    final candidates = available
+        .map((locale) => locale.trim())
+        .where((locale) => locale.isNotEmpty)
+        .toList(growable: false);
+
+    for (final candidate in candidates) {
+      if (_normalizeLocale(candidate) == normalizedPreferred) return candidate;
+    }
+
+    final languagePrefix = '${languageCode.toLowerCase()}_';
+    for (final candidate in candidates) {
+      final normalized = _normalizeLocale(candidate);
+      if (normalized == languageCode.toLowerCase() ||
+          normalized.startsWith(languagePrefix)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  String _normalizeLocale(String locale) =>
+      locale.trim().replaceAll('-', '_').toLowerCase();
 }
 
-class AudioPlayersAgentVoicePlayer implements AgentVoicePlayer {
-  AudioPlayersAgentVoicePlayer({AudioPlayer? player})
-    : _player = player ?? AudioPlayer();
+class SpeechToTextAgentDeviceSpeechRecognizer
+    implements AgentDeviceSpeechRecognizer {
+  SpeechToTextAgentDeviceSpeechRecognizer({SpeechToText? speech})
+    : _speech = speech ?? SpeechToText();
 
-  final AudioPlayer _player;
-
-  @override
-  Future<void> stop() => _player.stop();
+  final SpeechToText _speech;
 
   @override
-  Future<void> play(AgentSpeech speech) async {
-    await _player.play(
-      BytesSource(speech.audioBytes, mimeType: speech.contentType),
+  bool get isListening => _speech.isListening;
+
+  @override
+  Future<bool> initialize({
+    required AgentSpeechStatusListener onStatus,
+    required AgentSpeechErrorListener onError,
+  }) {
+    return _speech.initialize(
+      onStatus: onStatus,
+      onError: (error) => onError(
+        AgentSpeechRecognitionFailure(
+          error.errorMsg,
+          permanent: error.permanent,
+        ),
+      ),
     );
   }
 
   @override
-  Future<void> dispose() => _player.dispose();
+  Future<List<String>> locales() async {
+    final locales = await _speech.locales();
+    return locales.map((locale) => locale.localeId).toList(growable: false);
+  }
+
+  @override
+  Future<void> listen({
+    required AgentSpeechResultListener onResult,
+    Duration? listenFor,
+    Duration? pauseFor,
+    String? localeId,
+  }) {
+    return _speech.listen(
+      onResult: (result) =>
+          onResult(result.recognizedWords, result.finalResult),
+      listenOptions: SpeechListenOptions(
+        cancelOnError: true,
+        partialResults: true,
+        listenMode: ListenMode.confirmation,
+        listenFor: listenFor,
+        pauseFor: pauseFor,
+        localeId: localeId,
+      ),
+    );
+  }
+
+  @override
+  Future<void> stop() => _speech.stop();
+
+  @override
+  Future<void> cancel() => _speech.cancel();
+}
+
+class FlutterTtsAgentDeviceTextToSpeech implements AgentDeviceTextToSpeech {
+  FlutterTtsAgentDeviceTextToSpeech({FlutterTts? tts})
+    : _tts = tts ?? FlutterTts();
+
+  final FlutterTts _tts;
+
+  @override
+  Future<void> awaitSpeakCompletion(bool enabled) =>
+      _tts.awaitSpeakCompletion(enabled);
+
+  @override
+  Future<List<String>> languages() async {
+    final languages = await _tts.getLanguages;
+    return languages
+        .map((language) => language.toString())
+        .where((language) => language.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> setLanguage(String language) => _tts.setLanguage(language);
+
+  @override
+  Future<void> speak(String text) => _tts.speak(text);
+
+  @override
+  Future<void> stop() => _tts.stop();
 }

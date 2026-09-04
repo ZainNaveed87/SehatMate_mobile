@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sehatmate_ai/features/agent/controllers/agent_controller.dart';
 import 'package:sehatmate_ai/features/agent/models/agent_request.dart';
 import 'package:sehatmate_ai/features/agent/models/agent_response.dart';
-import 'package:sehatmate_ai/features/agent/models/agent_speech.dart';
 import 'package:sehatmate_ai/features/agent/screens/agent_screen.dart';
 import 'package:sehatmate_ai/features/agent/services/agent_voice_service.dart';
 import 'package:sehatmate_ai/localization/app_language.dart';
@@ -38,82 +37,81 @@ class _UiFakeClient implements AgentClient {
   }
 }
 
-class _FakeVoiceRecorder implements AgentVoiceRecorder {
-  _FakeVoiceRecorder({this.permission = true, AgentVoiceRecording? recording})
-    : recording =
-          recording ??
-          const AgentVoiceRecording(
-            path: 'voice.m4a',
-            duration: Duration(seconds: 1),
-          );
+class _FakeVoiceService implements AgentVoiceClient {
+  _FakeVoiceService({
+    this.available = true,
+    List<Object>? transcripts,
+    this.failTts = false,
+  }) : transcripts = transcripts ?? <Object>[];
 
-  bool permission;
-  AgentVoiceRecording? recording;
-  Completer<AgentVoiceRecording?>? stopCompleter;
-  int permissionCalls = 0;
+  bool available;
+  bool failTts;
+  final List<Object> transcripts;
+  final spoken = <String>[];
+  final spokenLanguages = <AppLanguage>[];
+  VoidCallback? listeningComplete;
+  Completer<AgentVoiceTranscript>? stopCompleter;
+  int initializeCalls = 0;
   int startCalls = 0;
   int stopCalls = 0;
+  int cancelCalls = 0;
+  int stopSpeakingCalls = 0;
   int disposeCalls = 0;
+  bool _isListening = false;
 
   @override
-  Future<bool> hasPermission() async {
-    permissionCalls += 1;
-    return permission;
+  bool get speechAvailable => available;
+
+  @override
+  bool get isListening => _isListening;
+
+  @override
+  Future<bool> initializeSpeech(AppLanguage language) async {
+    initializeCalls += 1;
+    return available;
   }
 
   @override
-  Future<void> start() async {
+  Future<void> startListening({
+    required AppLanguage language,
+    VoidCallback? onListeningComplete,
+  }) async {
     startCalls += 1;
+    _isListening = true;
+    listeningComplete = onListeningComplete;
   }
 
   @override
-  Future<AgentVoiceRecording?> stop() {
+  Future<AgentVoiceTranscript> stopListening() async {
     stopCalls += 1;
-    return stopCompleter?.future ?? Future.value(recording);
+    _isListening = false;
+    if (stopCompleter != null) return stopCompleter!.future;
+    final outcome = transcripts.removeAt(0);
+    if (outcome is AgentException) throw outcome;
+    return outcome as AgentVoiceTranscript;
+  }
+
+  @override
+  Future<void> cancelListening() async {
+    cancelCalls += 1;
+    _isListening = false;
+  }
+
+  @override
+  Future<void> speak(String text, {required AppLanguage language}) async {
+    if (failTts) throw StateError('TTS failed');
+    spoken.add(text);
+    spokenLanguages.add(language);
+  }
+
+  @override
+  Future<void> stopSpeaking() async {
+    stopSpeakingCalls += 1;
   }
 
   @override
   Future<void> dispose() async {
     disposeCalls += 1;
-  }
-}
-
-class _FakeVoiceTranscriber implements AgentVoiceTranscriber {
-  _FakeVoiceTranscriber(this.outcomes);
-
-  final List<Object> outcomes;
-  final recordings = <AgentVoiceRecording>[];
-
-  @override
-  Future<AgentVoiceTranscript> transcribe(AgentVoiceRecording recording) async {
-    recordings.add(recording);
-    final outcome = outcomes.removeAt(0);
-    if (outcome is AgentException) throw outcome;
-    if (outcome is Completer<AgentVoiceTranscript>) return outcome.future;
-    return outcome as AgentVoiceTranscript;
-  }
-}
-
-class _FakeVoicePlayer implements AgentVoicePlayer {
-  final played = <AgentSpeech>[];
-  int stops = 0;
-  int disposes = 0;
-  bool failPlayback = false;
-
-  @override
-  Future<void> stop() async {
-    stops += 1;
-  }
-
-  @override
-  Future<void> play(AgentSpeech speech) async {
-    if (failPlayback) throw StateError('playback failed');
-    played.add(speech);
-  }
-
-  @override
-  Future<void> dispose() async {
-    disposes += 1;
   }
 }
 
@@ -151,9 +149,7 @@ Future<AgentController> _pumpAgent(
   WidgetTester tester, {
   required _UiFakeClient client,
   AppLanguage language = AppLanguage.english,
-  AgentVoiceRecorder? voiceRecorder,
-  AgentVoiceTranscriber? voiceTranscriber,
-  AgentVoicePlayer? voicePlayer,
+  AgentVoiceClient? voiceService,
 }) async {
   final languageController = LanguageController.forTesting();
   await languageController.setLanguage(language, syncToServer: false);
@@ -168,12 +164,7 @@ Future<AgentController> _pumpAgent(
     LanguageScope(
       controller: languageController,
       child: MaterialApp(
-        home: AgentScreen(
-          controller: controller,
-          voiceRecorder: voiceRecorder,
-          voiceTranscriber: voiceTranscriber,
-          voicePlayer: voicePlayer,
-        ),
+        home: AgentScreen(controller: controller, voiceService: voiceService),
       ),
     ),
   );
@@ -255,48 +246,36 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  // baqi saare existing tests yahan same rahenge...
+  testWidgets(
+    'mic button exists and device speech initializes only when used',
+    (tester) async {
+      final voice = _FakeVoiceService(available: false);
+      final client = _UiFakeClient([]);
+      await _pumpAgent(tester, client: client, voiceService: voice);
 
-  testWidgets('mic button exists and permission is requested only when used', (
+      expect(find.byKey(const ValueKey('agent_mic_button')), findsOneWidget);
+      expect(voice.initializeCalls, 0);
+
+      await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+      await tester.pump();
+
+      expect(voice.initializeCalls, 1);
+      expect(voice.startCalls, 0);
+      expect(find.byKey(const ValueKey('agent_composer')), findsOneWidget);
+    },
+  );
+
+  testWidgets('recording state is visible and stop sends transcript once', (
     tester,
   ) async {
-    final recorder = _FakeVoiceRecorder(permission: false);
-    final client = _UiFakeClient([]);
-    await _pumpAgent(
-      tester,
-      client: client,
-      voiceRecorder: recorder,
-      voiceTranscriber: _FakeVoiceTranscriber([]),
-      voicePlayer: _FakeVoicePlayer(),
-    );
-
-    expect(find.byKey(const ValueKey('agent_mic_button')), findsOneWidget);
-    expect(recorder.permissionCalls, 0);
-
-    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
-    await tester.pump();
-
-    expect(recorder.permissionCalls, 1);
-    expect(recorder.startCalls, 0);
-    expect(find.byKey(const ValueKey('agent_composer')), findsOneWidget);
-  });
-
-  testWidgets('recording state is visible and stop uploads exactly once', (
-    tester,
-  ) async {
-    final recorder = _FakeVoiceRecorder();
-    final stop = Completer<AgentVoiceRecording?>();
-    recorder.stopCompleter = stop;
-    final transcriber = _FakeVoiceTranscriber([
-      const AgentVoiceTranscript(text: 'Aaj mera next task kya hai?'),
-    ]);
+    final voice = _FakeVoiceService();
+    final stop = Completer<AgentVoiceTranscript>();
+    voice.stopCompleter = stop;
     final client = _UiFakeClient([_response()]);
     final controller = await _pumpAgent(
       tester,
       client: client,
-      voiceRecorder: recorder,
-      voiceTranscriber: transcriber,
-      voicePlayer: _FakeVoicePlayer(),
+      voiceService: voice,
     );
 
     await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
@@ -307,33 +286,32 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
     await tester.pump();
     expect(find.text('Transcribing'), findsOneWidget);
-    expect(recorder.stopCalls, 1);
+    expect(voice.stopCalls, 1);
 
-    stop.complete(recorder.recording);
+    stop.complete(
+      const AgentVoiceTranscript(text: 'Aaj mera next task kya hai?'),
+    );
     await tester.pumpAndSettle();
 
-    expect(transcriber.recordings, hasLength(1));
     expect(client.requests, hasLength(1));
     expect(client.requests.single.message, 'Aaj mera next task kya hai?');
-    expect(client.requests.single.requestSpeech, isTrue);
+    expect(client.requests.single.requestSpeech, isFalse);
+    expect(client.requests.single.toJson(), {
+      'message': 'Aaj mera next task kya hai?',
+    });
     expect(controller.messages.first.text, 'Aaj mera next task kya hai?');
   });
 
   testWidgets('empty/no-speech transcript does not send Agent request', (
     tester,
   ) async {
-    final recorder = _FakeVoiceRecorder();
-    final transcriber = _FakeVoiceTranscriber([
-      const AgentException('No speech', code: AgentErrorCode.noSpeech),
-    ]);
-    final client = _UiFakeClient([]);
-    await _pumpAgent(
-      tester,
-      client: client,
-      voiceRecorder: recorder,
-      voiceTranscriber: transcriber,
-      voicePlayer: _FakeVoicePlayer(),
+    final voice = _FakeVoiceService(
+      transcripts: [
+        const AgentException('No speech', code: AgentErrorCode.noSpeech),
+      ],
     );
+    final client = _UiFakeClient([]);
+    await _pumpAgent(tester, client: client, voiceService: voice);
 
     await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
     await tester.pump();
@@ -347,6 +325,11 @@ void main() {
   testWidgets('voice transcript receives normal Phase D confirmation UI', (
     tester,
   ) async {
+    final voice = _FakeVoiceService(
+      transcripts: [
+        const AgentVoiceTranscript(text: 'Aaj wali exercise skip kar do'),
+      ],
+    );
     final client = _UiFakeClient([
       _response(
         confirmationId: 'voice-confirm',
@@ -354,15 +337,7 @@ void main() {
       ),
     ]);
 
-    await _pumpAgent(
-      tester,
-      client: client,
-      voiceRecorder: _FakeVoiceRecorder(),
-      voiceTranscriber: _FakeVoiceTranscriber([
-        const AgentVoiceTranscript(text: 'Aaj wali exercise skip kar do'),
-      ]),
-      voicePlayer: _FakeVoicePlayer(),
-    );
+    await _pumpAgent(tester, client: client, voiceService: voice);
 
     await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
     await tester.pump();
@@ -372,7 +347,6 @@ void main() {
 
     expect(client.requests.single.toJson(), {
       'message': 'Aaj wali exercise skip kar do',
-      'voice': {'requestSpeech': true},
     });
 
     expect(
@@ -386,26 +360,13 @@ void main() {
   testWidgets('voice response speech plays without extra Agent request', (
     tester,
   ) async {
-    final player = _FakeVoicePlayer();
-    final client = _UiFakeClient([
-      _response(
-        speech: const {
-          'audioBase64': 'bXAz',
-          'contentType': 'audio/mpeg',
-          'format': 'mp3',
-          'model': 'fish-audio/s2.1-pro-free:free',
-        },
-      ),
-    ]);
-    await _pumpAgent(
-      tester,
-      client: client,
-      voiceRecorder: _FakeVoiceRecorder(),
-      voiceTranscriber: _FakeVoiceTranscriber([
-        const AgentVoiceTranscript(text: 'haan'),
-      ]),
-      voicePlayer: player,
+    final voice = _FakeVoiceService(
+      transcripts: [const AgentVoiceTranscript(text: 'haan')],
     );
+    final client = _UiFakeClient([
+      _response(reply: 'Aapka next task 4:00 PM par hai.'),
+    ]);
+    await _pumpAgent(tester, client: client, voiceService: voice);
 
     await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
     await tester.pump();
@@ -414,7 +375,179 @@ void main() {
 
     expect(client.requests, hasLength(1));
     expect(client.requests.single.message, 'haan');
-    expect(player.played, hasLength(1));
+    expect(client.requests.single.requestSpeech, isFalse);
+    expect(voice.spoken, ['Aapka next task 4:00 PM par hai.']);
+  });
+
+  testWidgets('spoken haan with pending confirmation uses backend flow', (
+    tester,
+  ) async {
+    final voice = _FakeVoiceService(
+      transcripts: [const AgentVoiceTranscript(text: 'haan')],
+    );
+    final client = _UiFakeClient([
+      _response(
+        confirmationId: 'confirm-voice-yes',
+        actionStatus: 'awaiting_confirmation',
+      ),
+      _response(reply: 'Action confirmed.', actionStatus: 'confirmed'),
+    ]);
+    final controller = await _pumpAgent(
+      tester,
+      client: client,
+      voiceService: voice,
+    );
+
+    await _sendFromComposer(tester, controller, client, 'Prepare skip');
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pumpAndSettle();
+
+    expect(client.requests.last.toJson(), {
+      'sessionId': 's-ui',
+      'message': 'haan',
+    });
+    expect(controller.pendingConfirmation, isNull);
+  });
+
+  testWidgets('spoken haan without pending confirmation stays normal text', (
+    tester,
+  ) async {
+    final voice = _FakeVoiceService(
+      transcripts: [const AgentVoiceTranscript(text: 'haan')],
+    );
+    final client = _UiFakeClient([
+      _response(reply: 'What should I help with?'),
+    ]);
+    final controller = await _pumpAgent(
+      tester,
+      client: client,
+      voiceService: voice,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pumpAndSettle();
+
+    expect(client.requests.single.toJson(), {'message': 'haan'});
+    expect(controller.pendingConfirmation, isNull);
+  });
+
+  testWidgets('cancel transcript is sent literally to existing Agent flow', (
+    tester,
+  ) async {
+    final voice = _FakeVoiceService(
+      transcripts: [const AgentVoiceTranscript(text: 'nahi')],
+    );
+    final client = _UiFakeClient([
+      _response(
+        confirmationId: 'confirm-voice-no',
+        actionStatus: 'awaiting_confirmation',
+      ),
+      _response(reply: 'Action cancelled.', actionStatus: 'cancelled'),
+    ]);
+    final controller = await _pumpAgent(
+      tester,
+      client: client,
+      voiceService: voice,
+    );
+
+    await _sendFromComposer(tester, controller, client, 'Prepare skip');
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pumpAndSettle();
+
+    expect(client.requests.last.toJson(), {
+      'sessionId': 's-ui',
+      'message': 'nahi',
+    });
+    expect(controller.pendingConfirmation, isNull);
+  });
+
+  testWidgets('voice navigation renders only from AgentResponse navigation', (
+    tester,
+  ) async {
+    final voice = _FakeVoiceService(
+      transcripts: [const AgentVoiceTranscript(text: 'care plans kholo')],
+    );
+    final client = _UiFakeClient([
+      _response(
+        reply: 'I can open care plans.',
+        navigation: {'target': 'care_plans', 'params': <String, String>{}},
+      ),
+    ]);
+    await _pumpAgent(tester, client: client, voiceService: voice);
+
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pumpAndSettle();
+
+    expect(client.requests.single.message, 'care plans kholo');
+    expect(find.text('Open'), findsOneWidget);
+  });
+
+  testWidgets('arbitrary spoken route cannot create local navigation', (
+    tester,
+  ) async {
+    final voice = _FakeVoiceService(
+      transcripts: [const AgentVoiceTranscript(text: '/admin/delete')],
+    );
+    final client = _UiFakeClient([
+      _response(
+        reply: 'I cannot open that.',
+        navigation: {'target': '/admin/delete', 'params': <String, String>{}},
+      ),
+    ]);
+    await _pumpAgent(tester, client: client, voiceService: voice);
+
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pumpAndSettle();
+
+    expect(client.requests.single.toJson(), {'message': '/admin/delete'});
+    expect(find.text('Open'), findsNothing);
+  });
+
+  testWidgets('TTS failure leaves Agent action state unchanged', (
+    tester,
+  ) async {
+    final voice = _FakeVoiceService(
+      transcripts: [
+        const AgentVoiceTranscript(text: 'aaj wali exercise skip kar do'),
+      ],
+      failTts: true,
+    );
+    final client = _UiFakeClient([
+      _response(
+        confirmationId: 'confirm-tts-failure',
+        actionStatus: 'awaiting_confirmation',
+      ),
+    ]);
+    final controller = await _pumpAgent(
+      tester,
+      client: client,
+      voiceService: voice,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pumpAndSettle();
+
+    expect(client.requests, hasLength(1));
+    expect(
+      controller.pendingConfirmation?.confirmationId,
+      'confirm-tts-failure',
+    );
+    expect(
+      find.text('The answer is shown, but audio playback failed.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('current confirmation card binds controls to its id', (
