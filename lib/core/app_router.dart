@@ -29,7 +29,16 @@ abstract final class AppRouter {
     var name = settings.name ?? AppRoutes.landing;
     final session = AuthSession.instance;
 
-    if (!AppRoutes.publicRoutes.contains(name) &&
+    // An authenticated user must never fall back into Landing/Auth simply
+    // because Android Back or a stale route tries to open a public screen.
+    //
+    // Explicit logout clears AuthSession before navigating to Landing, so
+    // logout behavior remains unchanged.
+    if (session.isAuthenticated && AppRoutes.publicRoutes.contains(name)) {
+      name = session.needsOnboarding
+          ? AppRoutes.onboarding
+          : AppRoutes.dashboard;
+    } else if (!AppRoutes.publicRoutes.contains(name) &&
         name != AppRoutes.onboarding &&
         !session.canAccessApp) {
       name = AppRoutes.auth;

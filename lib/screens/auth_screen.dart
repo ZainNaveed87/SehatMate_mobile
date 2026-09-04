@@ -6,6 +6,7 @@ import '../localization/app_language.dart';
 import '../localization/language_controller.dart';
 import '../localization/language_scope.dart';
 import '../services/auth_service.dart';
+import 'forgot_password_screen.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/ui.dart';
 
@@ -68,6 +69,28 @@ class _AuthScreenState extends State<AuthScreen>
     return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim());
   }
 
+  String _googleAccountSignInMessage() {
+    return switch (context.appLanguage) {
+      AppLanguage.english =>
+        'This account uses Google Sign-In. Please continue with Google.',
+      AppLanguage.urdu =>
+        'یہ اکاؤنٹ گوگل سائن اِن سے بنایا گیا ہے۔ براہِ کرم گوگل کے ذریعے سائن اِن کریں۔',
+      AppLanguage.romanUrdu =>
+        'Yeh account Google Sign-In se bana hai. Please Google se sign in karein.',
+    };
+  }
+
+  String _passwordAccountSignInMessage() {
+    return switch (context.appLanguage) {
+      AppLanguage.english =>
+        'This account uses email and password. Please sign in using your password.',
+      AppLanguage.urdu =>
+        'یہ اکاؤنٹ ای میل اور پاس ورڈ سے بنایا گیا ہے۔ براہِ کرم اپنے پاس ورڈ سے سائن اِن کریں۔',
+      AppLanguage.romanUrdu =>
+        'Yeh account email aur password se bana hai. Please password se sign in karein.',
+    };
+  }
+
   String _localizedAuthError(AuthException error) {
     final message = error.message.trim();
 
@@ -77,6 +100,14 @@ class _AuthScreenState extends State<AuthScreen>
 
       case 'An account with this email already exists.':
         return context.tr('auth_account_exists');
+
+      case 'This account uses Google Sign-In. Please continue with Google.':
+      case 'An account with this email already exists and uses Google Sign-In. Please continue with Google.':
+        return _googleAccountSignInMessage();
+
+      case 'This account uses email and password. Please sign in using your password.':
+      case 'An account with this email already exists. Please sign in using your password.':
+        return _passwordAccountSignInMessage();
 
       case 'Google Sign-In failed. Please try again.':
         return context.tr('google_sign_in_failed');
@@ -479,10 +510,17 @@ class _AuthScreenState extends State<AuthScreen>
               InkWell(
                 onTap: _submitting
                     ? null
-                    : () {
-                        showDemoMessage(
-                          context,
-                          context.tr('password_reset_coming'),
+                    : () async {
+                        final enteredEmail = _email.text.trim();
+
+                        await Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => ForgotPasswordScreen(
+                              initialEmail: _validEmail(enteredEmail)
+                                  ? enteredEmail
+                                  : null,
+                            ),
+                          ),
                         );
                       },
                 child: Text(

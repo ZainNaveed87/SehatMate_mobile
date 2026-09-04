@@ -55,6 +55,12 @@ class GoogleAuthResult {
   final bool isNewUser;
 }
 
+class PasswordResetRequestResult {
+  const PasswordResetRequestResult({required this.cooldownSeconds});
+
+  final int cooldownSeconds;
+}
+
 class PatientProfile {
   const PatientProfile({
     required this.usingFor,
@@ -146,6 +152,8 @@ class AuthSession extends ChangeNotifier {
 
   static const String _googleWebClientId = String.fromEnvironment(
     'GOOGLE_WEB_CLIENT_ID',
+    defaultValue:
+        '333869910734-2ju6rlcq5ha1mohotb782a8l8r8pq712.apps.googleusercontent.com',
   );
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
@@ -228,6 +236,54 @@ class AuthSession extends ChangeNotifier {
     });
 
     return _saveSession(data);
+  }
+
+  Future<PasswordResetRequestResult> requestPasswordReset({
+    required String email,
+  }) async {
+    final data = await _post('/auth/forgot-password', {'email': email.trim()});
+
+    final rawCooldown = data['cooldownSeconds'];
+
+    final cooldown = rawCooldown is num
+        ? rawCooldown.toInt()
+        : int.tryParse(rawCooldown?.toString() ?? '') ?? 60;
+
+    return PasswordResetRequestResult(
+      cooldownSeconds: cooldown.clamp(0, 300).toInt(),
+    );
+  }
+
+  Future<String> verifyPasswordResetCode({
+    required String email,
+    required String code,
+  }) async {
+    final data = await _post('/auth/verify-reset-code', {
+      'email': email.trim(),
+      'code': code.trim(),
+    });
+
+    final resetToken = data['resetToken']?.toString() ?? '';
+
+    if (resetToken.isEmpty) {
+      throw const AuthException(
+        'The server did not return a valid password reset session.',
+      );
+    }
+
+    return resetToken;
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    await _post('/auth/reset-password', {
+      'email': email.trim(),
+      'resetToken': resetToken,
+      'newPassword': newPassword,
+    });
   }
 
   Future<GoogleAuthResult> loginWithGoogle() async {

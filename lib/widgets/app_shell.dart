@@ -12,6 +12,44 @@ import 'brand_logo.dart';
 
 const _logoutAction = '__logout__';
 
+/// Keeps Dashboard as the stable authenticated root.
+///
+/// Top-level shell navigation should not continuously replace the only route
+/// in the Navigator. Otherwise Android Back can exhaust the stack and make
+/// navigation look like the user was signed out.
+///
+/// Result:
+///
+/// Dashboard -> Care Plans -> Back -> Dashboard
+///
+/// Dashboard -> Care Plans -> Calendar -> Back -> Dashboard
+///
+/// Detail-screen navigation can still use its normal local route stack.
+void _navigateShellRoute(
+  BuildContext context, {
+  required String currentRoute,
+  required String route,
+}) {
+  if (route == currentRoute) {
+    return;
+  }
+
+  if (route == AppRoutes.dashboard) {
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.dashboard,
+      (_) => false,
+    );
+    return;
+  }
+
+  Navigator.pushNamedAndRemoveUntil(
+    context,
+    route,
+    (candidate) => candidate.settings.name == AppRoutes.dashboard,
+  );
+}
+
 class ShellNavItem {
   const ShellNavItem(
     this.route,
@@ -75,8 +113,7 @@ class AppShell extends StatelessWidget {
   final Widget child;
 
   void _go(BuildContext context, String route) {
-    if (route == currentRoute) return;
-    Navigator.pushReplacementNamed(context, route);
+    _navigateShellRoute(context, currentRoute: currentRoute, route: route);
   }
 
   @override
@@ -163,6 +200,9 @@ AgentScreenContext? _agentContextForRoute(String route) {
   if (route == AppRoutes.careGaps) {
     return const AgentScreenContext(screenId: 'care_gaps');
   }
+  if (route == AppRoutes.family) {
+    return const AgentScreenContext(screenId: 'family_care');
+  }
   if (route == AppRoutes.routinePreferences) {
     return const AgentScreenContext(screenId: 'routine_settings');
   }
@@ -192,6 +232,13 @@ AgentScreenContext? _agentContextForRoute(String route) {
     return AgentScreenContext(
       screenId: 'care_gap_detail',
       entity: AgentEntityContext(type: 'care_gap', id: id),
+    );
+  }
+  if (route.startsWith('${AppRoutes.family}/')) {
+    final id = route.split('/').last;
+    return AgentScreenContext(
+      screenId: 'family_member_detail',
+      entity: AgentEntityContext(type: 'family_member', id: id),
     );
   }
 
@@ -552,8 +599,11 @@ class _MobileNavigation extends StatelessWidget {
             ),
             Expanded(
               child: PopupMenuButton<String>(
-                onSelected: (route) =>
-                    Navigator.pushReplacementNamed(context, route),
+                onSelected: (route) => _navigateShellRoute(
+                  context,
+                  currentRoute: currentRoute,
+                  route: route,
+                ),
                 itemBuilder: (_) => [
                   PopupMenuItem(
                     value: AppRoutes.teachBack,
@@ -628,7 +678,11 @@ class _MobileItem extends StatelessWidget {
     final color = active ? AppColors.primary : AppColors.muted;
 
     return InkWell(
-      onTap: () => Navigator.pushReplacementNamed(context, item.route),
+      onTap: () => _navigateShellRoute(
+        context,
+        currentRoute: currentRoute,
+        route: item.route,
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 9),
         child: Column(

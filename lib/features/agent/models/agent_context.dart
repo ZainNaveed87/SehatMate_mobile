@@ -6,7 +6,7 @@ class AgentEntityContext {
   final String type;
   final String id;
 
-  static const supportedTypes = {'care_plan', 'care_gap'};
+  static const supportedTypes = {'care_plan', 'care_gap', 'family_member'};
 
   bool get isValid =>
       supportedTypes.contains(type) && isSafeAgentIdentifier(id);
@@ -35,6 +35,11 @@ class AgentScreenContext {
     'simulation',
     'care_gaps',
     'care_gap_detail',
+    'family_care',
+    'family_member_detail',
+    'family_member_care_plans',
+    'family_member_care_gaps',
+    'family_member_simulation',
     'routine_settings',
     'profile',
     'documents',

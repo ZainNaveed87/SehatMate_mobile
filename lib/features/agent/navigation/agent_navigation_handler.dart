@@ -41,6 +41,13 @@ class AgentNavigationHandler {
       'gap_id',
       'id',
     ]);
+    final relationshipId = _firstParam(params, const [
+      'relationshipId',
+      'relationship_id',
+      'familyMemberId',
+      'family_member_id',
+      'id',
+    ]);
 
     switch (navigation.target) {
       case 'home':
@@ -61,6 +68,14 @@ class AgentNavigationHandler {
       case 'care_gap_detail':
         if (!_validId(careGapId)) return null;
         return _ResolvedRoute(AppRoutes.careGap(careGapId!));
+      case 'family_care':
+        return const _ResolvedRoute(AppRoutes.family);
+      case 'family_member_detail':
+      case 'family_member_care_plans':
+      case 'family_member_care_gaps':
+      case 'family_member_simulation':
+        if (!_validId(relationshipId)) return null;
+        return _ResolvedRoute(AppRoutes.caregiver(relationshipId!));
       case 'routine_settings':
         return const _ResolvedRoute(AppRoutes.routinePreferences);
       case 'profile':
