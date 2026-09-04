@@ -6072,6 +6072,64 @@ class AppStrings {
       AppLanguage.urdu: 'دیکھ رہا ہے...',
       AppLanguage.romanUrdu: 'Check kar raha hai...',
     },
+    'agent_review_change': {
+      AppLanguage.english: 'Review change',
+      AppLanguage.urdu: 'تبدیلی کا جائزہ',
+      AppLanguage.romanUrdu: 'Tabdeeli review karein',
+    },
+    'agent_review_reminder_time': {
+      AppLanguage.english: 'Review reminder time',
+      AppLanguage.urdu: 'یاد دہانی کے وقت کا جائزہ',
+      AppLanguage.romanUrdu: 'Reminder time review karein',
+    },
+    'agent_nothing_changed_yet': {
+      AppLanguage.english: 'Nothing has been changed yet.',
+      AppLanguage.urdu: 'ابھی کچھ تبدیل نہیں ہوا۔',
+      AppLanguage.romanUrdu: 'Abhi kuch change nahi hua.',
+    },
+    'agent_schedule_medical_recheck': {
+      AppLanguage.english:
+          'Verified medical timing will be checked again on the server before this reminder is saved.',
+      AppLanguage.urdu:
+          'یہ reminder محفوظ ہونے سے پہلے server verified medical timing دوبارہ check کرے گا۔',
+      AppLanguage.romanUrdu:
+          'Yeh reminder save hone se pehle server verified medical timing dobara check karega.',
+    },
+    'agent_confirm_action': {
+      AppLanguage.english: 'Confirm',
+      AppLanguage.urdu: 'تصدیق کریں',
+      AppLanguage.romanUrdu: 'Confirm karein',
+    },
+    'agent_action_confirmed': {
+      AppLanguage.english: 'Action confirmed',
+      AppLanguage.urdu: 'عمل کی تصدیق ہو گئی',
+      AppLanguage.romanUrdu: 'Action confirm ho gaya',
+    },
+    'agent_action_cancelled': {
+      AppLanguage.english: 'Action cancelled',
+      AppLanguage.urdu: 'عمل منسوخ ہو گیا',
+      AppLanguage.romanUrdu: 'Action cancel ho gaya',
+    },
+    'agent_confirmation_expired': {
+      AppLanguage.english: 'Confirmation expired',
+      AppLanguage.urdu: 'تصدیق expire ہو گئی',
+      AppLanguage.romanUrdu: 'Confirmation expire ho gayi',
+    },
+    'agent_action_stale': {
+      AppLanguage.english: 'Action changed',
+      AppLanguage.urdu: 'عمل تبدیل ہو گیا',
+      AppLanguage.romanUrdu: 'Action change ho gaya',
+    },
+    'agent_action_safety_rejection': {
+      AppLanguage.english: 'Safety check rejected this change',
+      AppLanguage.urdu: 'Safety check نے یہ تبدیلی reject کر دی',
+      AppLanguage.romanUrdu: 'Safety check ne yeh tabdeeli reject kar di',
+    },
+    'agent_already_awaiting_confirmation': {
+      AppLanguage.english: 'Confirm or cancel the pending action first.',
+      AppLanguage.urdu: 'پہلے pending action confirm یا cancel کریں۔',
+      AppLanguage.romanUrdu: 'Pehle pending action confirm ya cancel karein.',
+    },
     'agent_sign_in_required_title': {
       AppLanguage.english: 'Sign in to use SehatMate AI',
       AppLanguage.urdu: 'صحت میٹ اے آئی استعمال کرنے کے لیے سائن اِن کریں',

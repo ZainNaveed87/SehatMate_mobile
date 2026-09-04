@@ -75,7 +75,11 @@ class _AgentScreenState extends State<AgentScreen> {
 
   Future<void> _send([String? override]) async {
     final text = (override ?? _composer.text).trim();
-    if (text.isEmpty || _controller.loading) return;
+    if (text.isEmpty ||
+        _controller.loading ||
+        _controller.confirmationLoading) {
+      return;
+    }
     _composer.clear();
     await _controller.sendText(text);
   }
@@ -106,7 +110,10 @@ class _AgentScreenState extends State<AgentScreen> {
                 _Composer(
                   controller: _composer,
                   focusNode: _focus,
-                  loading: _controller.loading || !_controller.initialized,
+                  loading:
+                      _controller.loading ||
+                      _controller.confirmationLoading ||
+                      !_controller.initialized,
                   onSend: () => _send(),
                 ),
             ],
@@ -118,6 +125,17 @@ class _AgentScreenState extends State<AgentScreen> {
 
   Widget _conversation() {
     final messages = _controller.messages;
+    final pendingConfirmationId =
+        _controller.pendingConfirmation?.confirmationId;
+    String? latestActiveConfirmationMessageId;
+    if (pendingConfirmationId != null) {
+      for (final message in messages) {
+        if (message.author == AgentMessageAuthor.assistant &&
+            message.confirmation?.confirmationId == pendingConfirmationId) {
+          latestActiveConfirmationMessageId = message.id;
+        }
+      }
+    }
 
     return ListView(
       controller: _scroll,
@@ -135,6 +153,11 @@ class _AgentScreenState extends State<AgentScreen> {
           (message) => _MessageBubble(
             message: message,
             navigationHandler: widget.navigationHandler,
+            confirmationLoading: _controller.confirmationLoading,
+            currentConfirmationId: pendingConfirmationId,
+            activeConfirmationMessageId: latestActiveConfirmationMessageId,
+            onConfirm: _controller.confirmPendingAction,
+            onCancel: _controller.cancelPendingAction,
           ),
         ),
         if (_controller.loading || _controller.initializing)
@@ -290,10 +313,20 @@ class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.message,
     required this.navigationHandler,
+    required this.confirmationLoading,
+    required this.currentConfirmationId,
+    required this.activeConfirmationMessageId,
+    required this.onConfirm,
+    required this.onCancel,
   });
 
   final AgentChatMessage message;
   final AgentNavigationHandler navigationHandler;
+  final bool confirmationLoading;
+  final String? currentConfirmationId;
+  final String? activeConfirmationMessageId;
+  final ValueChanged<String> onConfirm;
+  final ValueChanged<String> onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -355,8 +388,114 @@ class _MessageBubble extends StatelessWidget {
                 label: Text(context.tr('open')),
               ),
             ],
+            if (!isUser && message.confirmation != null) ...[
+              const SizedBox(height: 10),
+              _ConfirmationCard(
+                messageId: message.id,
+                confirmationId: message.confirmation!.confirmationId,
+                message: message.confirmation!.message,
+                kind: message.confirmation!.kind,
+                active:
+                    message.confirmation!.confirmationId ==
+                        currentConfirmationId &&
+                    message.id == activeConfirmationMessageId,
+                loading: confirmationLoading,
+                onConfirm: onConfirm,
+                onCancel: onCancel,
+              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ConfirmationCard extends StatelessWidget {
+  const _ConfirmationCard({
+    required this.messageId,
+    required this.confirmationId,
+    required this.message,
+    required this.kind,
+    required this.active,
+    required this.loading,
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  final String messageId;
+  final String confirmationId;
+  final String message;
+  final String kind;
+  final bool active;
+  final bool loading;
+  final ValueChanged<String> onConfirm;
+  final ValueChanged<String> onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleKey = kind == 'schedule_time'
+        ? 'agent_review_reminder_time'
+        : 'agent_review_change';
+    return Container(
+      key: ValueKey('agent_confirmation_card_${messageId}_$confirmationId'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr(titleKey),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text(message, style: const TextStyle(height: 1.35)),
+          const SizedBox(height: 6),
+          Text(
+            context.tr('agent_nothing_changed_yet'),
+            style: const TextStyle(color: AppColors.muted, fontSize: 13),
+          ),
+          if (kind == 'schedule_time') ...[
+            const SizedBox(height: 6),
+            Text(
+              context.tr('agent_schedule_medical_recheck'),
+              style: const TextStyle(color: AppColors.muted, fontSize: 13),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                key: ValueKey('agent_cancel_${messageId}_$confirmationId'),
+                onPressed: active && !loading
+                    ? () => onCancel(confirmationId)
+                    : null,
+                child: Text(context.tr('cancel')),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                key: ValueKey('agent_confirm_${messageId}_$confirmationId'),
+                onPressed: active && !loading
+                    ? () => onConfirm(confirmationId)
+                    : null,
+                icon: loading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check, size: 17),
+                label: Text(context.tr('agent_confirm_action')),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

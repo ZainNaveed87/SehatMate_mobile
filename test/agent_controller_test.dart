@@ -18,6 +18,7 @@ class _FakeAgentClient implements AgentClient {
   Future<AgentResponse> send(AgentRequest request) async {
     requests.add(request);
     final outcome = outcomes.removeAt(0);
+    if (outcome is Completer<AgentResponse>) return outcome.future;
     if (outcome is AgentException) throw outcome;
     return outcome as AgentResponse;
   }
@@ -62,6 +63,31 @@ void main() {
       'language': 'en',
       'reply': reply,
       'navigation': null,
+      'referencedEntities': [],
+    });
+  }
+
+  AgentResponse confirmationResponse(
+    String sessionId, {
+    String actionStatus = 'awaiting_confirmation',
+    String? confirmationId = 'confirm-1',
+    String kind = 'task_outcome',
+    String message = 'Mark "Morning medicine reminder" as completed.',
+  }) {
+    return AgentResponse.fromJson({
+      'success': true,
+      'sessionId': sessionId,
+      'language': 'en',
+      'reply': 'I prepared this change for your review.',
+      'navigation': null,
+      'confirmation': confirmationId == null
+          ? null
+          : {
+              'confirmationId': confirmationId,
+              'kind': kind,
+              'message': message,
+            },
+      'actionStatus': actionStatus,
       'referencedEntities': [],
     });
   }
@@ -191,5 +217,189 @@ void main() {
 
     expect(client.requests, hasLength(1));
     expect(client.requests.single.message, 'Hello');
+  });
+
+  test(
+    'controller tracks pending action state from structured response',
+    () async {
+      final client = _FakeAgentClient([confirmationResponse('session-d')]);
+      final controller = AgentController(client: client);
+
+      await controller.initialize();
+      await controller.sendText('Mark next task done');
+
+      expect(controller.pendingConfirmation?.confirmationId, 'confirm-1');
+      expect(controller.messages.last.confirmation?.kind, 'task_outcome');
+    },
+  );
+
+  test(
+    'successful confirmation sends only confirmation payload and clears state',
+    () async {
+      final client = _FakeAgentClient([
+        confirmationResponse('session-e'),
+        confirmationResponse(
+          'session-e',
+          actionStatus: 'confirmed',
+          confirmationId: null,
+        ),
+      ]);
+      final controller = AgentController(client: client);
+
+      await controller.initialize();
+      await controller.sendText('Mark next task done');
+      await controller.confirmPendingAction('confirm-1');
+
+      expect(client.requests.last.toJson(), {
+        'sessionId': 'session-e',
+        'confirmation': {'confirmationId': 'confirm-1', 'decision': 'confirm'},
+      });
+      expect(controller.pendingConfirmation, isNull);
+      expect(controller.messages.last.actionStatus, 'confirmed');
+    },
+  );
+
+  test('cancellation sends cancel decision and clears state', () async {
+    final client = _FakeAgentClient([
+      confirmationResponse('session-f'),
+      confirmationResponse(
+        'session-f',
+        actionStatus: 'cancelled',
+        confirmationId: null,
+      ),
+    ]);
+    final controller = AgentController(client: client);
+
+    await controller.initialize();
+    await controller.sendText('Skip next task');
+    await controller.cancelPendingAction('confirm-1');
+
+    expect(client.requests.last.toJson()['confirmation'], {
+      'confirmationId': 'confirm-1',
+      'decision': 'cancel',
+    });
+    expect(controller.pendingConfirmation, isNull);
+  });
+
+  test('failed confirmation preserves pending state for retry', () async {
+    final client = _FakeAgentClient([
+      confirmationResponse('session-g'),
+      const AgentException('Network failed', code: AgentErrorCode.network),
+    ]);
+    final controller = AgentController(client: client);
+
+    await controller.initialize();
+    await controller.sendText('Mark next task done');
+    await controller.confirmPendingAction('confirm-1');
+
+    expect(controller.pendingConfirmation?.confirmationId, 'confirm-1');
+    expect(controller.messages.last.failed, isTrue);
+  });
+
+  test(
+    'stale confirmation id cannot confirm or cancel newer pending action',
+    () async {
+      final client = _FakeAgentClient([
+        confirmationResponse('session-i', confirmationId: 'confirm-a'),
+        confirmationResponse(
+          'session-i',
+          confirmationId: 'confirm-b',
+          message: 'Mark "Evening walk" as skipped.',
+        ),
+        confirmationResponse(
+          'session-i',
+          actionStatus: 'confirmed',
+          confirmationId: null,
+        ),
+      ]);
+      final controller = AgentController(client: client);
+
+      await controller.initialize();
+      await controller.sendText('Prepare A');
+      await controller.sendText('Prepare B');
+
+      expect(controller.pendingConfirmation?.confirmationId, 'confirm-b');
+      await controller.confirmPendingAction('confirm-a');
+      await controller.cancelPendingAction('confirm-a');
+
+      expect(client.requests, hasLength(2));
+      expect(controller.pendingConfirmation?.confirmationId, 'confirm-b');
+
+      await controller.confirmPendingAction('confirm-b');
+
+      expect(client.requests.last.toJson()['confirmation'], {
+        'confirmationId': 'confirm-b',
+        'decision': 'confirm',
+      });
+      expect(controller.pendingConfirmation, isNull);
+    },
+  );
+
+  test(
+    'normal sends and retries are blocked only while confirmation is in flight',
+    () async {
+      final completer = Completer<AgentResponse>();
+      final client = _FakeAgentClient([
+        confirmationResponse('session-j', confirmationId: 'confirm-a'),
+        const AgentException(
+          'Normal request failed',
+          code: AgentErrorCode.network,
+        ),
+        completer,
+      ]);
+      final controller = AgentController(client: client);
+
+      await controller.initialize();
+      await controller.sendText('Prepare A');
+      await controller.sendText('Safe normal read while pending');
+      expect(controller.lastFailedText, 'Safe normal read while pending');
+
+      final confirm = controller.confirmPendingAction('confirm-a');
+      expect(controller.confirmationLoading, isTrue);
+      await controller.sendText('Blocked while confirmation in flight');
+      await controller.retryLast();
+
+      expect(client.requests, hasLength(3));
+
+      completer.complete(
+        confirmationResponse(
+          'session-j',
+          actionStatus: 'confirmed',
+          confirmationId: null,
+        ),
+      );
+      await confirm;
+
+      expect(controller.confirmationLoading, isFalse);
+      expect(client.requests, hasLength(3));
+    },
+  );
+
+  test('confirmation double tap is ignored while loading', () async {
+    final completer = Completer<AgentResponse>();
+    final client = _FakeAgentClient([
+      confirmationResponse('session-h'),
+      completer,
+    ]);
+    final controller = AgentController(client: client);
+
+    await controller.initialize();
+    await controller.sendText('Mark next task done');
+    final first = controller.confirmPendingAction('confirm-1');
+    final second = controller.confirmPendingAction('confirm-1');
+
+    expect(controller.confirmationLoading, isTrue);
+    expect(client.requests, hasLength(2));
+
+    completer.complete(
+      confirmationResponse(
+        'session-h',
+        actionStatus: 'confirmed',
+        confirmationId: null,
+      ),
+    );
+    await Future.wait([first, second]);
+
+    expect(client.requests, hasLength(2));
   });
 }

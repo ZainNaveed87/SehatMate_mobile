@@ -42,18 +42,22 @@ class AgentController extends ChangeNotifier {
   String? _lastFailedText;
   bool _loading = false;
   bool _initializing = false;
+  bool _confirmationLoading = false;
   bool _initialized = false;
   AgentException? _error;
+  AgentConfirmation? _pendingConfirmation;
   Future<void>? _initializationFuture;
   int _idSeed = 0;
 
   List<AgentChatMessage> get messages => List.unmodifiable(_messages);
   bool get loading => _loading;
+  bool get confirmationLoading => _confirmationLoading;
   bool get initializing => _initializing;
   bool get initialized => _initialized;
   AgentException? get error => _error;
   String? get sessionId => _sessionId;
   String? get lastFailedText => _lastFailedText;
+  AgentConfirmation? get pendingConfirmation => _pendingConfirmation;
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -74,13 +78,18 @@ class AgentController extends ChangeNotifier {
 
   Future<void> sendText(String text) async {
     final trimmed = text.trim();
-    if (_loading || trimmed.isEmpty) return;
+    if (_loading || _confirmationLoading || trimmed.isEmpty) return;
     await _send(trimmed, appendUserMessage: true);
   }
 
   Future<void> retryLast() async {
     final text = _lastFailedText;
-    if (_loading || text == null || text.trim().isEmpty) return;
+    if (_loading ||
+        _confirmationLoading ||
+        text == null ||
+        text.trim().isEmpty) {
+      return;
+    }
     _messages.removeWhere((message) => message.failed);
     notifyListeners();
     await _send(text, appendUserMessage: false);
@@ -116,8 +125,11 @@ class AgentController extends ChangeNotifier {
           text: response.reply,
           createdAt: DateTime.now(),
           navigation: response.navigation,
+          confirmation: response.confirmation,
+          actionStatus: response.actionStatus,
         ),
       );
+      _applyActionState(response);
     } on AgentException catch (exception) {
       _error = exception;
       _lastFailedText = text;
@@ -150,6 +162,83 @@ class AgentController extends ChangeNotifier {
       await _sessionStore.clear();
 
       return _client.send(AgentRequest(message: text, context: context));
+    }
+  }
+
+  Future<void> confirmPendingAction(String confirmationId) =>
+      _sendConfirmationDecision(confirmationId, 'confirm');
+
+  Future<void> cancelPendingAction(String confirmationId) =>
+      _sendConfirmationDecision(confirmationId, 'cancel');
+
+  Future<void> _sendConfirmationDecision(
+    String confirmationId,
+    String decision,
+  ) async {
+    final pending = _pendingConfirmation;
+    if (_loading || _confirmationLoading || pending == null) return;
+    if (pending.confirmationId != confirmationId.trim()) return;
+    final sessionId = _sessionId;
+    if (sessionId == null || sessionId.trim().isEmpty) return;
+
+    _confirmationLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _client.send(
+        AgentRequest.confirmation(
+          sessionId: sessionId,
+          confirmationId: confirmationId,
+          confirmationDecision: decision,
+        ),
+      );
+      _sessionId = response.sessionId;
+      await _sessionStore.save(response.sessionId);
+      _append(
+        AgentChatMessage(
+          id: _nextId(),
+          author: AgentMessageAuthor.assistant,
+          text: response.reply,
+          createdAt: DateTime.now(),
+          confirmation: response.confirmation,
+          actionStatus: response.actionStatus,
+        ),
+      );
+      _applyActionState(response, completedConfirmationId: confirmationId);
+    } on AgentException catch (exception) {
+      _error = exception;
+      _append(
+        AgentChatMessage(
+          id: _nextId(),
+          author: AgentMessageAuthor.assistant,
+          text: exception.message,
+          createdAt: DateTime.now(),
+          failed: true,
+        ),
+      );
+    } finally {
+      _confirmationLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void _applyActionState(
+    AgentResponse response, {
+    String? completedConfirmationId,
+  }) {
+    if (response.actionStatus == 'awaiting_confirmation' &&
+        response.confirmation != null) {
+      _pendingConfirmation = response.confirmation;
+      return;
+    }
+    if (response.actionStatus == 'confirmed' ||
+        response.actionStatus == 'cancelled' ||
+        response.actionStatus == 'rejected') {
+      if (completedConfirmationId == null ||
+          _pendingConfirmation?.confirmationId == completedConfirmationId) {
+        _pendingConfirmation = null;
+      }
     }
   }
 

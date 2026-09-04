@@ -29,6 +29,61 @@ void main() {
       expect(response.fallbackCode, isNull);
     });
 
+    test('parse valid confirmation response', () {
+      final response = AgentResponse.fromJson(const {
+        'success': true,
+        'sessionId': 's1',
+        'language': 'roman_ur',
+        'reply': 'Review karein. Abhi kuch change nahi hua.',
+        'navigation': null,
+        'confirmation': {
+          'confirmationId': 'confirm-1',
+          'kind': 'task_outcome',
+          'message': 'Mark "Morning medicine reminder" as completed.',
+          'expiresAt': '2999-01-01T00:00:00.000Z',
+        },
+        'actionStatus': 'awaiting_confirmation',
+        'referencedEntities': [],
+      });
+
+      expect(response.confirmation?.confirmationId, 'confirm-1');
+      expect(response.confirmation?.kind, 'task_outcome');
+      expect(response.actionStatus, 'awaiting_confirmation');
+    });
+
+    test('awaiting confirmation without valid confirmation fails closed', () {
+      expect(
+        () => AgentResponse.fromJson(const {
+          'success': true,
+          'sessionId': 's1',
+          'language': 'en',
+          'reply': 'I prepared this for review.',
+          'navigation': null,
+          'confirmation': {
+            'confirmationId': '',
+            'kind': 'set_task_outcome',
+            'message': '',
+          },
+          'actionStatus': 'awaiting_confirmation',
+          'referencedEntities': [],
+        }),
+        throwsFormatException,
+      );
+      expect(
+        () => AgentResponse.fromJson(const {
+          'success': true,
+          'sessionId': 's1',
+          'language': 'en',
+          'reply': 'I prepared this for review.',
+          'navigation': null,
+          'confirmation': null,
+          'actionStatus': 'awaiting_confirmation',
+          'referencedEntities': [],
+        }),
+        throwsFormatException,
+      );
+    });
+
     test('parse optional fallback code without surfacing it as UI text', () {
       final response = AgentResponse.fromJson(const {
         'success': true,
@@ -160,6 +215,56 @@ void main() {
         'screenId': 'simulation',
         'entity': {'type': 'care_plan', 'id': 'cp1'},
       });
+    });
+
+    test('serializes confirmation request without action args or language', () {
+      const request = AgentRequest.confirmation(
+        sessionId: 's1',
+        confirmationId: 'confirm-1',
+        confirmationDecision: 'confirm',
+      );
+
+      final json = request.toJson();
+      expect(json, {
+        'sessionId': 's1',
+        'confirmation': {'confirmationId': 'confirm-1', 'decision': 'confirm'},
+      });
+      expect(json.toString(), isNot(contains('language')));
+      expect(json.toString(), isNot(contains('toolName')));
+      expect(json.toString(), isNot(contains('occurrenceId')));
+      expect(json.toString(), isNot(contains('operationKey')));
+    });
+
+    test('serializes cancellation request', () {
+      const request = AgentRequest.confirmation(
+        sessionId: 's1',
+        confirmationId: 'confirm-1',
+        confirmationDecision: 'cancel',
+      );
+
+      expect(request.toJson()['confirmation'], {
+        'confirmationId': 'confirm-1',
+        'decision': 'cancel',
+      });
+    });
+
+    test('malformed confirmation request fails safely', () {
+      expect(
+        () => const AgentRequest.confirmation(
+          sessionId: '',
+          confirmationId: 'confirm-1',
+          confirmationDecision: 'confirm',
+        ).toJson(),
+        throwsFormatException,
+      );
+      expect(
+        () => const AgentRequest.confirmation(
+          sessionId: 's1',
+          confirmationId: 'confirm-1',
+          confirmationDecision: 'maybe',
+        ).toJson(),
+        throwsFormatException,
+      );
     });
   });
 }
