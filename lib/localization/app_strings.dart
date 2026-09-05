@@ -51,6 +51,196 @@ class AppStrings {
       AppLanguage.urdu: 'سمجھ کی جانچ',
       AppLanguage.romanUrdu: 'Samajh Check',
     },
+    'teach_back_return_dashboard': {
+      AppLanguage.english: 'Dashboard',
+      AppLanguage.urdu: 'ڈیش بورڈ',
+      AppLanguage.romanUrdu: 'Dashboard',
+    },
+    'teach_back_return_care_plan': {
+      AppLanguage.english: 'Care plan',
+      AppLanguage.urdu: 'نگہداشت منصوبہ',
+      AppLanguage.romanUrdu: 'Care plan',
+    },
+    'teach_back_try_again': {
+      AppLanguage.english: 'Try all again',
+      AppLanguage.urdu: 'سب دوبارہ کریں',
+      AppLanguage.romanUrdu: 'Sab dobara karein',
+    },
+    'teach_back_retry_weak': {
+      AppLanguage.english: 'Retry weak answers',
+      AppLanguage.urdu: 'کمزور جواب دوبارہ دیں',
+      AppLanguage.romanUrdu: 'Weak answers dobara dein',
+    },
+    'teach_back_needs_review_count': {
+      AppLanguage.english: '{count} need review',
+      AppLanguage.urdu: '{count} دوبارہ دیکھنے ہیں',
+      AppLanguage.romanUrdu: '{count} dobara dekhne hain',
+    },
+    'teach_back_questions_understood': {
+      AppLanguage.english: '{count} of {total} understood',
+      AppLanguage.urdu: '{total} میں سے {count} سمجھ آئے',
+      AppLanguage.romanUrdu: '{total} mein se {count} samajh aaye',
+    },
+    'teach_back_understanding_score': {
+      AppLanguage.english: 'Understanding score: {score}%',
+      AppLanguage.urdu: 'سمجھ کا اسکور: {score}%',
+      AppLanguage.romanUrdu: 'Understanding score: {score}%',
+    },
+    'teach_back_understanding_recorded': {
+      AppLanguage.english: 'Understanding recorded',
+      AppLanguage.urdu: 'سمجھ ریکارڈ ہو گئی',
+      AppLanguage.romanUrdu: 'Samajh record ho gayi',
+    },
+    'teach_back_backend_error': {
+      AppLanguage.english:
+          'Teach-Back could not check that answer. Please try again.',
+      AppLanguage.urdu: 'Teach-Back یہ جواب چیک نہیں کر سکا۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu:
+          'Teach-Back yeh jawab check nahi kar saka. Dobara koshish karein.',
+    },
+    'teach_back_status_cannot_assess': {
+      AppLanguage.english: 'Could not assess',
+      AppLanguage.urdu: 'جانچ نہیں ہو سکی',
+      AppLanguage.romanUrdu: 'Assess nahi ho saka',
+    },
+    'teach_back_status_in_progress': {
+      AppLanguage.english: 'In progress',
+      AppLanguage.urdu: 'جاری ہے',
+      AppLanguage.romanUrdu: 'Jari hai',
+    },
+    'teach_back_status_mostly': {
+      AppLanguage.english: 'Mostly understood',
+      AppLanguage.urdu: 'زیادہ تر سمجھ آ گیا',
+      AppLanguage.romanUrdu: 'Zyada tar samajh aa gaya',
+    },
+    'teach_back_status_needs_review': {
+      AppLanguage.english: 'Needs review',
+      AppLanguage.urdu: 'دوبارہ دیکھیں',
+      AppLanguage.romanUrdu: 'Dobara dekhein',
+    },
+    'teach_back_status_partial': {
+      AppLanguage.english: 'Partly understood',
+      AppLanguage.urdu: 'جزوی سمجھ آیا',
+      AppLanguage.romanUrdu: 'Thora samajh aya',
+    },
+    'teach_back_status_understood': {
+      AppLanguage.english: 'Understood',
+      AppLanguage.urdu: 'سمجھ آ گیا',
+      AppLanguage.romanUrdu: 'Samajh aa gaya',
+    },
+    'teach_back_next_question': {
+      AppLanguage.english: 'Next question',
+      AppLanguage.urdu: 'اگلا سوال',
+      AppLanguage.romanUrdu: 'Agla sawal',
+    },
+    'teach_back_finish': {
+      AppLanguage.english: 'Finish',
+      AppLanguage.urdu: 'مکمل کریں',
+      AppLanguage.romanUrdu: 'Finish karein',
+    },
+    'teach_back_retry_answer': {
+      AppLanguage.english: 'Retry this answer',
+      AppLanguage.urdu: 'یہ جواب دوبارہ دیں',
+      AppLanguage.romanUrdu: 'Yeh jawab dobara dein',
+    },
+    'teach_back_plan_says': {
+      AppLanguage.english: 'Verified plan says',
+      AppLanguage.urdu: 'تصدیق شدہ منصوبہ کہتا ہے',
+      AppLanguage.romanUrdu: 'Verified plan kehta hai',
+    },
+    'teach_back_missing': {
+      AppLanguage.english: 'Needs another look',
+      AppLanguage.urdu: 'دوبارہ دیکھنے کی ضرورت',
+      AppLanguage.romanUrdu: 'Dobara dekhne ki zaroorat',
+    },
+    'teach_back_what_understood': {
+      AppLanguage.english: 'What you understood',
+      AppLanguage.urdu: 'آپ نے کیا سمجھا',
+      AppLanguage.romanUrdu: 'Aap ne kya samjha',
+    },
+    'teach_back_mic_unavailable': {
+      AppLanguage.english: 'Microphone input is not available on this device.',
+      AppLanguage.urdu: 'اس ڈیوائس پر مائیکروفون دستیاب نہیں۔',
+      AppLanguage.romanUrdu: 'Is device par microphone available nahi hai.',
+    },
+    'teach_back_check_answer': {
+      AppLanguage.english: 'Check answer',
+      AppLanguage.urdu: 'جواب چیک کریں',
+      AppLanguage.romanUrdu: 'Jawab check karein',
+    },
+    'teach_back_checking': {
+      AppLanguage.english: 'Checking...',
+      AppLanguage.urdu: 'جانچ ہو رہی ہے...',
+      AppLanguage.romanUrdu: 'Check ho raha hai...',
+    },
+    'teach_back_stop_listening': {
+      AppLanguage.english: 'Stop listening',
+      AppLanguage.urdu: 'سننا روکیں',
+      AppLanguage.romanUrdu: 'Sunna rokein',
+    },
+    'teach_back_speak_answer': {
+      AppLanguage.english: 'Speak answer',
+      AppLanguage.urdu: 'جواب بولیں',
+      AppLanguage.romanUrdu: 'Jawab bolein',
+    },
+    'teach_back_answer_hint': {
+      AppLanguage.english:
+          'Type what you understood. You can use simple words.',
+      AppLanguage.urdu: 'جو سمجھ آیا وہ سادہ الفاظ میں لکھیں۔',
+      AppLanguage.romanUrdu: 'Jo samajh aya woh simple alfaaz mein likhein.',
+    },
+    'teach_back_question_count': {
+      AppLanguage.english: 'Question {current} of {total}',
+      AppLanguage.urdu: 'سوال {current} از {total}',
+      AppLanguage.romanUrdu: 'Sawal {current} of {total}',
+    },
+    'teach_back_target_label': {
+      AppLanguage.english: 'Care-plan item',
+      AppLanguage.urdu: 'نگہداشت ہدایت',
+      AppLanguage.romanUrdu: 'Care-plan item',
+    },
+    'teach_back_subtitle': {
+      AppLanguage.english:
+          'Explain the verified care-plan item in your own words so SehatMate can check understanding.',
+      AppLanguage.urdu:
+          'تصدیق شدہ نگہداشت ہدایت کو اپنے الفاظ میں بتائیں تاکہ SehatMate آپ کی سمجھ دیکھ سکے۔',
+      AppLanguage.romanUrdu:
+          'Verified care-plan item apne alfaaz mein batayein taake SehatMate samajh check kar sake.',
+    },
+    'teach_back_no_assess': {
+      AppLanguage.english: 'This item cannot be assessed yet',
+      AppLanguage.urdu: 'اس آئٹم کی ابھی جانچ نہیں ہو سکتی',
+      AppLanguage.romanUrdu: 'Is item ki abhi assessment nahi ho sakti',
+    },
+    'teach_back_empty_detail': {
+      AppLanguage.english:
+          'Teach-Back becomes available after your extracted care plan is verified.',
+      AppLanguage.urdu:
+          'Teach-Back اس وقت دستیاب ہوتا ہے جب آپ کا نکالا گیا نگہداشت منصوبہ تصدیق ہو جائے۔',
+      AppLanguage.romanUrdu:
+          'Teach-Back tab available hota hai jab extracted care plan verify ho jaye.',
+    },
+    'teach_back_empty': {
+      AppLanguage.english: 'No verified care-plan items yet',
+      AppLanguage.urdu: 'ابھی کوئی تصدیق شدہ نگہداشت ہدایت نہیں',
+      AppLanguage.romanUrdu: 'Abhi koi verified care-plan item nahi hai',
+    },
+    'teach_back_unavailable': {
+      AppLanguage.english: 'Teach-Back is unavailable',
+      AppLanguage.urdu: 'Teach-Back دستیاب نہیں',
+      AppLanguage.romanUrdu: 'Teach-Back available nahi hai',
+    },
+    'teach_back_load_failed': {
+      AppLanguage.english: 'Teach-Back could not load. Please try again.',
+      AppLanguage.urdu: 'Teach-Back لوڈ نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu:
+          'Teach-Back load nahi ho saka. Dobara koshish karein.',
+    },
+    'teach_back_sign_in_required': {
+      AppLanguage.english: 'Please sign in to use Teach-Back.',
+      AppLanguage.urdu: 'Teach-Back استعمال کرنے کے لیے سائن اِن کریں۔',
+      AppLanguage.romanUrdu: 'Teach-Back istemal karne ke liye sign in karein.',
+    },
     'patient_profile': {
       AppLanguage.english: 'Patient Profile',
       AppLanguage.urdu: 'مریض کی پروفائل',
@@ -2382,9 +2572,9 @@ class AppStrings {
           'Understanding score: {score}% — medicines clear hain, visit preparation aik dafa aur review karein.',
     },
     'teach_back_title': {
-      AppLanguage.english: 'Explain the plan in your own words',
-      AppLanguage.urdu: 'منصوبہ اپنے الفاظ میں سمجھائیں',
-      AppLanguage.romanUrdu: 'Plan apne lafzon mein samjhayen',
+      AppLanguage.english: 'Teach-Back',
+      AppLanguage.urdu: 'سمجھ کی جانچ',
+      AppLanguage.romanUrdu: 'Samajh Check',
     },
     'current_understanding_score': {
       AppLanguage.english: 'Current understanding score: {score}%',
@@ -2423,11 +2613,11 @@ class AppStrings {
     },
     'teach_back_safety_note': {
       AppLanguage.english:
-          'This check measures understanding of the care plan only. It is not a medical assessment.',
+          'Teach-Back checks understanding of your verified care plan. It does not give new medical advice.',
       AppLanguage.urdu:
-          'یہ check صرف نگہداشت منصوبے کی سمجھ ناپتا ہے۔ یہ medical assessment نہیں ہے۔',
+          'Teach-Back صرف آپ کے تصدیق شدہ نگہداشت منصوبے کی سمجھ چیک کرتا ہے۔ یہ نئی طبی ہدایت نہیں دیتا۔',
       AppLanguage.romanUrdu:
-          'Yeh check sirf care plan ki understanding measure karta hai. Yeh medical assessment nahi.',
+          'Teach-Back sirf verified care plan ki samajh check karta hai. Yeh nayi medical advice nahi deta.',
     },
     'teach_back_prompt_morning_medicine': {
       AppLanguage.english: 'When will you take your morning medicine?',
