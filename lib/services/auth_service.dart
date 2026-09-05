@@ -150,11 +150,20 @@ class AuthSession extends ChangeNotifier {
 
   static const Duration _requestTimeout = Duration(seconds: 20);
 
-  static const String _googleWebClientId = String.fromEnvironment(
-    'GOOGLE_WEB_CLIENT_ID',
-    defaultValue:
-        '333869910734-2ju6rlcq5ha1mohotb782a8l8r8pq712.apps.googleusercontent.com',
-  );
+  static const String _defaultGoogleWebClientId =
+      '333869910734-2ju6rlcq5ha1mohotb782a8l8r8pq712.apps.googleusercontent.com';
+  static const String _googleWebClientIdFromEnvironment =
+      String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+
+  static String get _googleWebClientId {
+    final configuredClientId = _googleWebClientIdFromEnvironment.trim();
+
+    if (configuredClientId.isNotEmpty) {
+      return configuredClientId;
+    }
+
+    return _defaultGoogleWebClientId;
+  }
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final http.Client _client = http.Client();
