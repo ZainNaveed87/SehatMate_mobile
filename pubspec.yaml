@@ -24,6 +24,7 @@ dependencies:
   http: ^1.6.0
   image_picker: ^1.1.2
   flutter_tts: ^4.2.3
+  pdfrx: 2.4.8
   shared_preferences: ^2.5.3
   speech_to_text: ^7.3.0
   timezone: ^0.11.1

@@ -4,10 +4,13 @@ import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
 import '../localization/language_scope.dart';
+import '../services/document_service.dart';
+import '../services/progress_service.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/page_header.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ui.dart';
+import 'document_viewer_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -242,186 +245,833 @@ class NotificationsScreen extends StatelessWidget {
   }
 }
 
-class DocumentsScreen extends StatelessWidget {
-  const DocumentsScreen({super.key});
+typedef DocumentFileViewer =
+    Future<void> Function(BuildContext context, DocumentFile file);
+
+class DocumentsScreen extends StatefulWidget {
+  const DocumentsScreen({super.key, this.service, this.fileViewer});
+
+  final DocumentClient? service;
+  final DocumentFileViewer? fileViewer;
+
+  @override
+  State<DocumentsScreen> createState() => _DocumentsScreenState();
+}
+
+class _DocumentsScreenState extends State<DocumentsScreen> {
+  late final DocumentClient _service;
+  late final DocumentFileViewer _fileViewer;
+  var _loading = true;
+  var _refreshing = false;
+  var _documents = <CareDocument>[];
+  String? _error;
+  bool _offline = false;
+  final _deleting = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _service = widget.service ?? DocumentService.instance;
+    _fileViewer = widget.fileViewer ?? _openDocumentViewer;
+    _loadDocuments();
+  }
+
+  Future<void> _loadDocuments({bool refresh = false}) async {
+    if (refresh) {
+      setState(() => _refreshing = true);
+    } else {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final documents = await _service.listDocuments();
+      if (!mounted) return;
+      setState(() {
+        _documents = documents;
+        _error = null;
+        _offline = false;
+        _loading = false;
+        _refreshing = false;
+      });
+    } on DocumentException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.message;
+        _offline = error.retryable;
+        _loading = false;
+        _refreshing = false;
+      });
+    }
+  }
+
+  Future<void> _view(CareDocument document) async {
+    try {
+      final file = await _service.fetchDocumentFile(document.id);
+      if (!mounted) return;
+      await _fileViewer(context, file);
+    } on DocumentException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    }
+  }
+
+  Future<void> _delete(CareDocument document) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('delete_document_question')),
+        content: Text(
+          document.hasInstructions || document.hasVerifiedInstructions
+              ? context.tr(
+                  'delete_document_with_instructions_warning',
+                  values: {
+                    'name': document.originalName,
+                    'plan': document.carePlanTitle,
+                    'count': document.instructionCount,
+                    'verified': document.verifiedInstructionCount,
+                  },
+                )
+              : context.tr(
+                  'delete_document_description',
+                  values: {
+                    'name': document.originalName,
+                    'plan': document.carePlanTitle,
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(context.tr('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(context.tr('delete')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _deleting.add(document.id));
+    try {
+      await _service.deleteDocument(document.id);
+      await _loadDocuments(refresh: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('document_removed'))));
+    } on DocumentException catch (error) {
+      if (!mounted) return;
+      setState(() => _deleting.remove(document.id));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final state = CareDemoState.instance;
-    return AnimatedBuilder(
-      animation: state,
-      builder: (context, _) => AppShell(
-        currentRoute: AppRoutes.documents,
-        title: context.tr('documents'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PageHeader(
-              title: context.tr('documents'),
-              subtitle: context.tr('documents_subtitle'),
-              action: FilledButton.icon(onPressed: () => Navigator.pushNamed(context, AppRoutes.carePlanNew), icon: const Icon(Icons.upload, size: 18), label: Text(context.tr('upload'))),
+    return AppShell(
+      currentRoute: AppRoutes.documents,
+      title: context.tr('documents'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeader(
+            title: context.tr('documents'),
+            subtitle: context.tr('documents_subtitle'),
+            action: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                IconButton.filledTonal(
+                  key: const Key('documents_refresh_button'),
+                  onPressed: _refreshing
+                      ? null
+                      : () => _loadDocuments(refresh: true),
+                  icon: _refreshing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh, size: 19),
+                  tooltip: context.tr('refresh'),
+                ),
+                FilledButton.icon(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, AppRoutes.carePlanNew),
+                  icon: const Icon(Icons.upload, size: 18),
+                  label: Text(context.tr('upload')),
+                ),
+              ],
             ),
-            if (state.documents.isEmpty)
-              EmptyState(icon: Icons.description_outlined, title: context.tr('no_documents_yet'), description: context.tr('upload_prescription_or_discharge'), action: FilledButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.carePlanNew), child: Text(context.tr('upload_document'))))
-            else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final columns = constraints.maxWidth >= 900 ? 3 : constraints.maxWidth >= 560 ? 2 : 1;
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: columns == 1 ? 1.55 : .92),
-                    itemCount: state.documents.length,
-                    itemBuilder: (context, index) {
-                      final document = state.documents[index];
-                      return FadeSlideIn(
-                        child: AppCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: Container(width: double.infinity, decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(AppRadii.xl)), child: const Icon(Icons.description_outlined, size: 38, color: AppColors.primary))),
-                              const SizedBox(height: 12),
-                              Text(document.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                              Text(context.tr('document_pages_summary', values: {'type': document.type, 'pages': document.pages, 'date': document.date}), style: const TextStyle(fontSize: 13, color: AppColors.muted)),
-                              Text(document.plan, style: const TextStyle(fontSize: 13, color: AppColors.subtle)),
-                              const SizedBox(height: 12),
-                              Wrap(spacing: 8, children: [
-                                OutlinedButton.icon(onPressed: () => showDemoMessage(context, context.tr('document_preview_demo_unavailable')), icon: const Icon(Icons.visibility_outlined, size: 17), label: Text(context.tr('view'))),
-                                TextButton.icon(onPressed: () { state.removeDocument(document.id); showDemoMessage(context, context.tr('document_removed')); }, icon: const Icon(Icons.delete_outline, size: 17), label: Text(context.tr('delete'))),
-                              ]),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
+          ),
+          if (_loading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(48),
+                child: CircularProgressIndicator(),
               ),
-            const SizedBox(height: 24),
-            SafetyNote(text: context.tr('documents_safety_note')),
-          ],
-        ),
+            )
+          else if (_error != null)
+            EmptyState(
+              icon: _offline ? Icons.wifi_off_outlined : Icons.error_outline,
+              title: _offline
+                  ? context.tr('documents_offline_title')
+                  : context.tr('documents_error_title'),
+              description: _error!,
+              action: FilledButton(
+                key: const Key('documents_retry_button'),
+                onPressed: _loadDocuments,
+                child: Text(context.tr('retry')),
+              ),
+            )
+          else if (_documents.isEmpty)
+            EmptyState(
+              icon: Icons.description_outlined,
+              title: context.tr('no_documents_yet'),
+              description: context.tr('upload_prescription_or_discharge'),
+              action: FilledButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.carePlanNew),
+                child: Text(context.tr('upload_document')),
+              ),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 900
+                    ? 3
+                    : constraints.maxWidth >= 560
+                    ? 2
+                    : 1;
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    mainAxisExtent: columns == 1 ? 340 : null,
+                    childAspectRatio: columns == 1 ? 1 : .9,
+                  ),
+                  itemCount: _documents.length,
+                  itemBuilder: (context, index) {
+                    final document = _documents[index];
+                    final deleting = _deleting.contains(document.id);
+                    return FadeSlideIn(
+                      child: AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: 90,
+                              width: double.infinity,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondary,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadii.xl,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    _documentIcon(document),
+                                    size: 42,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              document.originalName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _documentMeta(context, document),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                            Text(
+                              document.carePlanTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.subtle,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            StatusBadge(
+                              status: _processingStatus(document),
+                              label: _processingLabel(context, document),
+                            ),
+                            if (document.processingStatus == 'failed' &&
+                                document.processingError != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                document.processingError!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.critical,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  key: Key('document_view_${document.id}'),
+                                  onPressed: deleting
+                                      ? null
+                                      : () => _view(document),
+                                  icon: const Icon(
+                                    Icons.visibility_outlined,
+                                    size: 17,
+                                  ),
+                                  label: Text(context.tr('view')),
+                                ),
+                                TextButton.icon(
+                                  key: Key('document_delete_${document.id}'),
+                                  onPressed: deleting
+                                      ? null
+                                      : () => _delete(document),
+                                  icon: deleting
+                                      ? const SizedBox(
+                                          width: 17,
+                                          height: 17,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.delete_outline,
+                                          size: 17,
+                                        ),
+                                  label: Text(context.tr('delete')),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          const SizedBox(height: 24),
+          SafetyNote(text: context.tr('documents_safety_note')),
+        ],
       ),
     );
   }
 }
 
-class ProgressScreen extends StatelessWidget {
-  const ProgressScreen({super.key});
+class ProgressScreen extends StatefulWidget {
+  const ProgressScreen({super.key, this.service});
+
+  final ProgressClient? service;
+
+  @override
+  State<ProgressScreen> createState() => _ProgressScreenState();
+}
+
+class _ProgressScreenState extends State<ProgressScreen> {
+  late final ProgressClient _service;
+  var _loading = true;
+  var _refreshing = false;
+  ProgressSummary? _summary;
+  String? _error;
+  bool _offline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = widget.service ?? ProgressService.instance;
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress({bool refresh = false}) async {
+    if (refresh) {
+      setState(() => _refreshing = true);
+    } else {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final summary = await _service.fetchSummary(days: 7);
+      if (!mounted) return;
+      setState(() {
+        _summary = summary;
+        _error = null;
+        _offline = false;
+        _loading = false;
+        _refreshing = false;
+      });
+    } on ProgressException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.message;
+        _offline = error.retryable;
+        _loading = false;
+        _refreshing = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final state = CareDemoState.instance;
-    return AnimatedBuilder(
-      animation: state,
-      builder: (context, _) {
-        final completed = state.tasks.where((task) => task.completed).length;
-        final resolved = state.gaps.where((gap) => gap.status == TaskStatus.resolved).length;
-        final maxReadiness = readinessTrend.map((point) => point.$2).fold<int>(state.readiness, (highest, value) => value > highest ? value : highest);
-        final stats = [
-          (context.tr('care_readiness'), '${state.readiness}%'),
-          (context.tr('tasks_completed'), '$completed/${state.tasks.length}'),
-          (context.tr('gaps_resolved'), '$resolved/${state.gaps.length}'),
-          (context.tr('understanding'), '${state.understanding}%'),
-        ];
-        return AppShell(
-          currentRoute: AppRoutes.progress,
-          title: context.tr('progress'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              PageHeader(title: context.tr('care_progress'), subtitle: context.tr('care_progress_subtitle')),
-              LayoutBuilder(builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 900 ? 4 : constraints.maxWidth >= 480 ? 2 : 1;
-                return GridView.count(
-                  crossAxisCount: columns,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: columns == 1 ? 3.2 : 1.55,
-                  children: stats.map((stat) => AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(stat.$1, style: const TextStyle(fontSize: 14, color: AppColors.muted)), Text(stat.$2, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.primary))]))).toList(),
-                );
-              }),
-              const SizedBox(height: 24),
-              AppCard(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(context.tr('care_readiness_trend'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 22),
-                    SizedBox(
-                      height: 220,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: readinessTrend.map((point) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 7), child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [Text('${point.$2}%', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), const SizedBox(height: 7), TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: point.$2 / maxReadiness), duration: const Duration(milliseconds: 500), curve: Curves.easeOut, builder: (context, value, _) => Container(height: 150 * value, decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: .85), borderRadius: const BorderRadius.vertical(top: Radius.circular(8))))), const SizedBox(height: 7), Text(_readinessTrendLabel(context, point.$1), style: const TextStyle(fontSize: 13, color: AppColors.muted))])))).toList(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              LayoutBuilder(builder: (context, constraints) {
-                final cards = [
-                  AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(context.tr('understanding_score'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)), const SizedBox(height: 16), LinearProgressIndicator(value: state.understanding / 100, minHeight: 10, borderRadius: BorderRadius.circular(99)), const SizedBox(height: 12), Text(context.tr('latest_teach_back_basis'), style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
-                  AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(context.tr('most_common_barriers'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)), const SizedBox(height: 14), ...[(context.tr('transport'), 3, 1.0), (context.tr('caregiver_availability'), 2, .66), (context.tr('medicine_access'), 1, .33)].map((item) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Column(children: [Row(children: [Expanded(child: Text(item.$1)), Text(context.tr('times_count', values: {'count': item.$2}), style: const TextStyle(color: AppColors.muted))]), const SizedBox(height: 5), LinearProgressIndicator(value: item.$3, minHeight: 6, borderRadius: BorderRadius.circular(99))]))) ])),
-                ];
-                return constraints.maxWidth >= 760 ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: cards[0]), const SizedBox(width: 16), Expanded(child: cards[1])]) : Column(children: [cards[0], const SizedBox(height: 16), cards[1]]);
-              }),
-              const SizedBox(height: 24),
-              SafetyNote(text: context.tr('progress_demo_safety_note')),
-            ],
+    final summary = _summary;
+    return AppShell(
+      currentRoute: AppRoutes.progress,
+      title: context.tr('progress'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeader(
+            title: context.tr('care_progress'),
+            subtitle: context.tr('care_progress_subtitle'),
+            action: IconButton.filledTonal(
+              key: const Key('progress_refresh_button'),
+              onPressed: _refreshing
+                  ? null
+                  : () => _loadProgress(refresh: true),
+              icon: _refreshing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh, size: 19),
+              tooltip: context.tr('refresh'),
+            ),
           ),
+          if (_loading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(48),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_error != null)
+            EmptyState(
+              icon: _offline ? Icons.wifi_off_outlined : Icons.error_outline,
+              title: _offline
+                  ? context.tr('progress_offline_title')
+                  : context.tr('progress_error_title'),
+              description: _error!,
+              action: FilledButton(
+                key: const Key('progress_retry_button'),
+                onPressed: _loadProgress,
+                child: Text(context.tr('retry')),
+              ),
+            )
+          else if (summary == null || summary.activePlanCount == 0)
+            EmptyState(
+              icon: Icons.insights_outlined,
+              title: context.tr('progress_no_active_title'),
+              description: context.tr('progress_no_active_description'),
+              action: FilledButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.carePlanNew),
+                child: Text(context.tr('upload_document')),
+              ),
+            )
+          else ...[
+            _ProgressCards(summary: summary),
+            const SizedBox(height: 24),
+            _TaskCompletionTrend(summary: summary),
+            const SizedBox(height: 24),
+            _ProgressDetails(summary: summary),
+          ],
+          const SizedBox(height: 24),
+          SafetyNote(text: context.tr('progress_safety_note')),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressCards extends StatelessWidget {
+  const _ProgressCards({required this.summary});
+
+  final ProgressSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = [
+      (context.tr('care_readiness'), _scoreLabel(summary.readiness)),
+      (
+        context.tr('tasks_completed'),
+        '${summary.tasks.completed}/${summary.tasks.scheduled}',
+      ),
+      (
+        context.tr('gaps_resolved'),
+        '${summary.gaps.resolved}/${summary.gaps.total}',
+      ),
+      (context.tr('understanding'), _understandingLabel(summary.understanding)),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 900
+            ? 4
+            : constraints.maxWidth >= 480
+            ? 2
+            : 1;
+        return GridView.count(
+          crossAxisCount: columns,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: columns == 1 ? 3.2 : 1.55,
+          children: stats
+              .map(
+                (stat) => AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        stat.$1,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          stat.$2,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
         );
       },
     );
   }
 }
 
-String _demoDayShort(BuildContext context, DemoDay day) => context.tr(
-      switch (day.short) {
-        'Mon' => 'mon_short',
-        'Tue' => 'tue_short',
-        'Wed' => 'wed_short',
-        'Thu' => 'thu_short',
-        'Fri' => 'fri_short',
-        'Sat' => 'sat_short',
-        _ => 'sun_short',
+class _TaskCompletionTrend extends StatelessWidget {
+  const _TaskCompletionTrend({required this.summary});
+
+  final ProgressSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final points = summary.trend.points;
+    final hasData = points.any((point) => point.value != null);
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('task_completion_trend'),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 22),
+          if (!hasData)
+            EmptyState(
+              icon: Icons.bar_chart_outlined,
+              title: context.tr('progress_no_data_title'),
+              description: context.tr('progress_no_data_description'),
+            )
+          else
+            SizedBox(
+              height: 220,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: points
+                    .map(
+                      (point) => Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                point.value == null ? '-' : '${point.value}%',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              TweenAnimationBuilder<double>(
+                                tween: Tween(
+                                  begin: 0,
+                                  end: point.value == null
+                                      ? .08
+                                      : point.value! / 100,
+                                ),
+                                duration: const Duration(milliseconds: 450),
+                                curve: Curves.easeOut,
+                                builder: (context, value, _) => Container(
+                                  height: 150 * value,
+                                  decoration: BoxDecoration(
+                                    color: point.value == null
+                                        ? AppColors.border
+                                        : AppColors.primary.withValues(
+                                            alpha: .85,
+                                          ),
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              Text(
+                                _dayLabel(point.date),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressDetails extends StatelessWidget {
+  const _ProgressDetails({required this.summary});
+
+  final ProgressSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cards = [
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('understanding_score'),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                LinearProgressIndicator(
+                  value: summary.understanding.score == null
+                      ? null
+                      : summary.understanding.score! / 100,
+                  minHeight: 10,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  summary.understanding.available
+                      ? context.tr('latest_teach_back_basis')
+                      : context.tr('progress_understanding_unavailable'),
+                  style: const TextStyle(fontSize: 14, color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('progress_task_breakdown'),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _breakdownRow(context, 'completed', summary.tasks.completed),
+                _breakdownRow(context, 'pending', summary.tasks.pending),
+                _breakdownRow(context, 'skipped', summary.tasks.skipped),
+                _breakdownRow(context, 'missed', summary.tasks.missed),
+              ],
+            ),
+          ),
+        ];
+        return constraints.maxWidth >= 760
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: cards[0]),
+                  const SizedBox(width: 16),
+                  Expanded(child: cards[1]),
+                ],
+              )
+            : Column(
+                children: [cards[0], const SizedBox(height: 16), cards[1]],
+              );
       },
     );
+  }
 
-String _demoDayLong(BuildContext context, DemoDay day) => context.tr(
-      switch (day.label) {
-        'Monday' => 'monday',
-        'Tuesday' => 'tuesday',
-        'Wednesday' => 'wednesday',
-        'Thursday' => 'thursday',
-        'Friday' => 'friday',
-        'Saturday' => 'saturday',
-        _ => 'sunday',
-      },
+  Widget _breakdownRow(BuildContext context, String labelKey, int count) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(child: Text(context.tr(labelKey))),
+          Text(
+            context.tr('times_count', values: {'count': count}),
+            style: const TextStyle(color: AppColors.muted),
+          ),
+        ],
+      ),
     );
+  }
+}
 
-String _demoDateLabel(BuildContext context, DemoDay day) => context.tr(
+String _scoreLabel(ProgressScore score) =>
+    score.available && score.score != null ? '${score.score}%' : '-';
+
+String _understandingLabel(ProgressUnderstanding understanding) =>
+    understanding.available && understanding.score != null
+    ? '${understanding.score}%'
+    : '-';
+
+String _dayLabel(String value) {
+  final parsed = DateTime.tryParse(value);
+  if (parsed == null) return value;
+  return '${parsed.month}/${parsed.day}';
+}
+
+IconData _documentIcon(CareDocument document) {
+  final mime = document.mimeType.toLowerCase();
+  if (mime.contains('pdf')) return Icons.picture_as_pdf_outlined;
+  if (mime.contains('image')) return Icons.image_outlined;
+  return Icons.description_outlined;
+}
+
+String _documentMeta(BuildContext context, CareDocument document) {
+  final items = [
+    context.tr('document_type_${document.documentType}'),
+    _fileSize(document.fileSizeBytes),
+    if (document.pageCount != null)
+      context.tr('document_page_count', values: {'count': document.pageCount}),
+    _dateLabel(document.createdAt),
+  ].where((item) => item.trim().isNotEmpty).join(' · ');
+  return items;
+}
+
+String _processingLabel(BuildContext context, CareDocument document) {
+  return context.tr('document_status_${document.processingStatus}');
+}
+
+TaskStatus _processingStatus(CareDocument document) {
+  return switch (document.processingStatus) {
+    'processed' => TaskStatus.ready,
+    'processing' => TaskStatus.atRisk,
+    'failed' => TaskStatus.blocked,
+    _ => TaskStatus.unclear,
+  };
+}
+
+String _fileSize(int bytes) {
+  if (bytes <= 0) return '';
+  if (bytes >= 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  if (bytes >= 1024) return '${(bytes / 1024).round()} KB';
+  return '$bytes B';
+}
+
+String _dateLabel(DateTime? date) {
+  if (date == null) return '';
+  return '${date.day.toString().padLeft(2, '0')}/'
+      '${date.month.toString().padLeft(2, '0')}/${date.year}';
+}
+
+Future<void> _openDocumentViewer(
+  BuildContext context,
+  DocumentFile file,
+) async {
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)),
+  );
+}
+
+String _demoDayShort(BuildContext context, DemoDay day) =>
+    context.tr(switch (day.short) {
+      'Mon' => 'mon_short',
+      'Tue' => 'tue_short',
+      'Wed' => 'wed_short',
+      'Thu' => 'thu_short',
+      'Fri' => 'fri_short',
+      'Sat' => 'sat_short',
+      _ => 'sun_short',
+    });
+
+String _demoDayLong(BuildContext context, DemoDay day) =>
+    context.tr(switch (day.label) {
+      'Monday' => 'monday',
+      'Tuesday' => 'tuesday',
+      'Wednesday' => 'wednesday',
+      'Thursday' => 'thursday',
+      'Friday' => 'friday',
+      'Saturday' => 'saturday',
+      _ => 'sunday',
+    });
+
+String _demoDateLabel(BuildContext context, DemoDay day) => context
+    .tr(
       'progress_day_label',
       values: {
         'weekday': '',
         'day': day.number,
         'month': context.tr('aug_short'),
       },
-    ).trim();
-
-String _readinessTrendLabel(BuildContext context, String value) {
-  final match = RegExp(r'^Week (\d+)$').firstMatch(value);
-  if (match == null) return value;
-  return context.tr('week_number', values: {'number': match.group(1)});
-}
+    )
+    .trim();
 
 IconData _kindIcon(TaskKind kind) => switch (kind) {
-      TaskKind.medicine => Icons.medication_outlined,
-      TaskKind.lab => Icons.biotech_outlined,
-      TaskKind.visit => Icons.local_hospital_outlined,
-      TaskKind.dressing => Icons.healing_outlined,
-      TaskKind.caregiver => Icons.handshake_outlined,
-    };
+  TaskKind.medicine => Icons.medication_outlined,
+  TaskKind.lab => Icons.biotech_outlined,
+  TaskKind.visit => Icons.local_hospital_outlined,
+  TaskKind.dressing => Icons.healing_outlined,
+  TaskKind.caregiver => Icons.handshake_outlined,
+};

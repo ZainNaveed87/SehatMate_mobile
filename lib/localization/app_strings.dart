@@ -3096,6 +3096,140 @@ class AppStrings {
       AppLanguage.urdu: 'Document remove ہو گیا',
       AppLanguage.romanUrdu: 'Document remove ho gaya',
     },
+    'documents_offline_title': {
+      AppLanguage.english: 'Documents could not load',
+      AppLanguage.urdu: 'Documents load نہیں ہو سکے',
+      AppLanguage.romanUrdu: 'Documents load nahi ho sake',
+    },
+    'documents_error_title': {
+      AppLanguage.english: 'Documents unavailable',
+      AppLanguage.urdu: 'Documents دستیاب نہیں',
+      AppLanguage.romanUrdu: 'Documents available nahi',
+    },
+    'delete_document_question': {
+      AppLanguage.english: 'Delete document?',
+      AppLanguage.urdu: 'Document delete کریں؟',
+      AppLanguage.romanUrdu: 'Document delete karein?',
+    },
+    'delete_document_description': {
+      AppLanguage.english:
+          'Delete {name} from {plan}? This removes the uploaded file from this care plan.',
+      AppLanguage.urdu:
+          '{plan} سے {name} delete کریں؟ یہ uploaded file care plan سے remove ہو جائے گی۔',
+      AppLanguage.romanUrdu:
+          '{plan} se {name} delete karein? Yeh uploaded file care plan se remove ho jayegi.',
+    },
+    'delete_document_with_instructions_warning': {
+      AppLanguage.english:
+          'Delete {name} from {plan}? This document has {count} extracted instruction(s), including {verified} verified item(s). Removing it may affect the care-plan evidence.',
+      AppLanguage.urdu:
+          '{plan} سے {name} delete کریں؟ اس document میں {count} extracted instruction(s) ہیں، جن میں {verified} verified item(s) شامل ہیں۔ اسے remove کرنے سے care-plan evidence متاثر ہو سکتی ہے۔',
+      AppLanguage.romanUrdu:
+          '{plan} se {name} delete karein? Is document mein {count} extracted instruction(s) hain, jin mein {verified} verified item(s) shamil hain. Isay remove karne se care-plan evidence affect ho sakti hai.',
+    },
+    'document_status_uploaded': {
+      AppLanguage.english: 'Uploaded',
+      AppLanguage.urdu: 'Uploaded',
+      AppLanguage.romanUrdu: 'Uploaded',
+    },
+    'document_status_processing': {
+      AppLanguage.english: 'Processing',
+      AppLanguage.urdu: 'Processing',
+      AppLanguage.romanUrdu: 'Processing',
+    },
+    'document_status_processed': {
+      AppLanguage.english: 'Processed',
+      AppLanguage.urdu: 'Processed',
+      AppLanguage.romanUrdu: 'Processed',
+    },
+    'document_status_failed': {
+      AppLanguage.english: 'Failed',
+      AppLanguage.urdu: 'Failed',
+      AppLanguage.romanUrdu: 'Failed',
+    },
+    'document_type_prescription': {
+      AppLanguage.english: 'Prescription',
+      AppLanguage.urdu: 'Prescription',
+      AppLanguage.romanUrdu: 'Prescription',
+    },
+    'document_type_discharge': {
+      AppLanguage.english: 'Discharge',
+      AppLanguage.urdu: 'Discharge',
+      AppLanguage.romanUrdu: 'Discharge',
+    },
+    'document_type_followup': {
+      AppLanguage.english: 'Follow-up',
+      AppLanguage.urdu: 'Follow-up',
+      AppLanguage.romanUrdu: 'Follow-up',
+    },
+    'document_type_lab': {
+      AppLanguage.english: 'Lab',
+      AppLanguage.urdu: 'Lab',
+      AppLanguage.romanUrdu: 'Lab',
+    },
+    'document_type_other': {
+      AppLanguage.english: 'Document',
+      AppLanguage.urdu: 'Document',
+      AppLanguage.romanUrdu: 'Document',
+    },
+    'document_page_count': {
+      AppLanguage.english: '{count} page(s)',
+      AppLanguage.urdu: '{count} page(s)',
+      AppLanguage.romanUrdu: '{count} page(s)',
+    },
+    'document_open_failed': {
+      AppLanguage.english: 'The document could not be opened.',
+      AppLanguage.urdu: 'Document open نہیں ہو سکا۔',
+      AppLanguage.romanUrdu: 'Document open nahi ho saka.',
+    },
+    'document_viewer_zoom_in': {
+      AppLanguage.english: 'Zoom in',
+      AppLanguage.urdu: 'بڑا کریں',
+      AppLanguage.romanUrdu: 'Zoom in karein',
+    },
+    'document_viewer_zoom_out': {
+      AppLanguage.english: 'Zoom out',
+      AppLanguage.urdu: 'چھوٹا کریں',
+      AppLanguage.romanUrdu: 'Zoom out karein',
+    },
+    'document_viewer_rotate_left': {
+      AppLanguage.english: 'Rotate left',
+      AppLanguage.urdu: 'بائیں گھمائیں',
+      AppLanguage.romanUrdu: 'Baen ghumayein',
+    },
+    'document_viewer_rotate_right': {
+      AppLanguage.english: 'Rotate right',
+      AppLanguage.urdu: 'دائیں گھمائیں',
+      AppLanguage.romanUrdu: 'Daen ghumayein',
+    },
+    'document_viewer_reset': {
+      AppLanguage.english: 'Reset view',
+      AppLanguage.urdu: 'منظر دوبارہ سیٹ کریں',
+      AppLanguage.romanUrdu: 'View reset karein',
+    },
+    'document_viewer_previous_page': {
+      AppLanguage.english: 'Previous page',
+      AppLanguage.urdu: 'پچھلا صفحہ',
+      AppLanguage.romanUrdu: 'Pichla page',
+    },
+    'document_viewer_next_page': {
+      AppLanguage.english: 'Next page',
+      AppLanguage.urdu: 'اگلا صفحہ',
+      AppLanguage.romanUrdu: 'Agla page',
+    },
+    'document_viewer_page_of': {
+      AppLanguage.english: 'Page {current} of {total}',
+      AppLanguage.urdu: 'صفحہ {current} از {total}',
+      AppLanguage.romanUrdu: 'Page {current} of {total}',
+    },
+    'document_viewer_unsupported': {
+      AppLanguage.english:
+          'This document type cannot be previewed inside SehatMate.',
+      AppLanguage.urdu:
+          'اس document type کا preview SehatMate کے اندر نہیں دکھایا جا سکتا۔',
+      AppLanguage.romanUrdu:
+          'Is document type ka preview SehatMate ke andar nahi dikhaya ja sakta.',
+    },
     'view': {
       AppLanguage.english: 'View',
       AppLanguage.urdu: 'دیکھیں',
@@ -3139,6 +3273,11 @@ class AppStrings {
       AppLanguage.urdu: 'Care readiness trend',
       AppLanguage.romanUrdu: 'Care readiness trend',
     },
+    'task_completion_trend': {
+      AppLanguage.english: 'Task completion trend',
+      AppLanguage.urdu: 'Task completion trend',
+      AppLanguage.romanUrdu: 'Task completion trend',
+    },
     'understanding_score': {
       AppLanguage.english: 'Understanding score',
       AppLanguage.urdu: 'Understanding score',
@@ -3181,6 +3320,60 @@ class AppStrings {
           'یہ metrics care-plan feasibility اور understanding دکھاتے ہیں، clinical outcomes نہیں۔',
       AppLanguage.romanUrdu:
           'Yeh metrics care-plan feasibility aur understanding dikhate hain, clinical outcomes nahi.',
+    },
+    'progress_safety_note': {
+      AppLanguage.english:
+          'These metrics describe care-plan feasibility and understanding, not clinical outcomes.',
+      AppLanguage.urdu:
+          'یہ metrics care-plan feasibility اور understanding دکھاتے ہیں، clinical outcomes نہیں۔',
+      AppLanguage.romanUrdu:
+          'Yeh metrics care-plan feasibility aur understanding dikhate hain, clinical outcomes nahi.',
+    },
+    'progress_offline_title': {
+      AppLanguage.english: 'Progress could not load',
+      AppLanguage.urdu: 'Progress load نہیں ہو سکی',
+      AppLanguage.romanUrdu: 'Progress load nahi ho saki',
+    },
+    'progress_error_title': {
+      AppLanguage.english: 'Progress unavailable',
+      AppLanguage.urdu: 'Progress دستیاب نہیں',
+      AppLanguage.romanUrdu: 'Progress available nahi',
+    },
+    'progress_no_active_title': {
+      AppLanguage.english: 'No active care plan',
+      AppLanguage.urdu: 'کوئی active care plan نہیں',
+      AppLanguage.romanUrdu: 'Koi active care plan nahi',
+    },
+    'progress_no_active_description': {
+      AppLanguage.english:
+          'Activate a care plan to see real task completion, care gaps and Teach Back progress.',
+      AppLanguage.urdu:
+          'Real task completion, care gaps اور Teach Back progress دیکھنے کے لیے care plan activate کریں۔',
+      AppLanguage.romanUrdu:
+          'Real task completion, care gaps aur Teach Back progress dekhne ke liye care plan activate karein.',
+    },
+    'progress_no_data_title': {
+      AppLanguage.english: 'No task data yet',
+      AppLanguage.urdu: 'ابھی task data نہیں',
+      AppLanguage.romanUrdu: 'Abhi task data nahi',
+    },
+    'progress_no_data_description': {
+      AppLanguage.english:
+          'Scheduled task outcomes will appear here after the backend records occurrences.',
+      AppLanguage.urdu:
+          'Backend occurrences record کرنے کے بعد scheduled task outcomes یہاں نظر آئیں گے۔',
+      AppLanguage.romanUrdu:
+          'Backend occurrences record karne ke baad scheduled task outcomes yahan nazar aayenge.',
+    },
+    'progress_understanding_unavailable': {
+      AppLanguage.english: 'No current Teach Back result is available yet.',
+      AppLanguage.urdu: 'ابھی current Teach Back result دستیاب نہیں۔',
+      AppLanguage.romanUrdu: 'Abhi current Teach Back result available nahi.',
+    },
+    'progress_task_breakdown': {
+      AppLanguage.english: 'Task breakdown',
+      AppLanguage.urdu: 'Task breakdown',
+      AppLanguage.romanUrdu: 'Task breakdown',
     },
     'week_number': {
       AppLanguage.english: 'Week {number}',
