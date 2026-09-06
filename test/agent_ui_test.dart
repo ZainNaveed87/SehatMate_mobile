@@ -357,26 +357,44 @@ void main() {
     );
   });
 
-  testWidgets('voice response speech plays without extra Agent request', (
+  testWidgets('voice response speech follows Agent reply language', (
     tester,
   ) async {
     final voice = _FakeVoiceService(
       transcripts: [const AgentVoiceTranscript(text: 'haan')],
     );
+
     final client = _UiFakeClient([
-      _response(reply: 'Aapka next task 4:00 PM par hai.'),
+      _response(reply: 'Aapka next task tayyar hai.', language: 'roman_ur'),
     ]);
-    await _pumpAgent(tester, client: client, voiceService: voice);
+
+    await _pumpAgent(
+      tester,
+      client: client,
+      language: AppLanguage.english,
+      voiceService: voice,
+    );
 
     await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
     await tester.pump();
+
     await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
     await tester.pumpAndSettle();
 
     expect(client.requests, hasLength(1));
     expect(client.requests.single.message, 'haan');
     expect(client.requests.single.requestSpeech, isFalse);
-    expect(voice.spoken, ['Aapka next task 4:00 PM par hai.']);
+
+    expect(voice.spoken, ['Aapka next task tayyar hai.']);
+
+    expect(voice.spokenLanguages, [AppLanguage.romanUrdu]);
+
+    // App/UI language remains English even though
+    // the Agent reply language is Roman Urdu.
+    expect(find.text('SehatMate AI'), findsOneWidget);
+
+    // Roman Urdu Agent reply is rendered normally.
+    expect(find.text('Aapka next task tayyar hai.'), findsOneWidget);
   });
 
   testWidgets('spoken haan with pending confirmation uses backend flow', (

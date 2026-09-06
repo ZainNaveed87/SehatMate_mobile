@@ -183,15 +183,18 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
       setState(() => _voiceState = AgentVoiceUiState.processing);
       final response = await _controller.sendText(text);
       if (!mounted) return;
-      final reply = response?.reply;
-      if (reply == null || reply.trim().isEmpty) {
+      if (response == null || response.reply.trim().isEmpty) {
         setState(() => _voiceState = AgentVoiceUiState.idle);
         return;
       }
+      final reply = response.reply;
 
       setState(() => _voiceState = AgentVoiceUiState.speaking);
       try {
-        await _voiceService.speak(reply, language: context.appLanguage);
+        await _voiceService.speak(
+          reply,
+          language: AppLanguageX.fromStorage(response.language),
+        );
       } catch (_) {
         if (mounted) _showVoiceMessage(context.tr('agent_voice_tts_error'));
       }
