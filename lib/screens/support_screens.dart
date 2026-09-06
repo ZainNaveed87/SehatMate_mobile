@@ -470,25 +470,30 @@ class _AccountRow extends StatelessWidget {
 }
 
 class PatientProfileScreen extends StatefulWidget {
-  const PatientProfileScreen({super.key});
+  const PatientProfileScreen({super.key, this.session});
+
+  final ProfileSession? session;
 
   @override
   State<PatientProfileScreen> createState() => _PatientProfileScreenState();
 }
 
 class _PatientProfileScreenState extends State<PatientProfileScreen> {
+  late final ProfileSession _session;
   late final TextEditingController name;
-  String ageGroup = '60 – 70';
-  final city = TextEditingController(text: 'Karachi');
+  final city = TextEditingController();
+  String usingFor = 'Myself';
+  String ageGroup = '';
   PatientProfile? _profile;
+  bool _loading = true;
   bool _saving = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    name = TextEditingController(
-      text: AuthSession.instance.user?.name ?? 'Ali Khan',
-    );
+    _session = widget.session ?? AuthSession.instance;
+    name = TextEditingController(text: _session.user?.name ?? '');
     Future<void>.microtask(_loadProfile);
   }
 
@@ -500,67 +505,101 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
-    if (!AuthSession.instance.isAuthenticated) return;
+    if (!_session.isAuthenticated || _session.isGuest) {
+      setState(() => _loading = false);
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      final profile = await AuthSession.instance.fetchProfile();
-      if (!mounted || profile == null) return;
+      final profile = await _session.fetchProfile();
+      if (!mounted) return;
       setState(() {
         _profile = profile;
-        name.text = profile.patientName;
-        ageGroup = patientAgeGroups.contains(profile.ageGroup)
-            ? profile.ageGroup
-            : '60 – 70';
-        city.text = profile.city;
+        if (profile != null) {
+          final profileName = profile.patientName.trim();
+          if (profileName.isNotEmpty) name.text = profileName;
+          usingFor = _validUsingFor(profile.usingFor);
+          ageGroup = patientAgeGroups.contains(profile.ageGroup)
+              ? profile.ageGroup
+              : '';
+          city.text = profile.city;
+        }
+        _loading = false;
+        _error = null;
       });
-      CareDemoState.instance.updatePreferences(
-        language: profile.preferredLanguage,
-        largeText: profile.accessibilityMode == 'Large Text',
-        voiceGuidance: profile.accessibilityMode == 'Voice Guidance',
-        simpleCareMode: profile.accessibilityMode == 'Simple Care Mode',
-      );
     } on AuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      setState(() {
+        _error = error.message;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = context.tr('profile_load_failed');
+        _loading = false;
+      });
     }
   }
 
   Future<void> _saveProfile() async {
-    if (name.text.trim().length < 2 || city.text.trim().length < 2) {
+    if (_saving) return;
+    if (name.text.trim().length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('enter_valid_name_and_city'))),
+        SnackBar(content: Text(context.tr('enter_valid_patient_name'))),
       );
       return;
     }
 
-    final current = _profile ?? AuthSession.instance.profile;
-    final state = CareDemoState.instance;
-    final accessibilityMode = state.simpleCareMode
-        ? 'Simple Care Mode'
-        : state.voiceGuidance
-        ? 'Voice Guidance'
-        : state.largeText
-        ? 'Large Text'
+    if (city.text.trim().isNotEmpty && city.text.trim().length < 2) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('enter_valid_city'))));
+      return;
+    }
+
+    final current = _profile ?? _session.profile;
+    final preferredLanguage =
+        current?.preferredLanguage.trim().isNotEmpty == true
+        ? current!.preferredLanguage
+        : context.appLanguage.serverPreferredLanguage;
+    final accessibilityMode =
+        current?.accessibilityMode.trim().isNotEmpty == true
+        ? current!.accessibilityMode
         : 'Standard';
 
     setState(() => _saving = true);
     try {
-      final updated = await AuthSession.instance.updateProfile(
+      final updated = await _session.updateProfile(
         PatientProfile(
-          usingFor: current?.usingFor ?? 'Myself',
+          usingFor: usingFor,
           patientName: name.text.trim(),
           ageGroup: ageGroup,
           city: city.text.trim(),
-          preferredLanguage: state.language,
+          preferredLanguage: preferredLanguage,
           accessibilityMode: accessibilityMode,
           caregiverSupport: current?.caregiverSupport ?? false,
           onboardingCompleted: true,
         ),
       );
       if (!mounted) return;
-      setState(() => _profile = updated);
-      showDemoMessage(context, context.tr('profile_updated'));
+      setState(() {
+        _profile = updated;
+        usingFor = _validUsingFor(updated.usingFor);
+        ageGroup = patientAgeGroups.contains(updated.ageGroup)
+            ? updated.ageGroup
+            : '';
+      });
+      await LanguageScope.read(
+        context,
+      ).setFromServerPreferredLanguage(updated.preferredLanguage);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(context.tr('profile_updated'))));
     } on AuthException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -578,234 +617,285 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = CareDemoState.instance;
-    return AnimatedBuilder(
-      animation: state,
-      builder: (context, _) => AppShell(
-        currentRoute: AppRoutes.patientProfile,
-        title: context.tr('patient_profile'),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                PageHeader(
-                  title: context.tr('patient_profile'),
-                  subtitle: context.tr('patient_profile_subtitle'),
-                  action: OutlinedButton(
+    return AppShell(
+      currentRoute: AppRoutes.patientProfile,
+      title: context.tr('patient_profile'),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PageHeader(
+                title: context.tr('patient_profile'),
+                subtitle: context.tr('patient_profile_subtitle'),
+                action: IconButton.filledTonal(
+                  key: const Key('profile_refresh_button'),
+                  onPressed: _loading ? null : _loadProfile,
+                  icon: const Icon(Icons.refresh, size: 19),
+                  tooltip: context.tr('refresh'),
+                ),
+              ),
+              if (!_session.isAuthenticated || _session.isGuest)
+                EmptyState(
+                  icon: Icons.lock_outline,
+                  title: context.tr('patient_profile_sign_in_title'),
+                  description: context.tr('patient_profile_sign_in_message'),
+                  action: FilledButton(
                     onPressed: () =>
-                        Navigator.pushNamed(context, AppRoutes.realityCheck),
-                    child: Text(context.tr('update_reality_check')),
+                        Navigator.pushNamed(context, AppRoutes.auth),
+                    child: Text(context.tr('sign_in')),
                   ),
-                ),
-                AppCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.tr('basic_details'),
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final fields = [
-                            fieldLabel(
-                              context.tr('full_name'),
-                              TextField(controller: name),
-                            ),
-                            fieldLabel(
-                              context.tr('age_group'),
-                              DropdownButtonFormField<String>(
-                                key: ValueKey(ageGroup),
-                                initialValue: ageGroup,
-                                isExpanded: true,
-                                decoration: const InputDecoration(),
-                                items: patientAgeGroups
-                                    .map(
-                                      (item) => DropdownMenuItem<String>(
-                                        value: item,
-                                        child: Text(
-                                          ageGroupLabel(
-                                            item,
-                                            context.appLanguage,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) {
-                                  if (value != null) {
-                                    setState(() => ageGroup = value);
-                                  }
-                                },
-                              ),
-                            ),
-                            fieldLabel(
-                              context.tr('city'),
-                              TextField(controller: city),
-                            ),
-                            fieldLabel(
-                              context.tr('preferred_language'),
-                              InputDecorator(
-                                decoration: const InputDecoration(),
-                                child: Text(demoLanguageLabel(state.language)),
-                              ),
-                            ),
-                          ];
-                          return constraints.maxWidth >= 520
-                              ? Wrap(
-                                  spacing: 16,
-                                  runSpacing: 14,
-                                  children: fields
-                                      .map(
-                                        (field) => SizedBox(
-                                          width:
-                                              (constraints.maxWidth - 16) / 2,
-                                          child: field,
-                                        ),
-                                      )
-                                      .toList(),
-                                )
-                              : Column(
-                                  children: fields
-                                      .map(
-                                        (field) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 14,
-                                          ),
-                                          child: field,
-                                        ),
-                                      )
-                                      .toList(),
-                                );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _saving ? null : _saveProfile,
-                        child: Text(context.tr('save_changes')),
-                      ),
-                    ],
+                )
+              else if (_loading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(48),
+                    child: CircularProgressIndicator(),
                   ),
-                ),
+                )
+              else if (_error != null)
+                EmptyState(
+                  icon: Icons.error_outline,
+                  title: context.tr('profile_load_failed_title'),
+                  description: _error!,
+                  action: FilledButton(
+                    key: const Key('profile_retry_button'),
+                    onPressed: _loadProfile,
+                    child: Text(context.tr('retry')),
+                  ),
+                )
+              else ...[
+                _buildProfileForm(context),
                 const SizedBox(height: 18),
-                AppCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.tr('daily_routine_and_support'),
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      ...realityQuestions
-                          .take(5)
-                          .toList()
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      demoRealityQuestionText(
-                                        entry.value,
-                                        context.appLanguage,
-                                      ),
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        color: AppColors.muted,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Flexible(
-                                    child: Text(
-                                      demoRealityOptionText(
-                                        entry.value.options[entry.key %
-                                            entry.value.options.length],
-                                        context.appLanguage,
-                                      ),
-                                      textAlign: TextAlign.right,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                AppCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.tr('caregiver_support'),
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ...state.caregivers.map(
-                        (caregiver) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${caregiver.name} · ${caregiver.relationship}',
-                                  style: const TextStyle(fontSize: 15),
-                                ),
-                              ),
-                              Text(
-                                caregiver.availability,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: AppColors.muted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      OutlinedButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, AppRoutes.family),
-                        child: Text(context.tr('manage_caregivers')),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildCareLinks(context),
                 const SizedBox(height: 20),
                 SafetyNote(text: context.tr('patient_profile_safety_note')),
               ],
-            ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildProfileForm(BuildContext context) {
+    final email = _session.user?.email ?? '';
+    final language = _profileLanguageLabel(context);
+    final fields = [
+      fieldLabel(
+        context.tr('full_name'),
+        TextField(
+          key: const Key('profile_name_field'),
+          controller: name,
+          textInputAction: TextInputAction.next,
+        ),
+      ),
+      fieldLabel(
+        context.tr('patient_profile_role_label'),
+        DropdownButtonFormField<String>(
+          key: const Key('profile_using_for_dropdown'),
+          initialValue: usingFor,
+          isExpanded: true,
+          decoration: const InputDecoration(),
+          items: [
+            DropdownMenuItem(
+              value: 'Myself',
+              child: Text(context.tr('onboarding_myself')),
+            ),
+            DropdownMenuItem(
+              value: 'Someone I care for',
+              child: Text(context.tr('onboarding_someone_i_care_for')),
+            ),
+          ],
+          onChanged: (value) {
+            if (value != null) setState(() => usingFor = value);
+          },
+        ),
+      ),
+      fieldLabel(
+        context.tr('age_group'),
+        DropdownButtonFormField<String>(
+          key: const Key('profile_age_dropdown'),
+          initialValue: ageGroup,
+          isExpanded: true,
+          decoration: const InputDecoration(),
+          items: [
+            DropdownMenuItem(value: '', child: Text(context.tr('not_added'))),
+            ...patientAgeGroups.map(
+              (item) => DropdownMenuItem<String>(
+                value: item,
+                child: Text(ageGroupLabel(item, context.appLanguage)),
+              ),
+            ),
+          ],
+          onChanged: (value) => setState(() => ageGroup = value ?? ''),
+        ),
+      ),
+      fieldLabel(
+        context.tr('city'),
+        TextField(
+          key: const Key('profile_city_field'),
+          controller: city,
+          decoration: InputDecoration(hintText: context.tr('not_added')),
+          textInputAction: TextInputAction.done,
+        ),
+      ),
+      fieldLabel(context.tr('email'), _readOnlyValue(context, email)),
+      fieldLabel(
+        context.tr('preferred_language'),
+        _readOnlyValue(context, language),
+      ),
+    ];
+
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('basic_details'),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 560) {
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 14,
+                  children: fields
+                      .map(
+                        (field) => SizedBox(
+                          width: (constraints.maxWidth - 16) / 2,
+                          child: field,
+                        ),
+                      )
+                      .toList(),
+                );
+              }
+              return Column(
+                children: fields
+                    .map(
+                      (field) => Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: field,
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            key: const Key('profile_save_button'),
+            onPressed: _saving ? null : _saveProfile,
+            icon: _saving
+                ? const SizedBox(
+                    width: 17,
+                    height: 17,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save_outlined, size: 17),
+            label: Text(context.tr('save_changes')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCareLinks(BuildContext context) {
+    final links = [
+      (
+        Icons.checklist_outlined,
+        context.tr('care_plans'),
+        context.tr('patient_profile_care_plans_hint'),
+        AppRoutes.carePlans,
+        const Key('profile_link_care_plans'),
+      ),
+      (
+        Icons.description_outlined,
+        context.tr('documents'),
+        context.tr('patient_profile_documents_hint'),
+        AppRoutes.documents,
+        const Key('profile_link_documents'),
+      ),
+      (
+        Icons.speed_outlined,
+        context.tr('progress'),
+        context.tr('patient_profile_progress_hint'),
+        AppRoutes.progress,
+        const Key('profile_link_progress'),
+      ),
+      (
+        Icons.handshake_outlined,
+        context.tr('family_care'),
+        context.tr('patient_profile_family_hint'),
+        AppRoutes.family,
+        const Key('profile_link_family'),
+      ),
+      (
+        Icons.record_voice_over_outlined,
+        context.tr('teach_back'),
+        context.tr('patient_profile_teach_back_hint'),
+        AppRoutes.teachBack,
+        const Key('profile_link_teach_back'),
+      ),
+    ];
+
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('patient_profile_care_links'),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 14),
+          for (var index = 0; index < links.length; index++) ...[
+            _SettingsActionRow(
+              icon: links[index].$1,
+              title: links[index].$2,
+              description: links[index].$3,
+              action: OutlinedButton.icon(
+                key: links[index].$5,
+                onPressed: () => Navigator.pushNamed(context, links[index].$4),
+                icon: const Icon(Icons.open_in_new, size: 17),
+                label: Text(context.tr('open')),
+              ),
+            ),
+            if (index < links.length - 1)
+              const Divider(height: 24, color: AppColors.border),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _readOnlyValue(BuildContext context, String value) {
+    final display = value.trim().isEmpty
+        ? context.tr('not_added')
+        : value.trim();
+    return InputDecorator(
+      decoration: const InputDecoration(),
+      child: Text(display),
+    );
+  }
+
+  String _profileLanguageLabel(BuildContext context) {
+    final current = _profile?.preferredLanguage.trim();
+    if (current == null || current.isEmpty) {
+      return context.appLanguage.displayName;
+    }
+    return AppLanguageX.fromServerPreferredLanguage(current).displayName;
+  }
+
+  String _validUsingFor(String value) {
+    return value == 'Someone I care for' ? value : 'Myself';
   }
 }
 

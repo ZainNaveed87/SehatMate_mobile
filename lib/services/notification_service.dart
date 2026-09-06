@@ -20,11 +20,26 @@ class NotificationScheduleResult {
   final int scheduledCount;
 }
 
+class NotificationPermissionSnapshot {
+  const NotificationPermissionSnapshot({
+    required this.supported,
+    required this.notificationsEnabled,
+    required this.exactAlarmEnabled,
+  });
+
+  final bool supported;
+  final bool notificationsEnabled;
+  final bool exactAlarmEnabled;
+
+  bool get notificationsDisabled => supported && !notificationsEnabled;
+}
+
 class NotificationService {
   NotificationService._();
 
   static final NotificationService instance = NotificationService._();
-  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
   Future<void> initialize() async {
@@ -44,22 +59,84 @@ class NotificationService {
     _initialized = true;
   }
 
+  Future<NotificationPermissionSnapshot> permissionStatus() async {
+    if (kIsWeb) {
+      return const NotificationPermissionSnapshot(
+        supported: false,
+        notificationsEnabled: false,
+        exactAlarmEnabled: false,
+      );
+    }
+    await initialize();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    final notificationsAllowed =
+        await android?.areNotificationsEnabled() ?? true;
+    return NotificationPermissionSnapshot(
+      supported: true,
+      notificationsEnabled: notificationsAllowed,
+      exactAlarmEnabled: true,
+    );
+  }
+
+  Future<NotificationPermissionSnapshot> requestReminderPermission() async {
+    if (kIsWeb) {
+      return const NotificationPermissionSnapshot(
+        supported: false,
+        notificationsEnabled: false,
+        exactAlarmEnabled: false,
+      );
+    }
+    await initialize();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    final notificationsAllowed =
+        await android?.requestNotificationsPermission() ?? true;
+    if (!notificationsAllowed) {
+      return const NotificationPermissionSnapshot(
+        supported: true,
+        notificationsEnabled: false,
+        exactAlarmEnabled: false,
+      );
+    }
+    final exactAlarmAllowed =
+        await android?.requestExactAlarmsPermission() ?? true;
+    return NotificationPermissionSnapshot(
+      supported: true,
+      notificationsEnabled: true,
+      exactAlarmEnabled: exactAlarmAllowed,
+    );
+  }
+
   Future<NotificationScheduleResult> scheduleNextOccurrences({
     required String planId,
     required List<DemoTask> tasks,
   }) async {
     if (kIsWeb) {
-      return const NotificationScheduleResult(permissionGranted: false, exactAlarmGranted: false, scheduledCount: 0);
+      return const NotificationScheduleResult(
+        permissionGranted: false,
+        exactAlarmGranted: false,
+        scheduledCount: 0,
+      );
     }
-    await initialize();
-    final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    final notificationsAllowed = await android?.requestNotificationsPermission() ?? true;
-    if (!notificationsAllowed) {
-      return const NotificationScheduleResult(permissionGranted: false, exactAlarmGranted: false, scheduledCount: 0);
+    final permissions = await requestReminderPermission();
+    if (!permissions.notificationsEnabled) {
+      return const NotificationScheduleResult(
+        permissionGranted: false,
+        exactAlarmGranted: false,
+        scheduledCount: 0,
+      );
     }
-    final exactAlarmAllowed = await android?.requestExactAlarmsPermission() ?? true;
-    if (!exactAlarmAllowed) {
-      return const NotificationScheduleResult(permissionGranted: true, exactAlarmGranted: false, scheduledCount: 0);
+    if (!permissions.exactAlarmEnabled) {
+      return const NotificationScheduleResult(
+        permissionGranted: true,
+        exactAlarmGranted: false,
+        scheduledCount: 0,
+      );
     }
 
     var scheduled = 0;

@@ -406,23 +406,10 @@ class _ShellHeader extends StatelessWidget {
             ],
             _LanguageMenu(compact: !desktop),
             const SizedBox(width: 8),
-            Stack(
-              children: [
-                IconButton(
-                  tooltip: context.tr('notifications'),
-                  onPressed: () => onNavigate(AppRoutes.notifications),
-                  icon: const Icon(Icons.notifications_none, size: 20),
-                ),
-                if (CareDemoState.instance.unreadNotifications > 0)
-                  const PositionedDirectional(
-                    end: 10,
-                    top: 10,
-                    child: CircleAvatar(
-                      radius: 4,
-                      backgroundColor: AppColors.critical,
-                    ),
-                  ),
-              ],
+            IconButton(
+              tooltip: context.tr('notifications'),
+              onPressed: () => onNavigate(AppRoutes.notifications),
+              icon: const Icon(Icons.notifications_none, size: 20),
             ),
             const SizedBox(width: 4),
             PopupMenuButton<String>(

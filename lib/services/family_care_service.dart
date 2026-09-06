@@ -57,6 +57,7 @@ class FamilyInvitation {
     required this.caregiver,
     required this.careRecipient,
     required this.requestedScopes,
+    required this.createdAt,
   });
 
   final String id;
@@ -66,6 +67,7 @@ class FamilyInvitation {
   final FamilyInvitePerson? caregiver;
   final FamilyInvitePerson? careRecipient;
   final Map<String, bool> requestedScopes;
+  final DateTime? createdAt;
 }
 
 class FamilyRelationship {
@@ -298,6 +300,7 @@ class FamilyCareService {
       caregiver: _personFromJson(json['caregiver']),
       careRecipient: _personFromJson(json['careRecipient']),
       requestedScopes: _boolMap(json['requestedScopes']),
+      createdAt: DateTime.tryParse(_text(json['createdAt'])),
     );
   }
 

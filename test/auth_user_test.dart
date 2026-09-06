@@ -16,12 +16,23 @@ void main() {
   });
 
   test('single-name user displays one initial', () {
-    const user = AuthUser(
-      id: '8',
-      name: 'Zain',
-      email: 'zain@example.com',
-    );
+    const user = AuthUser(id: '8', name: 'Zain', email: 'zain@example.com');
 
     expect(user.initials, 'Z');
+  });
+
+  test('patient profile decoding does not invent fake defaults', () {
+    final profile = PatientProfile.fromJson(const {
+      'id': 9,
+      'patientName': 'Sara Khan',
+    });
+
+    expect(profile.usingFor, '');
+    expect(profile.ageGroup, '');
+    expect(profile.city, '');
+    expect(profile.preferredLanguage, '');
+    expect(profile.accessibilityMode, '');
+    expect(profile.caregiverSupport, isFalse);
+    expect(profile.onboardingCompleted, isFalse);
   });
 }

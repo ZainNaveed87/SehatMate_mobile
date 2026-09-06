@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
 import '../localization/language_scope.dart';
+import '../services/auth_service.dart';
 import '../services/document_service.dart';
+import '../services/notification_center_service.dart';
 import '../services/progress_service.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/page_header.dart';
@@ -170,80 +171,414 @@ class _CalendarTask extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppCard(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            SizedBox(width: 76, child: Text(task.time, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.muted))),
-            TaskIcon(icon: task.icon),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(demoTaskTitle(task, context.appLanguage), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), Text(demoTaskNote(task, context.appLanguage), style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
-            const SizedBox(width: 8),
-            StatusBadge(status: task.status),
-          ],
+    padding: const EdgeInsets.all(16),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 76,
+          child: Text(
+            task.time,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.muted,
+            ),
+          ),
         ),
-      );
+        TaskIcon(icon: task.icon),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                demoTaskTitle(task, context.appLanguage),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                demoTaskNote(task, context.appLanguage),
+                style: const TextStyle(fontSize: 14, color: AppColors.muted),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        StatusBadge(status: task.status),
+      ],
+    ),
+  );
 }
 
-class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
+class NotificationsScreen extends StatefulWidget {
+  const NotificationsScreen({super.key, this.service, this.session});
+
+  final NotificationCenterClient? service;
+  final ProfileSession? session;
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  late final NotificationCenterClient _service;
+  late final ProfileSession _session;
+  var _loading = true;
+  var _refreshing = false;
+  var _notifications = <AppNotification>[];
+  var _filter = 'all';
+  String? _error;
+  bool _offline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = widget.service ?? NotificationCenterService.instance;
+    _session = widget.session ?? AuthSession.instance;
+    if (_session.isAuthenticated && !_session.isGuest) {
+      _loadNotifications();
+    } else {
+      _loading = false;
+    }
+  }
+
+  Future<void> _loadNotifications({bool refresh = false}) async {
+    if (refresh) {
+      setState(() => _refreshing = true);
+    } else {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+
+    try {
+      final notifications = await _service.loadNotifications();
+      if (!mounted) return;
+      setState(() {
+        _notifications = notifications;
+        _loading = false;
+        _refreshing = false;
+        _error = null;
+        _offline = false;
+      });
+    } on NotificationCenterException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.message;
+        _offline = error.retryable;
+        _loading = false;
+        _refreshing = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = context.tr('notification_center_load_failed');
+        _offline = false;
+        _loading = false;
+        _refreshing = false;
+      });
+    }
+  }
+
+  Future<void> _markReadAndOpen(AppNotification notification) async {
+    try {
+      await _service.markRead(notification.id);
+      if (!mounted) return;
+      setState(() {
+        _notifications = _notifications
+            .map(
+              (item) =>
+                  item.id == notification.id ? item.copyWith(read: true) : item,
+            )
+            .toList();
+      });
+      final route = notification.route;
+      if (route != null && route.isNotEmpty) {
+        Navigator.pushNamed(context, route);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('notification_center_read_failed'))),
+      );
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    try {
+      await _service.markAllRead(_notifications.map((item) => item.id));
+      if (!mounted) return;
+      setState(() {
+        _notifications = _notifications
+            .map((notification) => notification.copyWith(read: true))
+            .toList();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('notification_center_read_failed'))),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final state = CareDemoState.instance;
-    return AnimatedBuilder(
-      animation: state,
-      builder: (context, _) => AppShell(
-        currentRoute: AppRoutes.notifications,
-        title: context.tr('notifications'),
-        child: Column(
+    final unreadCount = _notifications.where((item) => !item.read).length;
+    final visible = _filter == 'unread'
+        ? _notifications.where((item) => !item.read).toList()
+        : _notifications;
+
+    return AppShell(
+      currentRoute: AppRoutes.notifications,
+      title: context.tr('notifications'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeader(
+            title: context.tr('notifications'),
+            subtitle: context.tr('notifications_subtitle'),
+            action: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                IconButton.filledTonal(
+                  key: const Key('notifications_refresh_button'),
+                  onPressed: _refreshing
+                      ? null
+                      : () => _loadNotifications(refresh: true),
+                  icon: _refreshing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh, size: 19),
+                  tooltip: context.tr('refresh'),
+                ),
+                if (unreadCount > 0)
+                  OutlinedButton.icon(
+                    key: const Key('notifications_mark_all_read_button'),
+                    onPressed: _markAllRead,
+                    icon: const Icon(Icons.done_all, size: 17),
+                    label: Text(context.tr('mark_all_read')),
+                  ),
+              ],
+            ),
+          ),
+          if (!_session.isAuthenticated || _session.isGuest)
+            EmptyState(
+              icon: Icons.lock_outline,
+              title: context.tr('notification_center_sign_in_title'),
+              description: context.tr('notification_center_sign_in_message'),
+              action: FilledButton(
+                onPressed: () => Navigator.pushNamed(context, AppRoutes.auth),
+                child: Text(context.tr('sign_in')),
+              ),
+            )
+          else if (_loading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(48),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_error != null)
+            EmptyState(
+              icon: _offline ? Icons.wifi_off_outlined : Icons.error_outline,
+              title: context.tr('notification_center_error_title'),
+              description: _error!,
+              action: FilledButton(
+                key: const Key('notifications_retry_button'),
+                onPressed: _loadNotifications,
+                child: Text(context.tr('retry')),
+              ),
+            )
+          else ...[
+            AppTabs<String>(
+              tabs: [
+                AppTab('all', context.tr('all')),
+                AppTab(
+                  'unread',
+                  context.tr(
+                    'notification_center_unread_tab',
+                    values: {'count': unreadCount},
+                  ),
+                ),
+              ],
+              selected: _filter,
+              onChanged: (value) => setState(() => _filter = value),
+            ),
+            const SizedBox(height: 20),
+            if (visible.isEmpty)
+              EmptyState(
+                icon: Icons.notifications_none,
+                title: context.tr('nothing_new'),
+                description: _filter == 'unread'
+                    ? context.tr('notification_center_no_unread')
+                    : context.tr('all_caught_up'),
+              )
+            else
+              _NotificationGroups(
+                notifications: visible,
+                onTap: _markReadAndOpen,
+              ),
+          ],
+          const SizedBox(height: 20),
+          SafetyNote(text: context.tr('notification_center_safety_note')),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationGroups extends StatelessWidget {
+  const _NotificationGroups({required this.notifications, required this.onTap});
+
+  final List<AppNotification> notifications;
+  final ValueChanged<AppNotification> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = <String, List<AppNotification>>{};
+    for (final notification in notifications) {
+      groups.putIfAbsent(_groupKey(notification.createdAt), () => []);
+      groups[_groupKey(notification.createdAt)]!.add(notification);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final entry in groups.entries) ...[
+          Text(
+            context.tr(entry.key),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          ...entry.value.map(
+            (notification) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _NotificationTile(
+                notification: notification,
+                onTap: () => onTap(notification),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+
+  String _groupKey(DateTime createdAt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    if (date == today) return 'today';
+    if (date == today.subtract(const Duration(days: 1))) return 'yesterday';
+    return 'earlier';
+  }
+}
+
+class _NotificationTile extends StatelessWidget {
+  const _NotificationTile({required this.notification, required this.onTap});
+
+  final AppNotification notification;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: Key('notification_${notification.id}'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadii.xxl),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: notification.read ? AppColors.card : AppColors.primaryLight,
+          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(AppRadii.xxl),
+        ),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageHeader(
-              title: context.tr('notifications'),
-              subtitle: context.tr('notifications_subtitle'),
-              action: OutlinedButton(onPressed: state.markAllRead, child: Text(context.tr('mark_all_read'))),
+            Icon(
+              _notificationIcon(notification.type),
+              size: 21,
+              color: AppColors.primary,
             ),
-            if (state.notifications.isEmpty)
-              EmptyState(icon: Icons.notifications_none, title: context.tr('nothing_new'), description: context.tr('all_caught_up'))
-            else
-              for (final group in const ['Today', 'Yesterday']) ...[
-                if (state.notifications.any((notification) => notification.group == group)) ...[
-                  Text(group == 'Today' ? context.tr('today') : context.tr('yesterday'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 12),
-                  ...state.notifications.where((notification) => notification.group == group).map((notification) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: InkWell(
-                          onTap: () => state.markRead(notification.id),
-                          borderRadius: BorderRadius.circular(AppRadii.xxl),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: notification.read ? AppColors.card : AppColors.primaryLight,
-                              border: Border.all(color: AppColors.border),
-                              borderRadius: BorderRadius.circular(AppRadii.xxl),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(notification.kind == null ? Icons.notifications_none : _kindIcon(notification.kind!), size: 21, color: AppColors.primary),
-                                const SizedBox(width: 12),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(demoNotificationTitle(notification, context.appLanguage), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), Text(demoNotificationDetail(notification, context.appLanguage), style: const TextStyle(fontSize: 14, color: AppColors.muted))])),
-                                if (!notification.read) const Padding(padding: EdgeInsets.only(top: 7), child: CircleAvatar(radius: 4, backgroundColor: AppColors.primary)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )),
-                  const SizedBox(height: 12),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr(
+                      notification.titleKey,
+                      values: notification.values,
+                    ),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    context.tr(
+                      notification.messageKey,
+                      values: notification.values,
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _timeLabel(notification.createdAt),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.subtle,
+                    ),
+                  ),
                 ],
-              ],
+              ),
+            ),
+            if (!notification.read)
+              const Padding(
+                padding: EdgeInsets.only(top: 7),
+                child: CircleAvatar(
+                  radius: 4,
+                  backgroundColor: AppColors.primary,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
+
+  String _timeLabel(DateTime createdAt) {
+    final hour = createdAt.hour;
+    final suffix = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour % 12 == 0 ? 12 : hour % 12;
+    return '$displayHour:${createdAt.minute.toString().padLeft(2, '0')} $suffix';
+  }
 }
+
+IconData _notificationIcon(String type) => switch (type) {
+  'task_due' ||
+  'task_overdue' ||
+  'task_missed' => Icons.event_available_outlined,
+  'care_gap' => Icons.report_problem_outlined,
+  'document_ready' || 'document_failed' => Icons.description_outlined,
+  'family_invitation' => Icons.handshake_outlined,
+  'permission' => Icons.notifications_off_outlined,
+  _ => Icons.notifications_none,
+};
 
 typedef DocumentFileViewer =
     Future<void> Function(BuildContext context, DocumentFile file);
@@ -1067,11 +1402,3 @@ String _demoDateLabel(BuildContext context, DemoDay day) => context
       },
     )
     .trim();
-
-IconData _kindIcon(TaskKind kind) => switch (kind) {
-  TaskKind.medicine => Icons.medication_outlined,
-  TaskKind.lab => Icons.biotech_outlined,
-  TaskKind.visit => Icons.local_hospital_outlined,
-  TaskKind.dressing => Icons.healing_outlined,
-  TaskKind.caregiver => Icons.handshake_outlined,
-};

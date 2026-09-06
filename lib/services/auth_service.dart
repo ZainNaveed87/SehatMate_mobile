@@ -106,14 +106,14 @@ class PatientProfile {
 
   factory PatientProfile.fromJson(Map<String, dynamic> json) {
     return PatientProfile(
-      usingFor: json['usingFor']?.toString() ?? 'Myself',
+      usingFor: json['usingFor']?.toString() ?? '',
       patientName: json['patientName']?.toString() ?? '',
-      ageGroup: json['ageGroup']?.toString() ?? '60 – 70',
+      ageGroup: json['ageGroup']?.toString() ?? '',
       city: json['city']?.toString() ?? '',
-      preferredLanguage: json['preferredLanguage']?.toString() ?? 'Roman Urdu',
-      accessibilityMode: json['accessibilityMode']?.toString() ?? 'Standard',
-      caregiverSupport: json['caregiverSupport'] == true,
-      onboardingCompleted: json['onboardingCompleted'] == true,
+      preferredLanguage: json['preferredLanguage']?.toString() ?? '',
+      accessibilityMode: json['accessibilityMode']?.toString() ?? '',
+      caregiverSupport: _jsonBool(json['caregiverSupport']),
+      onboardingCompleted: _jsonBool(json['onboardingCompleted']),
     );
   }
 
@@ -130,6 +130,11 @@ class PatientProfile {
   }
 }
 
+bool _jsonBool(Object? value) {
+  if (value == true || value == 1 || value == '1') return true;
+  return value?.toString().toLowerCase() == 'true';
+}
+
 class AuthException implements Exception {
   const AuthException(this.message);
 
@@ -139,7 +144,29 @@ class AuthException implements Exception {
   String toString() => message;
 }
 
-class AuthSession extends ChangeNotifier {
+abstract interface class ProfileSession implements Listenable {
+  AuthUser? get user;
+  PatientProfile? get profile;
+  bool get isAuthenticated;
+  bool get isGuest;
+  bool get canAccessApp;
+  bool get needsOnboarding;
+
+  Future<PatientProfile> completeOnboarding({
+    required String usingFor,
+    required String patientName,
+    required String ageGroup,
+    required String city,
+    required String preferredLanguage,
+    required String accessibilityMode,
+    required bool caregiverSupport,
+  });
+
+  Future<PatientProfile?> fetchProfile();
+  Future<PatientProfile> updateProfile(PatientProfile profile);
+}
+
+class AuthSession extends ChangeNotifier implements ProfileSession {
   AuthSession._();
 
   static final AuthSession instance = AuthSession._();
@@ -180,16 +207,22 @@ class AuthSession extends ChangeNotifier {
 
   String? get token => _token;
 
+  @override
   AuthUser? get user => _user;
 
+  @override
   PatientProfile? get profile => _profile;
 
+  @override
   bool get isAuthenticated => _token != null && _user != null;
 
+  @override
   bool get isGuest => _guestMode;
 
+  @override
   bool get canAccessApp => isAuthenticated || isGuest;
 
+  @override
   bool get needsOnboarding => isAuthenticated && !_onboardingComplete;
 
   bool get initialized => _initialized;
@@ -375,6 +408,7 @@ class AuthSession extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   Future<PatientProfile> completeOnboarding({
     required String usingFor,
     required String patientName,
@@ -403,11 +437,13 @@ class AuthSession extends ChangeNotifier {
     _profile = profile;
     _onboardingComplete =
         data['onboardingCompleted'] == true || profile.onboardingCompleted;
+    await _syncUserNameFromProfile(profile);
     await _saveOnboardingState();
     notifyListeners();
     return profile;
   }
 
+  @override
   Future<PatientProfile?> fetchProfile() async {
     final data = await _get('/profile', authenticated: true);
     final profileJson = data['profile'];
@@ -422,11 +458,13 @@ class AuthSession extends ChangeNotifier {
     final profile = PatientProfile.fromJson(profileJson);
     _profile = profile;
     _onboardingComplete = profile.onboardingCompleted;
+    await _syncUserNameFromProfile(profile);
     await _saveOnboardingState();
     notifyListeners();
     return profile;
   }
 
+  @override
   Future<PatientProfile> updateProfile(PatientProfile profile) async {
     final data = await _put(
       '/profile',
@@ -441,9 +479,21 @@ class AuthSession extends ChangeNotifier {
     final updated = PatientProfile.fromJson(profileJson);
     _profile = updated;
     _onboardingComplete = updated.onboardingCompleted;
+    await _syncUserNameFromProfile(updated);
     await _saveOnboardingState();
     notifyListeners();
     return updated;
+  }
+
+  Future<void> _syncUserNameFromProfile(PatientProfile profile) async {
+    final user = _user;
+    final profileName = profile.patientName.trim();
+    if (user == null || profileName.isEmpty || user.name == profileName) {
+      return;
+    }
+
+    _user = AuthUser(id: user.id, name: profileName, email: user.email);
+    await _storage.write(key: _userKey, value: jsonEncode(_user!.toJson()));
   }
 
   String _onboardingKeyFor(String userId) => '$_onboardingKeyPrefix$userId';

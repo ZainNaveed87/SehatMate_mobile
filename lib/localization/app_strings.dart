@@ -323,6 +323,16 @@ class AppStrings {
       AppLanguage.urdu: 'تازہ کریں',
       AppLanguage.romanUrdu: 'Refresh karein',
     },
+    'all': {
+      AppLanguage.english: 'All',
+      AppLanguage.urdu: 'تمام',
+      AppLanguage.romanUrdu: 'Sab',
+    },
+    'finish_setup': {
+      AppLanguage.english: 'Finish setup',
+      AppLanguage.urdu: 'سیٹ اپ مکمل کریں',
+      AppLanguage.romanUrdu: 'Setup complete karein',
+    },
     'get_started': {
       AppLanguage.english: 'Get Started',
       AppLanguage.urdu: 'شروع کریں',
@@ -402,6 +412,11 @@ class AppStrings {
       AppLanguage.english: 'Not set',
       AppLanguage.urdu: 'سیٹ نہیں',
       AppLanguage.romanUrdu: 'Set nahi',
+    },
+    'not_added': {
+      AppLanguage.english: 'Not added',
+      AppLanguage.urdu: 'شامل نہیں',
+      AppLanguage.romanUrdu: 'Add nahi hua',
     },
     'task_updated': {
       AppLanguage.english: 'Task updated',
@@ -1391,6 +1406,241 @@ class AppStrings {
       AppLanguage.romanUrdu:
           'Aap isay baad mein Settings mein change kar sakte hain.',
     },
+    'onboarding_sign_in_title': {
+      AppLanguage.english: 'Sign in to set up your care profile',
+      AppLanguage.urdu: 'اپنا care profile بنانے کے لیے sign in کریں',
+      AppLanguage.romanUrdu:
+          'Apna care profile set up karne ke liye sign in karein',
+    },
+    'onboarding_sign_in_message': {
+      AppLanguage.english:
+          'Onboarding saves to your SehatMate account, so guest mode cannot complete it.',
+      AppLanguage.urdu:
+          'Onboarding آپ کے SehatMate اکاؤنٹ میں محفوظ ہوتی ہے، اس لیے guest mode اسے مکمل نہیں کر سکتا۔',
+      AppLanguage.romanUrdu:
+          'Onboarding aap ke SehatMate account mein save hoti hai, is liye guest mode isay complete nahi kar sakta.',
+    },
+    'onboarding_profile_title': {
+      AppLanguage.english: 'Add the basic profile',
+      AppLanguage.urdu: 'بنیادی profile شامل کریں',
+      AppLanguage.romanUrdu: 'Basic profile add karein',
+    },
+    'onboarding_profile_subtitle': {
+      AppLanguage.english:
+          'Only the name is required. Age group and city can stay blank.',
+      AppLanguage.urdu:
+          'صرف نام ضروری ہے۔ عمر کا گروپ اور شہر خالی رہ سکتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Sirf naam zaroori hai. Age group aur city blank reh sakte hain.',
+    },
+    'onboarding_language_title': {
+      AppLanguage.english: 'Choose the app language',
+      AppLanguage.urdu: 'ایپ کی زبان منتخب کریں',
+      AppLanguage.romanUrdu: 'App ki language choose karein',
+    },
+    'onboarding_goals_title': {
+      AppLanguage.english: 'What should SehatMate help with first?',
+      AppLanguage.urdu: 'SehatMate سب سے پہلے کس چیز میں مدد کرے؟',
+      AppLanguage.romanUrdu: 'SehatMate pehle kis cheez mein madad kare?',
+    },
+    'onboarding_goals_subtitle': {
+      AppLanguage.english:
+          'Choose any priorities. These guide the first shortcuts without changing medical instructions.',
+      AppLanguage.urdu:
+          'کوئی بھی ترجیحات منتخب کریں۔ یہ پہلے shortcuts بناتی ہیں، medical instructions تبدیل نہیں کرتیں۔',
+      AppLanguage.romanUrdu:
+          'Koi bhi priorities choose karein. Yeh pehle shortcuts guide karti hain, medical instructions change nahi karti.',
+    },
+    'onboarding_goal_understand_plan': {
+      AppLanguage.english: 'Understand a care plan',
+      AppLanguage.urdu: 'Care plan سمجھنا',
+      AppLanguage.romanUrdu: 'Care plan samajhna',
+    },
+    'onboarding_goal_understand_plan_desc': {
+      AppLanguage.english:
+          'Review verified instructions from prescriptions or discharge papers.',
+      AppLanguage.urdu:
+          'Prescription یا discharge papers سے verified instructions review کریں۔',
+      AppLanguage.romanUrdu:
+          'Prescription ya discharge papers se verified instructions review karein.',
+    },
+    'onboarding_goal_track_tasks': {
+      AppLanguage.english: 'Track today’s care tasks',
+      AppLanguage.urdu: 'آج کے care tasks track کرنا',
+      AppLanguage.romanUrdu: 'Aaj ke care tasks track karna',
+    },
+    'onboarding_goal_track_tasks_desc': {
+      AppLanguage.english:
+          'See due, completed, skipped and missed tasks from confirmed plans.',
+      AppLanguage.urdu:
+          'Confirmed plans سے due، completed، skipped اور missed tasks دیکھیں۔',
+      AppLanguage.romanUrdu:
+          'Confirmed plans se due, completed, skipped aur missed tasks dekhein.',
+    },
+    'onboarding_goal_documents': {
+      AppLanguage.english: 'Keep care documents together',
+      AppLanguage.urdu: 'Care documents ایک جگہ رکھنا',
+      AppLanguage.romanUrdu: 'Care documents aik jagah rakhna',
+    },
+    'onboarding_goal_documents_desc': {
+      AppLanguage.english:
+          'Use Documents to find files already uploaded for care plans.',
+      AppLanguage.urdu:
+          'Care plans کے لیے uploaded files ڈھونڈنے کے لیے Documents استعمال کریں۔',
+      AppLanguage.romanUrdu:
+          'Care plans ke liye uploaded files dhoondne ke liye Documents use karein.',
+    },
+    'onboarding_goal_family': {
+      AppLanguage.english: 'Coordinate with family',
+      AppLanguage.urdu: 'Family کے ساتھ coordinate کرنا',
+      AppLanguage.romanUrdu: 'Family ke saath coordinate karna',
+    },
+    'onboarding_goal_family_desc': {
+      AppLanguage.english:
+          'Invite a helper with limited access to the care information they need.',
+      AppLanguage.urdu:
+          'Helper کو صرف ضروری care information تک محدود access کے ساتھ invite کریں۔',
+      AppLanguage.romanUrdu:
+          'Helper ko sirf zaroori care information tak limited access ke saath invite karein.',
+    },
+    'onboarding_goal_teach_back': {
+      AppLanguage.english: 'Check understanding',
+      AppLanguage.urdu: 'Understanding check کرنا',
+      AppLanguage.romanUrdu: 'Understanding check karna',
+    },
+    'onboarding_goal_teach_back_desc': {
+      AppLanguage.english:
+          'Use Teach-Back to confirm you understand verified plan instructions.',
+      AppLanguage.urdu:
+          'Teach-Back سے confirm کریں کہ verified plan instructions سمجھ آ گئی ہیں۔',
+      AppLanguage.romanUrdu:
+          'Teach-Back se confirm karein ke verified plan instructions samajh aa gayi hain.',
+    },
+    'onboarding_document_title': {
+      AppLanguage.english: 'Do you have care documents ready?',
+      AppLanguage.urdu: 'کیا آپ کے care documents ready ہیں؟',
+      AppLanguage.romanUrdu: 'Kya aap ke care documents ready hain?',
+    },
+    'onboarding_document_subtitle': {
+      AppLanguage.english:
+          'Prescriptions, discharge summaries and follow-up notes become the source for care plans.',
+      AppLanguage.urdu:
+          'Prescriptions، discharge summaries اور follow-up notes care plans کا source بنتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Prescriptions, discharge summaries aur follow-up notes care plans ka source bante hain.',
+    },
+    'onboarding_document_upload_now': {
+      AppLanguage.english: 'Upload one after setup',
+      AppLanguage.urdu: 'Setup کے بعد ایک upload کریں',
+      AppLanguage.romanUrdu: 'Setup ke baad aik upload karein',
+    },
+    'onboarding_document_upload_now_desc': {
+      AppLanguage.english:
+          'Finish this profile, then open the real care-plan upload flow.',
+      AppLanguage.urdu:
+          'یہ profile مکمل کریں، پھر real care-plan upload flow کھولیں۔',
+      AppLanguage.romanUrdu:
+          'Yeh profile complete karein, phir real care-plan upload flow kholein.',
+    },
+    'onboarding_document_later': {
+      AppLanguage.english: 'I’ll add documents later',
+      AppLanguage.urdu: 'میں documents بعد میں add کروں گا',
+      AppLanguage.romanUrdu: 'Main documents baad mein add karunga',
+    },
+    'onboarding_document_later_desc': {
+      AppLanguage.english:
+          'Go to the dashboard now and upload when the document is available.',
+      AppLanguage.urdu:
+          'اب dashboard پر جائیں اور document دستیاب ہو تو upload کریں۔',
+      AppLanguage.romanUrdu:
+          'Ab dashboard par jayein aur document available ho to upload karein.',
+    },
+    'onboarding_document_no': {
+      AppLanguage.english: 'No document yet',
+      AppLanguage.urdu: 'ابھی کوئی document نہیں',
+      AppLanguage.romanUrdu: 'Abhi koi document nahi',
+    },
+    'onboarding_document_no_desc': {
+      AppLanguage.english:
+          'You can still use the app, then create a care plan when you have a verified source.',
+      AppLanguage.urdu:
+          'آپ app استعمال کر سکتے ہیں، پھر verified source ملنے پر care plan بنائیں۔',
+      AppLanguage.romanUrdu:
+          'Aap app use kar sakte hain, phir verified source milne par care plan banayein.',
+    },
+    'onboarding_reminders_title': {
+      AppLanguage.english: 'Reminders for confirmed care tasks',
+      AppLanguage.urdu: 'Confirmed care tasks کے reminders',
+      AppLanguage.romanUrdu: 'Confirmed care tasks ke reminders',
+    },
+    'onboarding_reminders_subtitle': {
+      AppLanguage.english:
+          'Reminders are created only from active care plans after instructions are verified.',
+      AppLanguage.urdu:
+          'Reminders صرف active care plans سے بنتے ہیں جب instructions verified ہوں۔',
+      AppLanguage.romanUrdu:
+          'Reminders sirf active care plans se bante hain jab instructions verified hon.',
+    },
+    'onboarding_reminders_yes': {
+      AppLanguage.english: 'Ask me for reminder permission',
+      AppLanguage.urdu: 'Reminder permission کے لیے پوچھیں',
+      AppLanguage.romanUrdu: 'Reminder permission ke liye poochein',
+    },
+    'onboarding_reminders_yes_desc': {
+      AppLanguage.english:
+          'SehatMate will request device permission and use it for confirmed care reminders.',
+      AppLanguage.urdu:
+          'SehatMate device permission مانگے گا اور اسے confirmed care reminders کے لیے use کرے گا۔',
+      AppLanguage.romanUrdu:
+          'SehatMate device permission maange ga aur isay confirmed care reminders ke liye use kare ga.',
+    },
+    'onboarding_reminders_later': {
+      AppLanguage.english: 'Not now',
+      AppLanguage.urdu: 'ابھی نہیں',
+      AppLanguage.romanUrdu: 'Abhi nahi',
+    },
+    'onboarding_reminders_later_desc': {
+      AppLanguage.english:
+          'You can still open Notifications and enable device permission later.',
+      AppLanguage.urdu:
+          'آپ بعد میں Notifications کھول کر device permission enable کر سکتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Aap baad mein Notifications khol kar device permission enable kar sakte hain.',
+    },
+    'onboarding_choose_reminders': {
+      AppLanguage.english: 'Choose a reminder option.',
+      AppLanguage.urdu: 'Reminder option منتخب کریں۔',
+      AppLanguage.romanUrdu: 'Reminder option choose karein.',
+    },
+    'onboarding_reminders_denied': {
+      AppLanguage.english:
+          'Device notification permission is off. Confirmed care items will still appear in Notifications.',
+      AppLanguage.urdu:
+          'Device notification permission off ہے۔ Confirmed care items پھر بھی Notifications میں نظر آئیں گے۔',
+      AppLanguage.romanUrdu:
+          'Device notification permission off hai. Confirmed care items phir bhi Notifications mein nazar aayenge.',
+    },
+    'onboarding_simple_care_title': {
+      AppLanguage.english: 'Would a simpler care view help?',
+      AppLanguage.urdu: 'کیا simpler care view مدد کرے گا؟',
+      AppLanguage.romanUrdu: 'Kya simpler care view madad kare ga?',
+    },
+    'onboarding_simple_care_subtitle': {
+      AppLanguage.english:
+          'Simple Care uses the same real care data with fewer controls on screen.',
+      AppLanguage.urdu:
+          'Simple Care وہی real care data استعمال کرتا ہے مگر screen پر controls کم ہوتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Simple Care wohi real care data use karta hai magar screen par controls kam hote hain.',
+    },
+    'onboarding_simple_care_desc': {
+      AppLanguage.english:
+          'Show one task at a time with clearer actions. You can change this in Settings.',
+      AppLanguage.urdu:
+          'ایک وقت میں ایک task اور clear actions دکھائیں۔ آپ اسے Settings میں بدل سکتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Aik waqt mein aik task aur clear actions dikhayein. Aap isay Settings mein change kar sakte hain.',
+    },
     'accessibility': {
       AppLanguage.english: 'Accessibility',
       AppLanguage.urdu: 'آسان رسائی',
@@ -1728,11 +1978,40 @@ class AppStrings {
     },
     'patient_profile_subtitle': {
       AppLanguage.english:
-          'Used to check whether the care plan fits daily life.',
+          'Your account-backed profile and links to real care tools.',
       AppLanguage.urdu:
-          'اس سے دیکھا جاتا ہے کہ نگہداشت منصوبہ روزمرہ زندگی میں فٹ بیٹھتا ہے یا نہیں۔',
+          'آپ کا account-backed profile اور real care tools کے links۔',
       AppLanguage.romanUrdu:
-          'Is se check hota hai ke care plan daily life mein fit hota hai ya nahi.',
+          'Aap ka account-backed profile aur real care tools ke links.',
+    },
+    'patient_profile_role_label': {
+      AppLanguage.english: 'Care role',
+      AppLanguage.urdu: 'Care role',
+      AppLanguage.romanUrdu: 'Care role',
+    },
+    'patient_profile_sign_in_title': {
+      AppLanguage.english: 'Sign in to view your patient profile',
+      AppLanguage.urdu: 'اپنا patient profile دیکھنے کے لیے sign in کریں',
+      AppLanguage.romanUrdu:
+          'Apna patient profile dekhne ke liye sign in karein',
+    },
+    'patient_profile_sign_in_message': {
+      AppLanguage.english:
+          'The patient profile is stored on your SehatMate account, not in demo data.',
+      AppLanguage.urdu:
+          'Patient profile آپ کے SehatMate account میں محفوظ ہوتا ہے، demo data میں نہیں۔',
+      AppLanguage.romanUrdu:
+          'Patient profile aap ke SehatMate account mein save hota hai, demo data mein nahi.',
+    },
+    'profile_load_failed_title': {
+      AppLanguage.english: 'Profile could not load',
+      AppLanguage.urdu: 'Profile load نہیں ہو سکا',
+      AppLanguage.romanUrdu: 'Profile load nahi ho saka',
+    },
+    'profile_load_failed': {
+      AppLanguage.english: 'Profile could not be loaded. Please try again.',
+      AppLanguage.urdu: 'Profile load نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu: 'Profile load nahi ho saka. Dobara try karein.',
     },
     'update_reality_check': {
       AppLanguage.english: 'Update Reality Check',
@@ -1743,6 +2022,51 @@ class AppStrings {
       AppLanguage.english: 'Basic details',
       AppLanguage.urdu: 'بنیادی تفصیلات',
       AppLanguage.romanUrdu: 'Basic details',
+    },
+    'patient_profile_care_links': {
+      AppLanguage.english: 'Care links',
+      AppLanguage.urdu: 'Care links',
+      AppLanguage.romanUrdu: 'Care links',
+    },
+    'patient_profile_care_plans_hint': {
+      AppLanguage.english:
+          'Review active, draft and completed plans built from verified sources.',
+      AppLanguage.urdu:
+          'Verified sources سے بنے active، draft اور completed plans review کریں۔',
+      AppLanguage.romanUrdu:
+          'Verified sources se bane active, draft aur completed plans review karein.',
+    },
+    'patient_profile_documents_hint': {
+      AppLanguage.english:
+          'Open uploaded prescriptions, discharge summaries and follow-up files.',
+      AppLanguage.urdu:
+          'Uploaded prescriptions، discharge summaries اور follow-up files کھولیں۔',
+      AppLanguage.romanUrdu:
+          'Uploaded prescriptions, discharge summaries aur follow-up files kholein.',
+    },
+    'patient_profile_progress_hint': {
+      AppLanguage.english:
+          'See task follow-through, care gaps and understanding from real records.',
+      AppLanguage.urdu:
+          'Real records سے task follow-through، care gaps اور understanding دیکھیں۔',
+      AppLanguage.romanUrdu:
+          'Real records se task follow-through, care gaps aur understanding dekhein.',
+    },
+    'patient_profile_family_hint': {
+      AppLanguage.english:
+          'Manage family access and pending caregiver invitations.',
+      AppLanguage.urdu:
+          'Family access اور pending caregiver invitations manage کریں۔',
+      AppLanguage.romanUrdu:
+          'Family access aur pending caregiver invitations manage karein.',
+    },
+    'patient_profile_teach_back_hint': {
+      AppLanguage.english:
+          'Check understanding against verified care-plan instructions.',
+      AppLanguage.urdu:
+          'Verified care-plan instructions کے ساتھ understanding check کریں۔',
+      AppLanguage.romanUrdu:
+          'Verified care-plan instructions ke saath understanding check karein.',
     },
     'daily_routine_and_support': {
       AppLanguage.english: 'Daily routine & support',
@@ -3260,9 +3584,12 @@ class AppStrings {
       AppLanguage.romanUrdu: 'S',
     },
     'notifications_subtitle': {
-      AppLanguage.english: 'Care reminders and updates.',
-      AppLanguage.urdu: 'نگہداشت reminders اور updates۔',
-      AppLanguage.romanUrdu: 'Care reminders aur updates.',
+      AppLanguage.english:
+          'Real updates from today’s care tasks, documents, progress and family access.',
+      AppLanguage.urdu:
+          'آج کے care tasks، documents، progress اور family access سے real updates۔',
+      AppLanguage.romanUrdu:
+          'Aaj ke care tasks, documents, progress aur family access se real updates.',
     },
     'mark_all_read': {
       AppLanguage.english: 'Mark all read',
@@ -3283,6 +3610,159 @@ class AppStrings {
       AppLanguage.english: 'Yesterday',
       AppLanguage.urdu: 'گزشتہ کل',
       AppLanguage.romanUrdu: 'Kal',
+    },
+    'earlier': {
+      AppLanguage.english: 'Earlier',
+      AppLanguage.urdu: 'پہلے',
+      AppLanguage.romanUrdu: 'Pehle',
+    },
+    'notification_center_sign_in_title': {
+      AppLanguage.english: 'Sign in to view real notifications',
+      AppLanguage.urdu: 'Real notifications دیکھنے کے لیے sign in کریں',
+      AppLanguage.romanUrdu: 'Real notifications dekhne ke liye sign in karein',
+    },
+    'notification_center_sign_in_message': {
+      AppLanguage.english:
+          'Notifications are built from your care plans, documents, progress and family invitations.',
+      AppLanguage.urdu:
+          'Notifications آپ کے care plans، documents، progress اور family invitations سے بنتی ہیں۔',
+      AppLanguage.romanUrdu:
+          'Notifications aap ke care plans, documents, progress aur family invitations se banti hain.',
+    },
+    'notification_center_error_title': {
+      AppLanguage.english: 'Notifications could not load',
+      AppLanguage.urdu: 'Notifications load نہیں ہو سکیں',
+      AppLanguage.romanUrdu: 'Notifications load nahi ho sakeen',
+    },
+    'notification_center_load_failed': {
+      AppLanguage.english:
+          'Notifications could not be loaded. Please try again.',
+      AppLanguage.urdu: 'Notifications load نہیں ہو سکیں۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu:
+          'Notifications load nahi ho sakeen. Dobara try karein.',
+    },
+    'notification_center_read_failed': {
+      AppLanguage.english: 'Read state could not be saved.',
+      AppLanguage.urdu: 'Read state save نہیں ہو سکی۔',
+      AppLanguage.romanUrdu: 'Read state save nahi ho saki.',
+    },
+    'notification_center_unread_tab': {
+      AppLanguage.english: 'Unread ({count})',
+      AppLanguage.urdu: 'Unread ({count})',
+      AppLanguage.romanUrdu: 'Unread ({count})',
+    },
+    'notification_center_no_unread': {
+      AppLanguage.english: 'No unread notifications.',
+      AppLanguage.urdu: 'کوئی unread notification نہیں۔',
+      AppLanguage.romanUrdu: 'Koi unread notification nahi.',
+    },
+    'notification_center_safety_note': {
+      AppLanguage.english:
+          'Notifications summarize existing care records. They do not create or change medical instructions.',
+      AppLanguage.urdu:
+          'Notifications موجودہ care records کا خلاصہ ہیں۔ یہ medical instructions create یا change نہیں کرتیں۔',
+      AppLanguage.romanUrdu:
+          'Notifications current care records ka summary hain. Yeh medical instructions create ya change nahi karti.',
+    },
+    'notification_center_task_due_title': {
+      AppLanguage.english: 'Care task due today',
+      AppLanguage.urdu: 'آج care task due ہے',
+      AppLanguage.romanUrdu: 'Aaj care task due hai',
+    },
+    'notification_center_task_due_message': {
+      AppLanguage.english: '{task} is scheduled for {time}.',
+      AppLanguage.urdu: '{task} کا وقت {time} ہے۔',
+      AppLanguage.romanUrdu: '{task} ka time {time} hai.',
+    },
+    'notification_center_task_overdue_title': {
+      AppLanguage.english: 'Care task is overdue',
+      AppLanguage.urdu: 'Care task overdue ہے',
+      AppLanguage.romanUrdu: 'Care task overdue hai',
+    },
+    'notification_center_task_overdue_message': {
+      AppLanguage.english:
+          '{task} was scheduled for {time}. Record what happened when you can.',
+      AppLanguage.urdu:
+          '{task} کا وقت {time} تھا۔ موقع ملے تو record کریں کہ کیا ہوا۔',
+      AppLanguage.romanUrdu:
+          '{task} ka time {time} tha. Mauqa mile to record karein ke kya hua.',
+    },
+    'notification_center_task_missed_title': {
+      AppLanguage.english: 'Missed care task',
+      AppLanguage.urdu: 'Missed care task',
+      AppLanguage.romanUrdu: 'Missed care task',
+    },
+    'notification_center_task_missed_message': {
+      AppLanguage.english:
+          '{task} was missed at {time}. Review the care plan before changing anything.',
+      AppLanguage.urdu:
+          '{task} {time} پر missed تھا۔ کچھ بدلنے سے پہلے care plan review کریں۔',
+      AppLanguage.romanUrdu:
+          '{task} {time} par missed tha. Kuch change karne se pehle care plan review karein.',
+    },
+    'notification_center_care_gap_title': {
+      AppLanguage.english: 'Care gaps need review',
+      AppLanguage.urdu: 'Care gaps کو review چاہیے',
+      AppLanguage.romanUrdu: 'Care gaps ko review chahiye',
+    },
+    'notification_center_care_gap_message': {
+      AppLanguage.english:
+          '{count} open or in-progress care gap(s) may need attention.',
+      AppLanguage.urdu:
+          '{count} open یا in-progress care gap(s) کو attention چاہیے ہو سکتی ہے۔',
+      AppLanguage.romanUrdu:
+          '{count} open ya in-progress care gap(s) ko attention chahiye ho sakti hai.',
+    },
+    'notification_center_document_ready_title': {
+      AppLanguage.english: 'Document instructions ready',
+      AppLanguage.urdu: 'Document instructions ready ہیں',
+      AppLanguage.romanUrdu: 'Document instructions ready hain',
+    },
+    'notification_center_document_ready_message': {
+      AppLanguage.english:
+          '{document} has {count} verified instruction(s) ready to review.',
+      AppLanguage.urdu:
+          '{document} میں {count} verified instruction(s) review کے لیے ready ہیں۔',
+      AppLanguage.romanUrdu:
+          '{document} mein {count} verified instruction(s) review ke liye ready hain.',
+    },
+    'notification_center_document_failed_title': {
+      AppLanguage.english: 'Document processing failed',
+      AppLanguage.urdu: 'Document processing failed',
+      AppLanguage.romanUrdu: 'Document processing failed',
+    },
+    'notification_center_document_failed_message': {
+      AppLanguage.english:
+          '{document} could not be processed. Open Documents to review it.',
+      AppLanguage.urdu:
+          '{document} process نہیں ہو سکا۔ Review کے لیے Documents کھولیں۔',
+      AppLanguage.romanUrdu:
+          '{document} process nahi ho saka. Review ke liye Documents kholein.',
+    },
+    'notification_center_family_invitation_title': {
+      AppLanguage.english: 'Family invitation pending',
+      AppLanguage.urdu: 'Family invitation pending ہے',
+      AppLanguage.romanUrdu: 'Family invitation pending hai',
+    },
+    'notification_center_family_invitation_message': {
+      AppLanguage.english: 'Open Family Care to review the pending invitation.',
+      AppLanguage.urdu:
+          'Pending invitation review کرنے کے لیے Family Care کھولیں۔',
+      AppLanguage.romanUrdu:
+          'Pending invitation review karne ke liye Family Care kholein.',
+    },
+    'notification_center_permission_title': {
+      AppLanguage.english: 'Device notifications are off',
+      AppLanguage.urdu: 'Device notifications off ہیں',
+      AppLanguage.romanUrdu: 'Device notifications off hain',
+    },
+    'notification_center_permission_message': {
+      AppLanguage.english:
+          'Confirmed care tasks still appear here. Enable device notifications for reminder alerts.',
+      AppLanguage.urdu:
+          'Confirmed care tasks یہاں پھر بھی نظر آئیں گے۔ Reminder alerts کے لیے device notifications enable کریں۔',
+      AppLanguage.romanUrdu:
+          'Confirmed care tasks yahan phir bhi nazar aayenge. Reminder alerts ke liye device notifications enable karein.',
     },
     'demo_notification_medicine_due': {
       AppLanguage.english: 'Medicine due soon',
