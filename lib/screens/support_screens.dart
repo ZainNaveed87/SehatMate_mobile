@@ -5,88 +5,241 @@ import '../core/app_theme.dart';
 import '../data/demo_data.dart';
 import '../localization/app_language.dart';
 import '../localization/language_scope.dart';
+import '../localization/localized_errors.dart';
 import '../services/auth_service.dart';
+import '../services/care_plan_service.dart';
 import '../services/device_speech_service.dart';
+import '../services/settings_service.dart';
+import '../services/simple_care_service.dart';
 import '../services/teach_back_service.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/page_header.dart';
 import '../widgets/ui.dart';
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key, this.settingsService});
+
+  final SettingsService? settingsService;
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late final SettingsService _settings;
+  bool _signingOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _settings = widget.settingsService ?? SettingsService.instance;
+    Future<void>.microtask(_settings.initialize);
+  }
+
+  Future<void> _setSimpleCareMode(bool enabled) async {
+    try {
+      await _settings.setSimpleCareMode(enabled);
+    } on SettingsException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('settings_preference_save_failed'))),
+      );
+    }
+  }
+
+  Future<void> _setLanguage(AppLanguage language) async {
+    try {
+      await LanguageScope.read(context).setLanguage(language);
+      if (!mounted) return;
+      showDemoMessage(context, context.tr('language_changed'));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('settings_language_update_failed'))),
+      );
+    }
+  }
+
+  Future<void> _signOut() async {
+    setState(() => _signingOut = true);
+    try {
+      await AuthSession.instance.logout();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.landing,
+        (_) => false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('settings_sign_out_failed'))),
+      );
+    } finally {
+      if (mounted) setState(() => _signingOut = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final state = CareDemoState.instance;
     return AnimatedBuilder(
-      animation: state,
+      animation: Listenable.merge([_settings, AuthSession.instance]),
       builder: (context, _) => AppShell(
         currentRoute: AppRoutes.settings,
         title: context.tr('settings'),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
+            constraints: const BoxConstraints(maxWidth: 760),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PageHeader(title: context.tr('settings'), subtitle: context.tr('settings_subtitle')),
-                AppCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(context.tr('language'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: 300,
-                      child: DropdownButtonFormField<AppLanguage>(
-                        initialValue: context.appLanguage,
-                        items: AppLanguage.values
-                            .map(
-                              (language) => DropdownMenuItem(
-                                value: language,
-                                child: Text(language.displayName),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) async {
-                          if (value == null) return;
-                          await LanguageScope.read(context).setLanguage(value);
-                          state.updatePreferences(language: value.displayName);
-                          if (!context.mounted) return;
-                          showDemoMessage(context, context.tr('language_changed'));
-                        },
+                PageHeader(
+                  title: context.tr('settings'),
+                  subtitle: context.tr('settings_subtitle'),
+                ),
+                _SettingsSection(
+                  title: context.tr('settings_care_experience_section'),
+                  icon: Icons.volunteer_activism_outlined,
+                  children: [
+                    _SettingsToggleRow(
+                      switchKey: const Key('settings_simple_care_toggle'),
+                      title: context.tr('simple_care_mode'),
+                      description: context.tr('settings_simple_care_hint'),
+                      value: _settings.simpleCareModeEnabled,
+                      busy: _settings.savingSimpleCareMode,
+                      onChanged: _setSimpleCareMode,
+                    ),
+                    if (_settings.simpleCareModeEnabled)
+                      _SettingsActionRow(
+                        icon: Icons.check_circle_outline,
+                        title: context.tr('simple_care_mode_enabled'),
+                        description: context.tr(
+                          'simple_care_mode_enabled_description',
+                        ),
+                        action: OutlinedButton.icon(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.simpleCare,
+                          ),
+                          icon: const Icon(Icons.open_in_new, size: 17),
+                          label: Text(context.tr('open_simple_care_view')),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _SettingsSection(
+                  title: context.tr('settings_language_section'),
+                  icon: Icons.language_outlined,
+                  children: [
+                    _SettingsActionRow(
+                      icon: Icons.translate_outlined,
+                      title: context.tr('choose_language'),
+                      description: context.tr(
+                        'settings_current_language',
+                        values: {'language': context.appLanguage.displayName},
+                      ),
+                      action: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 320),
+                        child: DropdownButtonFormField<AppLanguage>(
+                          key: const Key('settings_language_dropdown'),
+                          initialValue: context.appLanguage,
+                          isExpanded: true,
+                          items: AppLanguage.values
+                              .map(
+                                (language) => DropdownMenuItem(
+                                  value: language,
+                                  child: Text(language.displayName),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) _setLanguage(value);
+                          },
+                        ),
                       ),
                     ),
-                  ]),
+                  ],
                 ),
                 const SizedBox(height: 18),
-                AppCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(context.tr('accessibility'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 12),
-                    _toggle(context.tr('large_text'), context.tr('settings_large_text_hint'), state.largeText, (value) => state.updatePreferences(largeText: value)),
-                    _toggle(context.tr('voice_guidance'), context.tr('settings_voice_guidance_hint'), state.voiceGuidance, (value) => state.updatePreferences(voiceGuidance: value)),
-                    _toggle(context.tr('simple_care_mode'), context.tr('settings_simple_care_hint'), state.simpleCareMode, (value) => state.updatePreferences(simpleCareMode: value)),
-                    _toggle(context.tr('reduced_motion'), context.tr('settings_reduced_motion_hint'), state.reducedMotion, (value) => state.updatePreferences(reducedMotion: value), last: true),
-                    if (state.simpleCareMode) ...[
-                      const SizedBox(height: 14),
-                      OutlinedButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.simpleCare), child: Text(context.tr('open_simple_care_view'))),
-                    ],
-                  ]),
+                _SettingsSection(
+                  title: context.tr('settings_reminders_section'),
+                  icon: Icons.notifications_active_outlined,
+                  children: [
+                    _SettingsActionRow(
+                      icon: Icons.alarm_on_outlined,
+                      title: context.tr('settings_reminders_from_care_title'),
+                      description: context.tr(
+                        'settings_reminders_from_care_description',
+                      ),
+                      action: OutlinedButton.icon(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, AppRoutes.calendar),
+                        icon: const Icon(
+                          Icons.calendar_month_outlined,
+                          size: 17,
+                        ),
+                        label: Text(context.tr('open_calendar')),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 18),
-                AppCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(context.tr('privacy_and_data'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Text(context.tr('privacy_data_description'), style: const TextStyle(fontSize: 15, color: AppColors.muted)),
-                    const SizedBox(height: 14),
-                    Wrap(spacing: 8, runSpacing: 8, children: [
-                      OutlinedButton(onPressed: () => showDemoMessage(context, context.tr('data_export_requested')), child: Text(context.tr('export_my_data'))),
-                      OutlinedButton(onPressed: () => showDemoMessage(context, context.tr('account_deletion_demo_disabled')), child: Text(context.tr('delete_account'))),
-                    ]),
-                  ]),
+                _SettingsSection(
+                  title: context.tr('settings_account_section'),
+                  icon: Icons.account_circle_outlined,
+                  children: [
+                    _AccountRow(onSignOut: _signingOut ? null : _signOut),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _SettingsSection(
+                  title: context.tr('settings_privacy_data_section'),
+                  icon: Icons.privacy_tip_outlined,
+                  children: [
+                    _SettingsActionRow(
+                      icon: Icons.description_outlined,
+                      title: context.tr('documents'),
+                      description: context.tr('settings_documents_data_hint'),
+                      action: OutlinedButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, AppRoutes.documents),
+                        child: Text(context.tr('open')),
+                      ),
+                    ),
+                    _SettingsActionRow(
+                      icon: Icons.checklist_outlined,
+                      title: context.tr('care_plans'),
+                      description: context.tr('settings_care_plans_data_hint'),
+                      action: OutlinedButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, AppRoutes.carePlans),
+                        child: Text(context.tr('open')),
+                      ),
+                    ),
+                    _SettingsActionRow(
+                      icon: Icons.handshake_outlined,
+                      title: context.tr('family_care'),
+                      description: context.tr('settings_family_data_hint'),
+                      action: OutlinedButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, AppRoutes.family),
+                        child: Text(context.tr('open')),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _SettingsSection(
+                  title: context.tr('settings_about_section'),
+                  icon: Icons.info_outline,
+                  children: [
+                    _SettingsActionRow(
+                      icon: Icons.favorite_border,
+                      title: context.tr('app_name'),
+                      description: context.tr('settings_about_description'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 SafetyNote(text: context.tr('settings_safety_note')),
@@ -97,11 +250,223 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _toggle(String label, String hint, bool value, ValueChanged<bool> onChanged, {bool last = false}) => Padding(
-        padding: EdgeInsets.only(bottom: last ? 0 : 12),
-        child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)), Text(hint, style: const TextStyle(fontSize: 14, color: AppColors.muted))])), const SizedBox(width: 12), Switch(value: value, onChanged: onChanged)]),
-      );
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 21, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          for (var index = 0; index < children.length; index++) ...[
+            children[index],
+            if (index < children.length - 1)
+              const Divider(height: 24, color: AppColors.border),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsToggleRow extends StatelessWidget {
+  const _SettingsToggleRow({
+    required this.switchKey,
+    required this.title,
+    required this.description,
+    required this.value,
+    required this.busy,
+    required this.onChanged,
+  });
+
+  final Key switchKey;
+  final String title;
+  final String description;
+  final bool value;
+  final bool busy;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.muted,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        busy
+            ? const SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Switch(key: switchKey, value: value, onChanged: onChanged),
+      ],
+    );
+  }
+}
+
+class _SettingsActionRow extends StatelessWidget {
+  const _SettingsActionRow({
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final leading = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+          ),
+          child: Icon(icon, size: 19, color: AppColors.primary),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.muted,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (action == null) return leading;
+        if (constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              leading,
+              const SizedBox(height: 12),
+              Align(alignment: AlignmentDirectional.centerStart, child: action),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: leading),
+            const SizedBox(width: 16),
+            action!,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AccountRow extends StatelessWidget {
+  const _AccountRow({required this.onSignOut});
+
+  final VoidCallback? onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = AuthSession.instance.user;
+    final name = user?.name.trim();
+    final email = user?.email.trim();
+    final title = name == null || name.isEmpty
+        ? AuthSession.instance.isGuest
+              ? context.tr('guest_user')
+              : context.tr('settings_not_signed_in')
+        : name;
+    final description = email == null || email.isEmpty
+        ? context.tr('settings_account_description')
+        : email;
+
+    return _SettingsActionRow(
+      icon: Icons.person_outline,
+      title: title,
+      description: description,
+      action: FilledButton.icon(
+        key: const Key('settings_sign_out_button'),
+        onPressed: onSignOut,
+        icon: const Icon(Icons.logout, size: 17),
+        label: Text(context.tr('logout')),
+      ),
+    );
+  }
 }
 
 class PatientProfileScreen extends StatefulWidget {
@@ -155,9 +520,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       );
     } on AuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
 
@@ -174,10 +539,10 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     final accessibilityMode = state.simpleCareMode
         ? 'Simple Care Mode'
         : state.voiceGuidance
-            ? 'Voice Guidance'
-            : state.largeText
-                ? 'Large Text'
-                : 'Standard';
+        ? 'Voice Guidance'
+        : state.largeText
+        ? 'Large Text'
+        : 'Standard';
 
     setState(() => _saving = true);
     try {
@@ -198,9 +563,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       showDemoMessage(context, context.tr('profile_updated'));
     } on AuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -225,71 +590,213 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PageHeader(title: context.tr('patient_profile'), subtitle: context.tr('patient_profile_subtitle'), action: OutlinedButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.realityCheck), child: Text(context.tr('update_reality_check')))),
+                PageHeader(
+                  title: context.tr('patient_profile'),
+                  subtitle: context.tr('patient_profile_subtitle'),
+                  action: OutlinedButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, AppRoutes.realityCheck),
+                    child: Text(context.tr('update_reality_check')),
+                  ),
+                ),
                 AppCard(
                   padding: const EdgeInsets.all(24),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(context.tr('basic_details'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 14),
-                    LayoutBuilder(builder: (context, constraints) {
-                      final fields = [
-                        fieldLabel(context.tr('full_name'), TextField(controller: name)),
-                        fieldLabel(
-                          context.tr('age_group'),
-                          DropdownButtonFormField<String>(
-                            key: ValueKey(ageGroup),
-                            initialValue: ageGroup,
-                            isExpanded: true,
-                            decoration: const InputDecoration(),
-                            items: patientAgeGroups
-                                .map(
-                                  (item) => DropdownMenuItem<String>(
-                                    value: item,
-                                    child: Text(ageGroupLabel(item, context.appLanguage)),
-                                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('basic_details'),
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final fields = [
+                            fieldLabel(
+                              context.tr('full_name'),
+                              TextField(controller: name),
+                            ),
+                            fieldLabel(
+                              context.tr('age_group'),
+                              DropdownButtonFormField<String>(
+                                key: ValueKey(ageGroup),
+                                initialValue: ageGroup,
+                                isExpanded: true,
+                                decoration: const InputDecoration(),
+                                items: patientAgeGroups
+                                    .map(
+                                      (item) => DropdownMenuItem<String>(
+                                        value: item,
+                                        child: Text(
+                                          ageGroupLabel(
+                                            item,
+                                            context.appLanguage,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() => ageGroup = value);
+                                  }
+                                },
+                              ),
+                            ),
+                            fieldLabel(
+                              context.tr('city'),
+                              TextField(controller: city),
+                            ),
+                            fieldLabel(
+                              context.tr('preferred_language'),
+                              InputDecorator(
+                                decoration: const InputDecoration(),
+                                child: Text(demoLanguageLabel(state.language)),
+                              ),
+                            ),
+                          ];
+                          return constraints.maxWidth >= 520
+                              ? Wrap(
+                                  spacing: 16,
+                                  runSpacing: 14,
+                                  children: fields
+                                      .map(
+                                        (field) => SizedBox(
+                                          width:
+                                              (constraints.maxWidth - 16) / 2,
+                                          child: field,
+                                        ),
+                                      )
+                                      .toList(),
                                 )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() => ageGroup = value);
-                              }
-                            },
-                          ),
-                        ),
-                        fieldLabel(context.tr('city'), TextField(controller: city)),
-                        fieldLabel(
-                          context.tr('preferred_language'),
-                          InputDecorator(
-                            decoration: const InputDecoration(),
-                            child: Text(demoLanguageLabel(state.language)),
-                          ),
-                        ),
-                      ];
-                      return constraints.maxWidth >= 520 ? Wrap(spacing: 16, runSpacing: 14, children: fields.map((field) => SizedBox(width: (constraints.maxWidth - 16) / 2, child: field)).toList()) : Column(children: fields.map((field) => Padding(padding: const EdgeInsets.only(bottom: 14), child: field)).toList());
-                    }),
-                    const SizedBox(height: 16),
-                    FilledButton(onPressed: _saving ? null : _saveProfile, child: Text(context.tr('save_changes'))),
-                  ]),
+                              : Column(
+                                  children: fields
+                                      .map(
+                                        (field) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 14,
+                                          ),
+                                          child: field,
+                                        ),
+                                      )
+                                      .toList(),
+                                );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _saving ? null : _saveProfile,
+                        child: Text(context.tr('save_changes')),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 18),
                 AppCard(
                   padding: const EdgeInsets.all(24),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(context.tr('daily_routine_and_support'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 14),
-                    ...realityQuestions.take(5).toList().asMap().entries.map((entry) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: Text(demoRealityQuestionText(entry.value, context.appLanguage), style: const TextStyle(fontSize: 15, color: AppColors.muted))), const SizedBox(width: 12), Flexible(child: Text(demoRealityOptionText(entry.value.options[entry.key % entry.value.options.length], context.appLanguage), textAlign: TextAlign.right, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)))]))),
-                  ]),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('daily_routine_and_support'),
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      ...realityQuestions
+                          .take(5)
+                          .toList()
+                          .asMap()
+                          .entries
+                          .map(
+                            (entry) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      demoRealityQuestionText(
+                                        entry.value,
+                                        context.appLanguage,
+                                      ),
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        color: AppColors.muted,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Flexible(
+                                    child: Text(
+                                      demoRealityOptionText(
+                                        entry.value.options[entry.key %
+                                            entry.value.options.length],
+                                        context.appLanguage,
+                                      ),
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 18),
                 AppCard(
                   padding: const EdgeInsets.all(24),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(context.tr('caregiver_support'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 12),
-                    ...state.caregivers.map((caregiver) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [Expanded(child: Text('${caregiver.name} · ${caregiver.relationship}', style: const TextStyle(fontSize: 15))), Text(caregiver.availability, style: const TextStyle(fontSize: 15, color: AppColors.muted))]))),
-                    const SizedBox(height: 8),
-                    OutlinedButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.family), child: Text(context.tr('manage_caregivers'))),
-                  ]),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('caregiver_support'),
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...state.caregivers.map(
+                        (caregiver) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${caregiver.name} · ${caregiver.relationship}',
+                                  style: const TextStyle(fontSize: 15),
+                                ),
+                              ),
+                              Text(
+                                caregiver.availability,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, AppRoutes.family),
+                        child: Text(context.tr('manage_caregivers')),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
                 SafetyNote(text: context.tr('patient_profile_safety_note')),
@@ -302,76 +809,964 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   }
 }
 
-class SimpleCareScreen extends StatelessWidget {
-  const SimpleCareScreen({super.key});
+class SimpleCareScreen extends StatefulWidget {
+  const SimpleCareScreen({super.key, this.service, this.settingsService});
+
+  final SimpleCareClient? service;
+  final SettingsService? settingsService;
+
+  @override
+  State<SimpleCareScreen> createState() => _SimpleCareScreenState();
+}
+
+class _SimpleCareScreenState extends State<SimpleCareScreen>
+    with WidgetsBindingObserver {
+  late final SimpleCareClient _service;
+  late final SettingsService _settings;
+
+  CareTaskAppDayData? _today;
+  List<DemoPlan> _plans = const [];
+  bool _loading = true;
+  String? _error;
+  bool _offline = false;
+  final Set<String> _savingIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _service = widget.service ?? SimpleCareService.instance;
+    _settings = widget.settingsService ?? SettingsService.instance;
+    Future<void>.microtask(_settings.initialize);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_loading) {
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    if (widget.service == null &&
+        (!AuthSession.instance.isAuthenticated ||
+            AuthSession.instance.isGuest)) {
+      setState(() {
+        _loading = false;
+        _offline = false;
+        _error = '__simple_care_sign_in__';
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+      _offline = false;
+    });
+
+    try {
+      final results = await Future.wait<Object>([
+        _service.fetchTodayCare(),
+        _service.fetchCarePlans(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _today = results[0] as CareTaskAppDayData;
+        _plans = results[1] as List<DemoPlan>;
+        _loading = false;
+      });
+    } on CarePlanException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _offline = error.retryable;
+        _error = localizedCarePlanExceptionMessage(error, context.appLanguage);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _offline = false;
+        _error = context.tr('simple_care_load_failed_description');
+      });
+    }
+  }
+
+  Future<void> _setOutcome(CareTaskOccurrence occurrence, String status) async {
+    setState(() => _savingIds.add(occurrence.id));
+    try {
+      final result = await _service.setOutcome(occurrence, status);
+      if (!mounted) return;
+
+      final current = _today;
+      if (current != null) {
+        final items = current.occurrences
+            .map((item) => item.id == occurrence.id ? result.occurrence : item)
+            .toList();
+        setState(() {
+          _today = CareTaskAppDayData(
+            date: current.date,
+            occurrences: items,
+            summary: _summaryFor(items, current.summary),
+          );
+        });
+      }
+
+      if (result.queued) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('simple_care_saved_offline'))),
+        );
+      } else if (result.conflictRecovered) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('simple_care_conflict_restored'))),
+        );
+      }
+    } on CarePlanException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            localizedCarePlanExceptionMessage(error, context.appLanguage),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _savingIds.remove(occurrence.id));
+    }
+  }
+
+  CareTaskAppDaySummary _summaryFor(
+    List<CareTaskOccurrence> items,
+    CareTaskAppDaySummary previous,
+  ) {
+    var completed = 0;
+    var skipped = 0;
+    var missed = 0;
+    var pending = 0;
+    for (final item in items) {
+      if (item.completed) {
+        completed += 1;
+      } else if (item.skipped) {
+        skipped += 1;
+      } else if (item.missed) {
+        missed += 1;
+      } else {
+        pending += 1;
+      }
+    }
+    return CareTaskAppDaySummary(
+      total: items.length,
+      completed: completed,
+      skipped: skipped,
+      missed: missed,
+      pending: pending,
+      activePlans: previous.activePlans,
+      openCareGaps: previous.openCareGaps,
+      careReadiness: previous.careReadiness,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final state = CareDemoState.instance;
     return AnimatedBuilder(
-      animation: state,
+      animation: _settings,
       builder: (context, _) {
-        final todays = state.tasks.where((task) => task.day == demoDays.first.iso).toList();
-        final next = todays.where((task) => !task.completed).firstOrNull ?? todays.firstOrNull;
-        final caregiver = state.caregivers.firstOrNull;
         return AppShell(
           currentRoute: AppRoutes.simpleCare,
           title: context.tr('simple_care'),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(color: AppColors.primaryLight, border: Border.all(color: AppColors.primary, width: 2), borderRadius: BorderRadius.circular(AppRadii.xxxl)),
-                    child: Column(children: [
-                      Text(context.tr('next_thing_to_do'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.accentForeground)),
-                      if (next == null)
-                        Padding(padding: const EdgeInsets.only(top: 12), child: Text(context.tr('nothing_left_today'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)))
-                      else ...[
-                        const SizedBox(height: 12),
-                        Text(demoTaskTitle(next, context.appLanguage), textAlign: TextAlign.center, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, height: 1.15)),
-                        const SizedBox(height: 8),
-                        Text(next.time, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.muted)),
-                        const SizedBox(height: 8),
-                        Text(demoTaskNote(next, context.appLanguage), textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, color: AppColors.muted)),
-                        const SizedBox(height: 20),
-                        SizedBox(width: double.infinity, height: 56, child: FilledButton.icon(onPressed: () { state.toggleTask(next.id); showDemoMessage(context, context.tr('marked_as_done')); }, icon: const Icon(Icons.check, size: 25), label: Text(next.completed ? context.tr('done') : context.tr('mark_as_done'), style: const TextStyle(fontSize: 19)))),
-                      ],
-                    ]),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(context.tr('rest_of_today'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 12),
-                  ...todays.map((task) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: AnimatedOpacity(
-                          opacity: task.completed ? .6 : 1,
-                          duration: const Duration(milliseconds: 180),
-                          child: AppCard(
-                            padding: const EdgeInsets.all(18),
-                            child: Row(children: [TaskIcon(icon: task.icon, size: 46), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(demoTaskTitle(task, context.appLanguage), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)), Text(task.time, style: const TextStyle(fontSize: 18, color: AppColors.muted))])), OutlinedButton(onPressed: () => state.toggleTask(task.id), child: const Icon(Icons.check, size: 24))]),
-                          ),
-                        ),
-                      )),
-                  const SizedBox(height: 12),
-                  AppCard(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(children: [Text(context.tr('need_help'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)), const SizedBox(height: 4), Text('${caregiver?.name ?? ''} · ${caregiver?.phone ?? ''}', style: const TextStyle(fontSize: 17, color: AppColors.muted)), const SizedBox(height: 14), SizedBox(width: double.infinity, height: 54, child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, AppRoutes.family), icon: const Icon(Icons.phone_outlined, size: 25), label: Text(context.tr('contact_family'), style: const TextStyle(fontSize: 19))))]),
-                  ),
-                  const SizedBox(height: 20),
-                  SafetyNote(text: context.tr('medical_emergency_contact_professional')),
-                ],
-              ),
-            ),
-          ),
+          child: _simpleCareBody(),
         );
       },
     );
   }
+
+  Widget _simpleCareBody() {
+    final today = _today;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PageHeader(
+              title: context.tr('simple_care'),
+              subtitle: context.tr('simple_care_subtitle'),
+              action: _SimpleCareModeChip(
+                enabled: _settings.simpleCareModeEnabled,
+              ),
+            ),
+            if (_loading)
+              _LoadingState(text: context.tr('simple_care_loading'))
+            else if (_error != null)
+              _simpleCareError()
+            else if (today == null || today.occurrences.isEmpty)
+              EmptyState(
+                icon: Icons.checklist_outlined,
+                title: context.tr('simple_care_empty_title'),
+                description: context.tr('simple_care_empty_description'),
+                action: FilledButton.icon(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, AppRoutes.carePlanNew),
+                  icon: const Icon(Icons.upload_outlined, size: 17),
+                  label: Text(context.tr('upload_document')),
+                ),
+              )
+            else ...[
+              _todayCard(today),
+              const SizedBox(height: 18),
+              _restOfToday(today),
+              if (_importantStatusItems(today).isNotEmpty) ...[
+                const SizedBox(height: 18),
+                _importantStatus(today),
+              ],
+              const SizedBox(height: 18),
+              _yourCare(),
+            ],
+            const SizedBox(height: 20),
+            SafetyNote(
+              text: context.tr('medical_emergency_contact_professional'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _simpleCareError() {
+    if (_error == '__simple_care_sign_in__') {
+      return EmptyState(
+        icon: Icons.lock_outline,
+        title: context.tr('simple_care_sign_in_required_title'),
+        description: context.tr('simple_care_sign_in_required_description'),
+        action: FilledButton(
+          onPressed: () => Navigator.pushNamed(context, AppRoutes.auth),
+          child: Text(context.tr('sign_in')),
+        ),
+      );
+    }
+
+    return EmptyState(
+      icon: _offline ? Icons.wifi_off_outlined : Icons.error_outline,
+      title: _offline
+          ? context.tr('simple_care_offline_title')
+          : context.tr('simple_care_error_title'),
+      description: _error!,
+      action: FilledButton(
+        key: const Key('simple_care_retry_button'),
+        onPressed: _load,
+        child: Text(context.tr('retry')),
+      ),
+    );
+  }
+
+  Widget _todayCard(CareTaskAppDayData today) {
+    final ordered = _sortedOccurrences(today.occurrences);
+    final next =
+        ordered
+            .where((item) => item.missed || item.overdue || item.pending)
+            .firstOrNull ??
+        ordered.firstOrNull;
+
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      color: AppColors.primaryLight,
+      borderColor: AppColors.primary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            context.tr('simple_care_today_heading'),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.accentForeground,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (next == null)
+            Text(
+              context.tr('nothing_left_today'),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+            )
+          else
+            _PrimarySimpleCareTask(
+              occurrence: next,
+              saving: _savingIds.contains(next.id),
+              statusLabel: _statusLabelFor(next),
+              onComplete: next.missed
+                  ? null
+                  : () => _setOutcome(next, 'completed'),
+              onSkip: next.pending ? () => _setOutcome(next, 'skipped') : null,
+              onOpenPlan: () => Navigator.pushNamed(
+                context,
+                AppRoutes.carePlan(next.carePlanId),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _restOfToday(CareTaskAppDayData today) {
+    final ordered = _sortedOccurrences(today.occurrences);
+    return AppCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('rest_of_today'),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          ...ordered.map(
+            (occurrence) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _SimpleCareTaskRow(
+                occurrence: occurrence,
+                saving: _savingIds.contains(occurrence.id),
+                statusLabel: _statusLabelFor(occurrence),
+                onComplete: occurrence.missed
+                    ? null
+                    : () => _setOutcome(occurrence, 'completed'),
+                onSkip: occurrence.pending
+                    ? () => _setOutcome(occurrence, 'skipped')
+                    : null,
+                onUndo: occurrence.completed || occurrence.skipped
+                    ? () => _setOutcome(occurrence, 'pending')
+                    : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _importantStatus(CareTaskAppDayData today) {
+    final items = _importantStatusItems(today);
+    return AppCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('simple_care_important_status_heading'),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _SimpleStatusRow(item: item),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _yourCare() {
+    final activePlans = _plans
+        .where((plan) => plan.status == PlanStatus.active)
+        .toList();
+    return AppCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('simple_care_your_care_heading'),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 520;
+              final links = [
+                _CareLink(
+                  icon: Icons.checklist_outlined,
+                  label: context.tr('care_plans'),
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    activePlans.length == 1
+                        ? AppRoutes.carePlan(activePlans.single.id)
+                        : AppRoutes.carePlans,
+                  ),
+                ),
+                _CareLink(
+                  icon: Icons.speed_outlined,
+                  label: context.tr('progress'),
+                  onTap: () => Navigator.pushNamed(context, AppRoutes.progress),
+                ),
+                _CareLink(
+                  icon: Icons.description_outlined,
+                  label: context.tr('documents'),
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRoutes.documents),
+                ),
+                _CareLink(
+                  icon: Icons.record_voice_over_outlined,
+                  label: context.tr('teach_back'),
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRoutes.teachBack),
+                ),
+                _CareLink(
+                  icon: Icons.handshake_outlined,
+                  label: context.tr('family_care'),
+                  onTap: () => Navigator.pushNamed(context, AppRoutes.family),
+                ),
+              ];
+
+              if (compact) {
+                return Column(
+                  children: links
+                      .map(
+                        (link) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: link,
+                        ),
+                      )
+                      .toList(),
+                );
+              }
+
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: links
+                    .map((link) => SizedBox(width: 220, child: link))
+                    .toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<CareTaskOccurrence> _sortedOccurrences(
+    List<CareTaskOccurrence> occurrences,
+  ) {
+    final ordered = List<CareTaskOccurrence>.of(occurrences);
+    ordered.sort((a, b) {
+      final rank = _priority(a).compareTo(_priority(b));
+      if (rank != 0) return rank;
+      return a.scheduledTime.compareTo(b.scheduledTime);
+    });
+    return ordered;
+  }
+
+  int _priority(CareTaskOccurrence occurrence) {
+    if (occurrence.missed) return 0;
+    if (occurrence.overdue) return 1;
+    if (occurrence.pending) return 2;
+    if (occurrence.skipped) return 3;
+    return 4;
+  }
+
+  List<_SimpleStatusItem> _importantStatusItems(CareTaskAppDayData today) {
+    final overdueCount = today.occurrences.where((item) => item.overdue).length;
+    final items = <_SimpleStatusItem>[];
+    if (today.summary.missed > 0) {
+      items.add(
+        _SimpleStatusItem(
+          icon: Icons.error_outline,
+          color: AppColors.criticalForeground,
+          title: context.tr(
+            'simple_care_status_missed_title',
+            values: {'count': today.summary.missed},
+          ),
+          description: context.tr('simple_care_status_missed_description'),
+        ),
+      );
+    }
+    if (overdueCount > 0) {
+      items.add(
+        _SimpleStatusItem(
+          icon: Icons.schedule_outlined,
+          color: AppColors.criticalForeground,
+          title: context.tr(
+            'simple_care_status_overdue_title',
+            values: {'count': overdueCount},
+          ),
+          description: context.tr('simple_care_status_overdue_description'),
+        ),
+      );
+    }
+    if (today.summary.openCareGaps > 0) {
+      items.add(
+        _SimpleStatusItem(
+          icon: Icons.report_problem_outlined,
+          color: AppColors.warningForeground,
+          title: context.tr(
+            'simple_care_status_gaps_title',
+            values: {'count': today.summary.openCareGaps},
+          ),
+          description: context.tr('simple_care_status_gaps_description'),
+        ),
+      );
+    }
+    if (today.summary.activePlans > 0 &&
+        today.summary.careReadiness > 0 &&
+        today.summary.careReadiness < 70) {
+      items.add(
+        _SimpleStatusItem(
+          icon: Icons.health_and_safety_outlined,
+          color: AppColors.warningForeground,
+          title: context.tr(
+            'simple_care_status_readiness_title',
+            values: {'score': today.summary.careReadiness},
+          ),
+          description: context.tr('simple_care_status_readiness_description'),
+        ),
+      );
+    }
+    return items;
+  }
+
+  String _statusLabelFor(CareTaskOccurrence occurrence) {
+    if (occurrence.overdue) return context.tr('overdue');
+    return switch (occurrence.status) {
+      'completed' => context.tr('completed'),
+      'skipped' => context.tr('skipped'),
+      'missed' => context.tr('missed'),
+      _ => context.tr('upcoming'),
+    };
+  }
+}
+
+class _SimpleCareModeChip extends StatelessWidget {
+  const _SimpleCareModeChip({required this.enabled});
+
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(
+        color: enabled ? AppColors.primaryLight : AppColors.secondary,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(
+          color: enabled ? AppColors.primary : AppColors.border,
+        ),
+      ),
+      child: Text(
+        enabled
+            ? context.tr('simple_care_mode_on')
+            : context.tr('simple_care_mode_off'),
+        style: TextStyle(
+          color: enabled ? AppColors.accentForeground : AppColors.muted,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _PrimarySimpleCareTask extends StatelessWidget {
+  const _PrimarySimpleCareTask({
+    required this.occurrence,
+    required this.saving,
+    required this.statusLabel,
+    required this.onOpenPlan,
+    this.onComplete,
+    this.onSkip,
+  });
+
+  final CareTaskOccurrence occurrence;
+  final bool saving;
+  final String statusLabel;
+  final VoidCallback onOpenPlan;
+  final VoidCallback? onComplete;
+  final VoidCallback? onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _TaskKindChip(kind: occurrence.taskKind),
+            _StatusChip(
+              label: statusLabel,
+              urgent: occurrence.missed || occurrence.overdue,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          occurrence.title,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            height: 1.15,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _taskMeta(context, occurrence),
+          style: const TextStyle(
+            fontSize: 17,
+            color: AppColors.muted,
+            height: 1.35,
+          ),
+        ),
+        if (occurrence.grounding.trim().isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(
+            occurrence.grounding,
+            style: const TextStyle(fontSize: 15, height: 1.35),
+          ),
+        ],
+        const SizedBox(height: 20),
+        if (saving)
+          const LinearProgressIndicator(minHeight: 3)
+        else
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              if (onComplete != null)
+                FilledButton.icon(
+                  onPressed: onComplete,
+                  icon: const Icon(Icons.check_circle_outline, size: 19),
+                  label: Text(context.tr('complete')),
+                ),
+              if (onSkip != null)
+                OutlinedButton(
+                  onPressed: onSkip,
+                  child: Text(context.tr('record_skipped')),
+                ),
+              OutlinedButton.icon(
+                onPressed: onOpenPlan,
+                icon: const Icon(Icons.open_in_new, size: 17),
+                label: Text(context.tr('open_care_plan')),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _SimpleCareTaskRow extends StatelessWidget {
+  const _SimpleCareTaskRow({
+    required this.occurrence,
+    required this.saving,
+    required this.statusLabel,
+    this.onComplete,
+    this.onSkip,
+    this.onUndo,
+  });
+
+  final CareTaskOccurrence occurrence;
+  final bool saving;
+  final String statusLabel;
+  final VoidCallback? onComplete;
+  final VoidCallback? onSkip;
+  final VoidCallback? onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: Key('simple_care_task_${occurrence.id}'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.secondary,
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        border: Border.all(
+          color: occurrence.missed || occurrence.overdue
+              ? AppColors.critical
+              : AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TaskIcon(icon: _iconForTaskKind(occurrence.taskKind), size: 40),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      occurrence.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _taskMeta(context, occurrence),
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _StatusChip(
+                label: statusLabel,
+                urgent: occurrence.missed || occurrence.overdue,
+              ),
+            ],
+          ),
+          if (saving) ...[
+            const SizedBox(height: 10),
+            const LinearProgressIndicator(minHeight: 3),
+          ] else if (onComplete != null ||
+              onSkip != null ||
+              onUndo != null) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (onComplete != null)
+                  FilledButton.icon(
+                    onPressed: onComplete,
+                    icon: const Icon(Icons.check_circle_outline, size: 17),
+                    label: Text(context.tr('complete')),
+                  ),
+                if (onSkip != null)
+                  OutlinedButton(
+                    onPressed: onSkip,
+                    child: Text(context.tr('record_skipped')),
+                  ),
+                if (onUndo != null)
+                  TextButton.icon(
+                    onPressed: onUndo,
+                    icon: const Icon(Icons.undo, size: 16),
+                    label: Text(context.tr('undo')),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TaskKindChip extends StatelessWidget {
+  const _TaskKindChip({required this.kind});
+
+  final String kind;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_iconForTaskKind(kind), size: 15, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            _taskKindLabel(context, kind),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label, required this.urgent});
+
+  final String label;
+  final bool urgent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: urgent
+            ? AppColors.critical.withValues(alpha: .12)
+            : AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(
+          color: urgent ? AppColors.critical : AppColors.border,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: urgent ? AppColors.criticalForeground : AppColors.muted,
+        ),
+      ),
+    );
+  }
+}
+
+class _SimpleStatusItem {
+  const _SimpleStatusItem({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String description;
+}
+
+class _SimpleStatusRow extends StatelessWidget {
+  const _SimpleStatusRow({required this.item});
+
+  final _SimpleStatusItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: item.color.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        border: Border.all(color: item.color.withValues(alpha: .34)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(item.icon, size: 21, color: item.color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: item.color,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  item.description,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.muted,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CareLink extends StatelessWidget {
+  const _CareLink({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label, overflow: TextOverflow.ellipsis),
+    );
+  }
+}
+
+IconData _iconForTaskKind(String kind) {
+  final normalized = kind.trim().toLowerCase();
+  if (normalized.contains('medicine') || normalized.contains('medication')) {
+    return Icons.medication_outlined;
+  }
+  if (normalized.contains('appointment') || normalized.contains('visit')) {
+    return Icons.event_available_outlined;
+  }
+  return Icons.checklist_outlined;
+}
+
+String _taskKindLabel(BuildContext context, String kind) {
+  final normalized = kind.trim().toLowerCase();
+  if (normalized.contains('medicine') || normalized.contains('medication')) {
+    return context.tr('simple_care_task_kind_medicine');
+  }
+  if (normalized.contains('appointment') || normalized.contains('visit')) {
+    return context.tr('simple_care_task_kind_appointment');
+  }
+  return context.tr('simple_care_task_kind_care');
+}
+
+String _taskMeta(BuildContext context, CareTaskOccurrence occurrence) {
+  final parts = <String>[
+    _clock(occurrence.scheduledTime),
+    if (occurrence.period.trim().isNotEmpty)
+      _localizedPeriod(context, occurrence.period),
+    if (occurrence.planTitle.trim().isNotEmpty) occurrence.planTitle,
+  ];
+  return parts.where((part) => part.trim().isNotEmpty).join(' · ');
+}
+
+String _localizedPeriod(BuildContext context, String value) {
+  return switch (value.trim().toLowerCase()) {
+    'morning' => context.tr('morning'),
+    'afternoon' => context.tr('afternoon'),
+    'evening' => context.tr('evening'),
+    'night' => context.tr('night'),
+    _ => _titleCase(value),
+  };
+}
+
+String _titleCase(String value) => value.isEmpty
+    ? value
+    : '${value.substring(0, 1).toUpperCase()}${value.substring(1)}';
+
+String _clock(String value) {
+  final match = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(value);
+  if (match == null) return value;
+  final hour = int.tryParse(match.group(1)!) ?? 0;
+  final minute = match.group(2)!;
+  final suffix = hour >= 12 ? 'PM' : 'AM';
+  final displayHour = hour % 12 == 0 ? 12 : hour % 12;
+  return '$displayHour:$minute $suffix';
 }
 
 class TeachBackScreen extends StatefulWidget {

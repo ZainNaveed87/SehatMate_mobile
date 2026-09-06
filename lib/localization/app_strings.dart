@@ -1520,9 +1520,60 @@ class AppStrings {
       AppLanguage.romanUrdu: '81+',
     },
     'settings_subtitle': {
-      AppLanguage.english: 'Language, accessibility and privacy.',
-      AppLanguage.urdu: 'زبان، آسان رسائی اور privacy۔',
-      AppLanguage.romanUrdu: 'Language, accessibility aur privacy.',
+      AppLanguage.english: 'Care experience, language, account and privacy.',
+      AppLanguage.urdu: 'نگہداشت کا تجربہ، زبان، اکاؤنٹ اور privacy۔',
+      AppLanguage.romanUrdu: 'Care experience, language, account aur privacy.',
+    },
+    'settings_care_experience_section': {
+      AppLanguage.english: 'Care experience',
+      AppLanguage.urdu: 'نگہداشت کا تجربہ',
+      AppLanguage.romanUrdu: 'Care experience',
+    },
+    'settings_language_section': {
+      AppLanguage.english: 'Language',
+      AppLanguage.urdu: 'زبان',
+      AppLanguage.romanUrdu: 'Language',
+    },
+    'settings_reminders_section': {
+      AppLanguage.english: 'Notifications & reminders',
+      AppLanguage.urdu: 'Notifications اور reminders',
+      AppLanguage.romanUrdu: 'Notifications & reminders',
+    },
+    'settings_account_section': {
+      AppLanguage.english: 'Account',
+      AppLanguage.urdu: 'اکاؤنٹ',
+      AppLanguage.romanUrdu: 'Account',
+    },
+    'settings_privacy_data_section': {
+      AppLanguage.english: 'Privacy & data',
+      AppLanguage.urdu: 'Privacy اور ڈیٹا',
+      AppLanguage.romanUrdu: 'Privacy & data',
+    },
+    'settings_about_section': {
+      AppLanguage.english: 'About',
+      AppLanguage.urdu: 'About',
+      AppLanguage.romanUrdu: 'About',
+    },
+    'settings_current_language': {
+      AppLanguage.english: 'Current language: {language}',
+      AppLanguage.urdu: 'موجودہ زبان: {language}',
+      AppLanguage.romanUrdu: 'Current language: {language}',
+    },
+    'settings_preference_save_failed': {
+      AppLanguage.english: 'Setting could not be saved. Please try again.',
+      AppLanguage.urdu: 'Setting محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu: 'Setting save nahi ho saki. Dobara try karein.',
+    },
+    'settings_language_update_failed': {
+      AppLanguage.english: 'Language could not be changed. Please try again.',
+      AppLanguage.urdu: 'زبان تبدیل نہیں ہو سکی۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu: 'Language change nahi ho saki. Dobara try karein.',
+    },
+    'settings_sign_out_failed': {
+      AppLanguage.english: 'Sign out could not be completed. Please try again.',
+      AppLanguage.urdu: 'Sign out مکمل نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu:
+          'Sign out complete nahi ho saka. Dobara try karein.',
     },
     'settings_large_text_hint': {
       AppLanguage.english: 'Increase text size across the app',
@@ -1535,10 +1586,24 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Jahan available ho instructions awaz se parhein',
     },
     'settings_simple_care_hint': {
-      AppLanguage.english: 'Show one task at a time in plain language',
-      AppLanguage.urdu: 'سادہ زبان میں ایک وقت میں ایک task دکھائیں',
+      AppLanguage.english:
+          'Use a simpler layout with the same care information.',
+      AppLanguage.urdu: 'اسی نگہداشت معلومات کو آسان layout میں استعمال کریں۔',
       AppLanguage.romanUrdu:
-          'Simple zaban mein aik waqt mein aik task dikhayein',
+          'Wohi care information aik asaan layout mein use karein.',
+    },
+    'simple_care_mode_enabled': {
+      AppLanguage.english: 'Simple Care is on',
+      AppLanguage.urdu: 'Simple Care آن ہے',
+      AppLanguage.romanUrdu: 'Simple Care on hai',
+    },
+    'simple_care_mode_enabled_description': {
+      AppLanguage.english:
+          'The app will keep care data unchanged and show the simplified view when opened.',
+      AppLanguage.urdu:
+          'ایپ care data تبدیل نہیں کرے گی اور کھولنے پر simplified view دکھائے گی۔',
+      AppLanguage.romanUrdu:
+          'App care data change nahi karegi aur kholne par simplified view dikhaye gi.',
     },
     'reduced_motion': {
       AppLanguage.english: 'Reduced motion',
@@ -1567,6 +1632,56 @@ class AppStrings {
           'آپ کی دستاویزات اور جوابات صرف نگہداشت منصوبہ بنانے اور verify کرنے کے لیے استعمال ہوتے ہیں۔',
       AppLanguage.romanUrdu:
           'Aap ke documents aur answers sirf care plan banane aur verify karne ke liye use hote hain.',
+    },
+    'settings_reminders_from_care_title': {
+      AppLanguage.english: 'Reminders come from confirmed care items',
+      AppLanguage.urdu: 'Reminders تصدیق شدہ care items سے بنتے ہیں',
+      AppLanguage.romanUrdu: 'Reminders confirmed care items se bante hain',
+    },
+    'settings_reminders_from_care_description': {
+      AppLanguage.english:
+          'SehatMate schedules reminders after care items and exact times are confirmed.',
+      AppLanguage.urdu:
+          'SehatMate care items اور exact times confirm ہونے کے بعد reminders schedule کرتا ہے۔',
+      AppLanguage.romanUrdu:
+          'SehatMate care items aur exact times confirm hone ke baad reminders schedule karta hai.',
+    },
+    'settings_not_signed_in': {
+      AppLanguage.english: 'Not signed in',
+      AppLanguage.urdu: 'سائن اِن نہیں',
+      AppLanguage.romanUrdu: 'Sign in nahi',
+    },
+    'settings_account_description': {
+      AppLanguage.english: 'Use sign out to clear the current local session.',
+      AppLanguage.urdu:
+          'Current local session ختم کرنے کے لیے sign out استعمال کریں۔',
+      AppLanguage.romanUrdu:
+          'Current local session clear karne ke liye sign out use karein.',
+    },
+    'settings_documents_data_hint': {
+      AppLanguage.english:
+          'View uploaded care documents and processing status.',
+      AppLanguage.urdu: 'Uploaded care documents اور processing status دیکھیں۔',
+      AppLanguage.romanUrdu:
+          'Uploaded care documents aur processing status dekhein.',
+    },
+    'settings_care_plans_data_hint': {
+      AppLanguage.english: 'Open active, draft and completed care plans.',
+      AppLanguage.urdu: 'Active, draft اور completed care plans کھولیں۔',
+      AppLanguage.romanUrdu: 'Active, draft aur completed care plans kholein.',
+    },
+    'settings_family_data_hint': {
+      AppLanguage.english: 'Manage family care access and sharing.',
+      AppLanguage.urdu: 'Family care access اور sharing manage کریں۔',
+      AppLanguage.romanUrdu: 'Family care access aur sharing manage karein.',
+    },
+    'settings_about_description': {
+      AppLanguage.english:
+          'SehatMate helps organize and understand an existing care plan. It does not diagnose conditions or prescribe treatment.',
+      AppLanguage.urdu:
+          'صحت میٹ موجودہ نگہداشت منصوبہ منظم اور سمجھنے میں مدد دیتا ہے۔ یہ تشخیص یا علاج تجویز نہیں کرتا۔',
+      AppLanguage.romanUrdu:
+          'SehatMate existing care plan organize aur samajhne mein madad deta hai. Yeh diagnosis ya treatment prescribe nahi karta.',
     },
     'data_export_requested': {
       AppLanguage.english: 'Data export requested',
@@ -2514,6 +2629,167 @@ class AppStrings {
       AppLanguage.english: 'Simple Care',
       AppLanguage.urdu: 'سادہ نگہداشت',
       AppLanguage.romanUrdu: 'Simple Care',
+    },
+    'simple_care_subtitle': {
+      AppLanguage.english: 'What you need to know or do today.',
+      AppLanguage.urdu: 'آج آپ کو کیا جاننا یا کرنا ہے۔',
+      AppLanguage.romanUrdu: 'Aaj aap ko kya janna ya karna hai.',
+    },
+    'simple_care_loading': {
+      AppLanguage.english: 'Loading today’s care...',
+      AppLanguage.urdu: 'آج کی care load ہو رہی ہے...',
+      AppLanguage.romanUrdu: 'Aaj ki care load ho rahi hai...',
+    },
+    'simple_care_mode_on': {
+      AppLanguage.english: 'Mode on',
+      AppLanguage.urdu: 'Mode on',
+      AppLanguage.romanUrdu: 'Mode on',
+    },
+    'simple_care_mode_off': {
+      AppLanguage.english: 'Mode off',
+      AppLanguage.urdu: 'Mode off',
+      AppLanguage.romanUrdu: 'Mode off',
+    },
+    'simple_care_empty_title': {
+      AppLanguage.english: 'No care tasks today',
+      AppLanguage.urdu: 'آج care tasks نہیں',
+      AppLanguage.romanUrdu: 'Aaj care tasks nahi',
+    },
+    'simple_care_empty_description': {
+      AppLanguage.english:
+          'When confirmed care tasks exist for today, they will appear here.',
+      AppLanguage.urdu:
+          'آج کے لیے confirmed care tasks ہوں گے تو یہاں نظر آئیں گے۔',
+      AppLanguage.romanUrdu:
+          'Aaj ke liye confirmed care tasks honge to yahan nazar ayen ge.',
+    },
+    'simple_care_sign_in_required_title': {
+      AppLanguage.english: 'Sign in to see real care',
+      AppLanguage.urdu: 'Real care دیکھنے کے لیے sign in کریں',
+      AppLanguage.romanUrdu: 'Real care dekhne ke liye sign in karein',
+    },
+    'simple_care_sign_in_required_description': {
+      AppLanguage.english:
+          'Simple Care only shows authenticated care plan data from your account.',
+      AppLanguage.urdu:
+          'Simple Care صرف آپ کے account کا authenticated care plan data دکھاتا ہے۔',
+      AppLanguage.romanUrdu:
+          'Simple Care sirf aap ke account ka authenticated care plan data dikhata hai.',
+    },
+    'simple_care_load_failed_description': {
+      AppLanguage.english: 'Today’s care could not load. Please try again.',
+      AppLanguage.urdu: 'آج کی care load نہیں ہو سکی۔ دوبارہ کوشش کریں۔',
+      AppLanguage.romanUrdu:
+          'Aaj ki care load nahi ho saki. Dobara try karein.',
+    },
+    'simple_care_offline_title': {
+      AppLanguage.english: 'Today’s care could not load',
+      AppLanguage.urdu: 'آج کی care load نہیں ہو سکی',
+      AppLanguage.romanUrdu: 'Aaj ki care load nahi ho saki',
+    },
+    'simple_care_error_title': {
+      AppLanguage.english: 'Simple Care unavailable',
+      AppLanguage.urdu: 'Simple Care دستیاب نہیں',
+      AppLanguage.romanUrdu: 'Simple Care available nahi',
+    },
+    'simple_care_saved_offline': {
+      AppLanguage.english: 'Saved offline. SehatMate will sync when online.',
+      AppLanguage.urdu:
+          'Offline محفوظ ہو گیا۔ Online ہونے پر SehatMate sync کرے گا۔',
+      AppLanguage.romanUrdu:
+          'Offline save ho gaya. Online hone par SehatMate sync karega.',
+    },
+    'simple_care_conflict_restored': {
+      AppLanguage.english: 'Care task refreshed from the server.',
+      AppLanguage.urdu: 'Care task server سے refresh ہو گیا۔',
+      AppLanguage.romanUrdu: 'Care task server se refresh ho gaya.',
+    },
+    'simple_care_today_heading': {
+      AppLanguage.english: 'Today',
+      AppLanguage.urdu: 'آج',
+      AppLanguage.romanUrdu: 'Aaj',
+    },
+    'simple_care_important_status_heading': {
+      AppLanguage.english: 'Important status',
+      AppLanguage.urdu: 'اہم status',
+      AppLanguage.romanUrdu: 'Important status',
+    },
+    'simple_care_your_care_heading': {
+      AppLanguage.english: 'Your care',
+      AppLanguage.urdu: 'آپ کی care',
+      AppLanguage.romanUrdu: 'Aap ki care',
+    },
+    'simple_care_task_kind_medicine': {
+      AppLanguage.english: 'Medicine',
+      AppLanguage.urdu: 'دوا',
+      AppLanguage.romanUrdu: 'Medicine',
+    },
+    'simple_care_task_kind_appointment': {
+      AppLanguage.english: 'Appointment',
+      AppLanguage.urdu: 'Appointment',
+      AppLanguage.romanUrdu: 'Appointment',
+    },
+    'simple_care_task_kind_care': {
+      AppLanguage.english: 'Care task',
+      AppLanguage.urdu: 'Care task',
+      AppLanguage.romanUrdu: 'Care task',
+    },
+    'open_care_plan': {
+      AppLanguage.english: 'Open care plan',
+      AppLanguage.urdu: 'Care plan کھولیں',
+      AppLanguage.romanUrdu: 'Care plan kholein',
+    },
+    'simple_care_status_missed_title': {
+      AppLanguage.english: '{count} missed item',
+      AppLanguage.urdu: '{count} رہ گیا item',
+      AppLanguage.romanUrdu: '{count} missed item',
+    },
+    'simple_care_status_missed_description': {
+      AppLanguage.english:
+          'Missed items stay visible so you can review the care plan safely.',
+      AppLanguage.urdu:
+          'Missed items نظر آتے رہتے ہیں تاکہ آپ care plan safely review کر سکیں۔',
+      AppLanguage.romanUrdu:
+          'Missed items nazar aate rehte hain taake aap care plan safely review kar saken.',
+    },
+    'simple_care_status_overdue_title': {
+      AppLanguage.english: '{count} overdue item',
+      AppLanguage.urdu: '{count} overdue item',
+      AppLanguage.romanUrdu: '{count} overdue item',
+    },
+    'simple_care_status_overdue_description': {
+      AppLanguage.english:
+          'This scheduled care item is still pending after its planned time.',
+      AppLanguage.urdu:
+          'یہ scheduled care item اپنے وقت کے بعد بھی pending ہے۔',
+      AppLanguage.romanUrdu:
+          'Yeh scheduled care item apne waqt ke baad bhi pending hai.',
+    },
+    'simple_care_status_gaps_title': {
+      AppLanguage.english: '{count} care gap needs review',
+      AppLanguage.urdu: '{count} care gap کو review چاہیے',
+      AppLanguage.romanUrdu: '{count} care gap ko review chahiye',
+    },
+    'simple_care_status_gaps_description': {
+      AppLanguage.english:
+          'Open Care Gaps to resolve missing, blocked or unclear care details.',
+      AppLanguage.urdu:
+          'Missing, blocked یا unclear care details حل کرنے کے لیے Care Gaps کھولیں۔',
+      AppLanguage.romanUrdu:
+          'Missing, blocked ya unclear care details resolve karne ke liye Care Gaps kholein.',
+    },
+    'simple_care_status_readiness_title': {
+      AppLanguage.english: 'Care readiness is {score}%',
+      AppLanguage.urdu: 'Care readiness {score}% ہے',
+      AppLanguage.romanUrdu: 'Care readiness {score}% hai',
+    },
+    'simple_care_status_readiness_description': {
+      AppLanguage.english:
+          'Review the care plan details before relying on the routine.',
+      AppLanguage.urdu:
+          'Routine پر rely کرنے سے پہلے care plan details review کریں۔',
+      AppLanguage.romanUrdu:
+          'Routine par rely karne se pehle care plan details review karein.',
     },
     'next_thing_to_do': {
       AppLanguage.english: 'Next thing to do',

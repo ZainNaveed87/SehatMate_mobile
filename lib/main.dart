@@ -4,16 +4,16 @@ import 'app.dart';
 import 'localization/language_bootstrap.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'services/settings_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await NotificationService.instance.initialize();
   await AuthSession.instance.initialize();
+  await SettingsService.instance.initialize();
 
   runApp(
-    LanguageBootstrap(
-      builder: (context, language) => const SehatRouteApp(),
-    ),
+    LanguageBootstrap(builder: (context, language) => const SehatRouteApp()),
   );
 }
