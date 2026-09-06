@@ -4765,6 +4765,19 @@ class AppStrings {
       AppLanguage.urdu: 'Plan مکمل ہو گیا',
       AppLanguage.romanUrdu: 'Plan complete ho gaya',
     },
+    'active_plan_complete_explanation': {
+      AppLanguage.english:
+          'Complete this plan when you no longer need its current reminders.',
+      AppLanguage.urdu:
+          'جب اس منصوبے کے موجودہ ریمائنڈرز کی ضرورت نہ رہے تو اسے مکمل کریں۔',
+      AppLanguage.romanUrdu:
+          'Jab is plan ke current reminders ki zaroorat na rahe to plan complete karein.',
+    },
+    'edit_reality_check': {
+      AppLanguage.english: 'Edit Reality Check',
+      AppLanguage.urdu: 'ریئلٹی چیک میں ترمیم کریں',
+      AppLanguage.romanUrdu: 'Reality Check edit karein',
+    },
     'not_started': {
       AppLanguage.english: 'Not started',
       AppLanguage.urdu: 'شروع نہیں ہوا',
@@ -4823,8 +4836,10 @@ class AppStrings {
     },
     'plan_name_helper': {
       AppLanguage.english: 'Choose a unique name you will recognize later.',
-      AppLanguage.urdu: 'ایسا منفرد نام رکھیں جسے آپ بعد میں آسانی سے پہچان سکیں۔',
-      AppLanguage.romanUrdu: 'Aisa unique naam rakhein jo baad mein asani se pehchan sakein.',
+      AppLanguage.urdu:
+          'ایسا منفرد نام رکھیں جسے آپ بعد میں آسانی سے پہچان سکیں۔',
+      AppLanguage.romanUrdu:
+          'Aisa unique naam rakhein jo baad mein asani se pehchan sakein.',
     },
     'prescription': {
       AppLanguage.english: 'Prescription',
@@ -5929,11 +5944,11 @@ class AppStrings {
     },
     'cpd_exact_time_locked_note': {
       AppLanguage.english:
-          'Exact time copied from the verified instruction. Reality Check can flag practical conflicts, but SehatRoute will not change this medical timing.',
+          'Exact time copied from the verified instruction. Reality Check can flag practical conflicts, but SehatMate will not change this medical timing.',
       AppLanguage.urdu:
-          'عین وقت تصدیق شدہ ہدایت سے کاپی کیا گیا۔ Reality Check عملی تنازعات کو جھنڈا کر سکتا ہے، لیکن SehatRoute اس طبی ٹائمنگ کو تبدیل نہیں کرے گا۔',
+          'عین وقت تصدیق شدہ ہدایت سے کاپی کیا گیا۔ Reality Check عملی تنازعات کو جھنڈا کر سکتا ہے، لیکن SehatMate اس طبی ٹائمنگ کو تبدیل نہیں کرے گا۔',
       AppLanguage.romanUrdu:
-          'Ain waqt verified hidayat se copy kiya gaya. Reality Check practical conflicts ko flag kar sakta hai, lekin SehatRoute is medical timing ko change nahi karega.',
+          'Ain waqt verified hidayat se copy kiya gaya. Reality Check practical conflicts ko flag kar sakta hai, lekin SehatMate is medical timing ko change nahi karega.',
     },
     'cpd_period_changed_note': {
       AppLanguage.english:
@@ -7426,10 +7441,10 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Pehle tamam schedule items set karein',
     },
     'continue_to_reality_check': {
-  AppLanguage.english: 'Continue to Reality Check',
-  AppLanguage.urdu: 'حقیقت کی جانچ کی طرف جائیں',
-  AppLanguage.romanUrdu: 'Reality Check par jayein',
-},
+      AppLanguage.english: 'Continue to Reality Check',
+      AppLanguage.urdu: 'حقیقت کی جانچ کی طرف جائیں',
+      AppLanguage.romanUrdu: 'Reality Check par jayein',
+    },
   };
   static String get(
     String key,

@@ -1669,6 +1669,18 @@ class _SimulationViewState extends State<SimulationView> {
 
   bool _canActivate(CareSimulationData value) => value.activationAllowed;
 
+  String _displayPlanDate(String value) {
+    final parsed = DateTime.tryParse(value);
+
+    if (parsed == null) {
+      return value;
+    }
+
+    final dateOnly = DateTime(parsed.year, parsed.month, parsed.day);
+
+    return MaterialLocalizations.of(context).formatMediumDate(dateOnly);
+  }
+
   Widget _durationCard() => AppCard(
     padding: const EdgeInsets.all(20),
     child: RadioGroup<String>(
@@ -1701,7 +1713,9 @@ class _SimulationViewState extends State<SimulationView> {
               plan?.suggestedEndDate.isNotEmpty == true
                   ? context.tr(
                       'sim_duration_suggested_end',
-                      values: {'date': plan!.suggestedEndDate},
+                      values: {
+                        'date': _displayPlanDate(plan!.suggestedEndDate),
+                      },
                     )
                   : context.tr('sim_duration_prescription_hint'),
             ),
@@ -1716,6 +1730,19 @@ class _SimulationViewState extends State<SimulationView> {
                   : '${endDate!.year}-${endDate!.month.toString().padLeft(2, '0')}-${endDate!.day.toString().padLeft(2, '0')}',
             ),
           ),
+          if (durationMode == 'custom') ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 40, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _pickEndDate,
+                  icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                  label: Text(context.tr('sim_duration_choose_end')),
+                ),
+              ),
+            ),
+          ],
           RadioListTile<String>(
             contentPadding: EdgeInsets.zero,
             value: 'ongoing',
@@ -1739,13 +1766,27 @@ class _SimulationViewState extends State<SimulationView> {
   );
 
   Future<void> _pickEndDate() async {
+    final today = DateUtils.dateOnly(DateTime.now());
+
+    final currentEndDate = endDate == null
+        ? today.add(const Duration(days: 7))
+        : DateUtils.dateOnly(endDate!);
+
+    final initialDate = currentEndDate.isBefore(today) ? today : currentEndDate;
+
     final selected = await showDatePicker(
       context: context,
-      initialDate: endDate ?? DateTime.now().add(const Duration(days: 7)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      initialDate: initialDate,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 3650)),
     );
-    if (selected != null && mounted) setState(() => endDate = selected);
+
+    if (selected != null && mounted) {
+      setState(() {
+        durationMode = 'custom';
+        endDate = DateUtils.dateOnly(selected);
+      });
+    }
   }
 
   String? get _endDateText => durationMode == 'ongoing'

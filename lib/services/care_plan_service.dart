@@ -213,14 +213,11 @@ class CareSimulationData {
 
   final List<DemoTask> tasks;
 
-  final List<Map<String, dynamic>>
-      findings;
+  final List<Map<String, dynamic>> findings;
 
-  final List<Map<String, dynamic>>
-      adaptations;
+  final List<Map<String, dynamic>> adaptations;
 
-  final List<Map<String, dynamic>>
-      blockers;
+  final List<Map<String, dynamic>> blockers;
 
   /// Context created from:
   /// - Care Gap "Add information"
@@ -229,8 +226,7 @@ class CareSimulationData {
   /// This context may guide practical next actions,
   /// but it must never automatically change verified
   /// treatment instructions.
-  final List<Map<String, dynamic>>
-      contextInsights;
+  final List<Map<String, dynamic>> contextInsights;
 
   final int unanswered;
   final bool activationAllowed;
@@ -823,11 +819,9 @@ class CareGapDetailData {
 }
 
 class CarePlanService {
-  CarePlanService({
-    http.Client? client,
-    String? Function()? tokenProvider,
-  })  : _client = client ?? http.Client(),
-        _tokenProvider = tokenProvider ?? (() => AuthSession.instance.token);
+  CarePlanService({http.Client? client, String? Function()? tokenProvider})
+    : _client = client ?? http.Client(),
+      _tokenProvider = tokenProvider ?? (() => AuthSession.instance.token);
 
   static final CarePlanService instance = CarePlanService();
   static const _timeout = Duration(seconds: 20);
@@ -1114,7 +1108,7 @@ class CarePlanService {
     await _request(
       'PATCH',
       '/care-plans/$planId/status',
-      body: const {'status': 'active'},
+      body: {'status': 'active', 'today': _dateKey(DateTime.now())},
     );
     return fetchPlanDetail(planId);
   }
@@ -1816,10 +1810,7 @@ class CarePlanService {
       findings: _listOfMaps(data['findings']),
       adaptations: _listOfMaps(data['adaptations']),
       blockers: _listOfMaps(data['blockers']),
-      contextInsights:
-    _listOfMaps(
-  data['contextInsights'],
-),
+      contextInsights: _listOfMaps(data['contextInsights']),
       unanswered: _integer(data['unanswered']),
       activationAllowed: data['activationAllowed'] == true,
       hardBlockerCount: _integer(data['hardBlockerCount']),
@@ -2005,7 +1996,7 @@ class CarePlanService {
     await _request(
       'PATCH',
       '/care-plans/$planId/status',
-      body: const {'status': 'active'},
+      body: {'status': 'active', 'today': _dateKey(DateTime.now())},
     );
     return fetchPlanDetail(planId);
   }
