@@ -4765,6 +4765,62 @@ class AppStrings {
       AppLanguage.urdu: 'Plan مکمل ہو گیا',
       AppLanguage.romanUrdu: 'Plan complete ho gaya',
     },
+    'no_scheduled_tasks_yet': {
+      AppLanguage.english: 'No scheduled tasks yet',
+      AppLanguage.urdu: 'ابھی کوئی شیڈول شدہ کام نہیں ہے',
+      AppLanguage.romanUrdu: 'Abhi koi scheduled task nahi hai',
+    },
+    'generate_schedule_from_verified_instructions': {
+      AppLanguage.english:
+          'Generate a schedule from your verified instructions.',
+      AppLanguage.urdu: 'اپنی تصدیق شدہ ہدایات سے شیڈول بنائیں۔',
+      AppLanguage.romanUrdu:
+          'Verified instructions se schedule generate karein.',
+    },
+    'generating': {
+      AppLanguage.english: 'Generating…',
+      AppLanguage.urdu: 'شیڈول بنایا جا رہا ہے…',
+      AppLanguage.romanUrdu: 'Generate ho raha hai…',
+    },
+    'completed_plan_reactivate_explanation': {
+      AppLanguage.english:
+          'This plan is completed. Reactivate it to resume its care schedule.',
+      AppLanguage.urdu:
+          'یہ منصوبہ مکمل ہو چکا ہے۔ نگہداشت کا شیڈول دوبارہ شروع کرنے کے لیے اسے فعال کریں۔',
+      AppLanguage.romanUrdu:
+          'Yeh plan complete ho chuka hai. Care schedule dobara shuru karne ke liye reactivate karein.',
+    },
+    'active_plan_complete_explanation': {
+      AppLanguage.english:
+          'Complete this plan when you no longer need its current reminders.',
+      AppLanguage.urdu:
+          'جب اس منصوبے کے موجودہ ریمائنڈرز کی ضرورت نہ رہے تو اسے مکمل کریں۔',
+      AppLanguage.romanUrdu:
+          'Jab is plan ke current reminders ki zaroorat na rahe to plan complete karein.',
+    },
+    'reactivate_plan': {
+      AppLanguage.english: 'Reactivate plan',
+      AppLanguage.urdu: 'منصوبہ دوبارہ فعال کریں',
+      AppLanguage.romanUrdu: 'Plan reactivate karein',
+    },
+    'reactivating': {
+      AppLanguage.english: 'Reactivating…',
+      AppLanguage.urdu: 'دوبارہ فعال کیا جا رہا ہے…',
+      AppLanguage.romanUrdu: 'Reactivate ho raha hai…',
+    },
+    'reactivate_this_care_plan_question': {
+      AppLanguage.english: 'Reactivate this care plan?',
+      AppLanguage.urdu: 'یہ نگہداشت منصوبہ دوبارہ فعال کریں؟',
+      AppLanguage.romanUrdu: 'Yeh care plan reactivate karein?',
+    },
+    'reactivate_this_care_plan_body': {
+      AppLanguage.english:
+          'The plan will become active again and eligible reminders will resume.',
+      AppLanguage.urdu:
+          'منصوبہ دوبارہ فعال ہو جائے گا اور قابل اطلاق ریمائنڈرز دوبارہ شروع ہوں گے۔',
+      AppLanguage.romanUrdu:
+          'Plan dobara active ho jayega aur applicable reminders resume ho jayenge.',
+    },
     'not_started': {
       AppLanguage.english: 'Not started',
       AppLanguage.urdu: 'شروع نہیں ہوا',
@@ -4823,8 +4879,10 @@ class AppStrings {
     },
     'plan_name_helper': {
       AppLanguage.english: 'Choose a unique name you will recognize later.',
-      AppLanguage.urdu: 'ایسا منفرد نام رکھیں جسے آپ بعد میں آسانی سے پہچان سکیں۔',
-      AppLanguage.romanUrdu: 'Aisa unique naam rakhein jo baad mein asani se pehchan sakein.',
+      AppLanguage.urdu:
+          'ایسا منفرد نام رکھیں جسے آپ بعد میں آسانی سے پہچان سکیں۔',
+      AppLanguage.romanUrdu:
+          'Aisa unique naam rakhein jo baad mein asani se pehchan sakein.',
     },
     'prescription': {
       AppLanguage.english: 'Prescription',
@@ -7426,10 +7484,10 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Pehle tamam schedule items set karein',
     },
     'continue_to_reality_check': {
-  AppLanguage.english: 'Continue to Reality Check',
-  AppLanguage.urdu: 'حقیقت کی جانچ کی طرف جائیں',
-  AppLanguage.romanUrdu: 'Reality Check par jayein',
-},
+      AppLanguage.english: 'Continue to Reality Check',
+      AppLanguage.urdu: 'حقیقت کی جانچ کی طرف جائیں',
+      AppLanguage.romanUrdu: 'Reality Check par jayein',
+    },
   };
   static String get(
     String key,

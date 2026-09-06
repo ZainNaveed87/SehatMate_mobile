@@ -381,8 +381,8 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(context.tr('complete_this_care_plan_question')),
-        content: Text(context.tr('complete_this_care_plan_body')),
+        title: Text(context.tr('complete_plan_question')),
+        content: Text(context.tr('complete_plan_description')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
