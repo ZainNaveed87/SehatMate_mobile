@@ -4796,6 +4796,36 @@ class AppStrings {
       AppLanguage.urdu: 'نگہداشت منصوبہ نہیں بن سکا۔',
       AppLanguage.romanUrdu: 'Care plan create nahi ho saka.',
     },
+    'plan_name': {
+      AppLanguage.english: 'Plan name',
+      AppLanguage.urdu: 'پلان کا نام',
+      AppLanguage.romanUrdu: 'Plan name',
+    },
+    'plan_name_hint': {
+      AppLanguage.english: 'Morning medicines',
+      AppLanguage.urdu: 'صبح کی ادویات',
+      AppLanguage.romanUrdu: 'Morning medicines',
+    },
+    'plan_name_required': {
+      AppLanguage.english: 'Enter a plan name.',
+      AppLanguage.urdu: 'پلان کا نام درج کریں۔',
+      AppLanguage.romanUrdu: 'Plan ka naam likhein.',
+    },
+    'plan_name_length_error': {
+      AppLanguage.english: 'Plan name must be 2-80 characters.',
+      AppLanguage.urdu: 'پلان کا نام 2 سے 80 حروف تک ہونا چاہیے۔',
+      AppLanguage.romanUrdu: 'Plan name 2 se 80 characters tak hona chahiye.',
+    },
+    'care_plan_name_already_exists': {
+      AppLanguage.english: 'A care plan with this name already exists.',
+      AppLanguage.urdu: 'اس نام کا care plan پہلے سے موجود ہے۔',
+      AppLanguage.romanUrdu: 'Is naam ka care plan pehle se mojood hai.',
+    },
+    'plan_name_helper': {
+      AppLanguage.english: 'Choose a unique name you will recognize later.',
+      AppLanguage.urdu: 'ایسا منفرد نام رکھیں جسے آپ بعد میں آسانی سے پہچان سکیں۔',
+      AppLanguage.romanUrdu: 'Aisa unique naam rakhein jo baad mein asani se pehchan sakein.',
+    },
     'prescription': {
       AppLanguage.english: 'Prescription',
       AppLanguage.urdu: 'نسخہ',
@@ -7378,6 +7408,28 @@ class AppStrings {
       AppLanguage.romanUrdu:
           'SehatMate AI abhi busy hai. Thori der baad dobara try karein.',
     },
+
+    'care_plan_header_subtitle': {
+      AppLanguage.english: 'Started {date} · Next: {next}',
+      AppLanguage.urdu: 'شروع: {date} · اگلا: {next}',
+      AppLanguage.romanUrdu: 'Shuru: {date} · Agla: {next}',
+    },
+    'edit_instructions': {
+      AppLanguage.english: 'Edit instructions',
+      AppLanguage.urdu: 'ہدایات میں ترمیم کریں',
+      AppLanguage.romanUrdu: 'Instructions edit karein',
+    },
+
+    'confirm_schedule_items_first': {
+      AppLanguage.english: 'Set all schedule items first',
+      AppLanguage.urdu: 'پہلے تمام شیڈول آئٹمز سیٹ کریں',
+      AppLanguage.romanUrdu: 'Pehle tamam schedule items set karein',
+    },
+    'continue_to_reality_check': {
+  AppLanguage.english: 'Continue to Reality Check',
+  AppLanguage.urdu: 'حقیقت کی جانچ کی طرف جائیں',
+  AppLanguage.romanUrdu: 'Reality Check par jayein',
+},
   };
   static String get(
     String key,

@@ -28,10 +28,23 @@ class CarePlanException implements Exception {
   String toString() => message;
 }
 
+String normalizeCarePlanNameForInput(String value) {
+  return value
+      .replaceAll(RegExp(r'[\u0000-\u001f\u007f\u200b-\u200d\u2060\ufeff]'), '')
+      .trim()
+      .replaceAll(RegExp(r'\s+', unicode: true), ' ');
+}
+
+bool isValidCarePlanNameInput(String value) {
+  final normalized = normalizeCarePlanNameForInput(value);
+  final length = normalized.runes.length;
+  return length >= 2 && length <= 80;
+}
+
 class CarePlanUploadArgs {
   const CarePlanUploadArgs({
     required this.planId,
-    required this.documentTypes,
+    this.documentTypes = const [],
     this.guidedSetup = false,
     this.returnToPrevious = false,
   });
@@ -40,6 +53,11 @@ class CarePlanUploadArgs {
   final List<String> documentTypes;
   final bool guidedSetup;
   final bool returnToPrevious;
+
+  String documentTypeForUpload(int index) {
+    if (documentTypes.isEmpty) return 'other';
+    return documentTypes[index.clamp(0, documentTypes.length - 1).toInt()];
+  }
 }
 
 class CarePlanReviewArgs {
@@ -805,12 +823,17 @@ class CareGapDetailData {
 }
 
 class CarePlanService {
-  CarePlanService._();
+  CarePlanService({
+    http.Client? client,
+    String? Function()? tokenProvider,
+  })  : _client = client ?? http.Client(),
+        _tokenProvider = tokenProvider ?? (() => AuthSession.instance.token);
 
-  static final CarePlanService instance = CarePlanService._();
+  static final CarePlanService instance = CarePlanService();
   static const _timeout = Duration(seconds: 20);
 
-  final http.Client _client = http.Client();
+  final http.Client _client;
+  final String? Function() _tokenProvider;
 
   static const _cachePrefix = 'sehatmate_care_cache_v1';
 
@@ -1024,10 +1047,27 @@ class CarePlanService {
   }
 
   Future<DemoPlan> createPlan(String title) async {
+    final planName = normalizeCarePlanNameForInput(title);
     final data = await _request(
       'POST',
       '/care-plans',
-      body: {'title': title.trim()},
+      body: {'title': planName},
+    );
+    final plan = data['plan'];
+    if (plan is! Map<String, dynamic>) {
+      throw const CarePlanException(
+        'The server returned an invalid care plan.',
+      );
+    }
+    return _planFromJson(plan);
+  }
+
+  Future<DemoPlan> renamePlan(String planId, String title) async {
+    final planName = normalizeCarePlanNameForInput(title);
+    final data = await _request(
+      'PATCH',
+      '/care-plans/$planId/title',
+      body: {'title': planName},
     );
     final plan = data['plan'];
     if (plan is! Map<String, dynamic>) {
@@ -2294,7 +2334,7 @@ class CarePlanService {
     Map<String, dynamic>? body,
     Duration timeout = _timeout,
   }) async {
-    final token = AuthSession.instance.token;
+    final token = _tokenProvider();
     if (token == null || token.isEmpty) {
       throw const CarePlanException('Please sign in to continue.');
     }
@@ -2346,14 +2386,17 @@ class CarePlanService {
               response.statusCode == 408 ||
               response.statusCode == 429 ||
               response.statusCode >= 500;
+          final errorData = decoded['data'] is Map<String, dynamic>
+              ? Map<String, dynamic>.from(decoded['data'] as Map)
+              : <String, dynamic>{};
+          final code = decoded['code']?.toString();
+          if (code != null && code.isNotEmpty) errorData['code'] = code;
           final error = CarePlanException(
             decoded['message']?.toString() ??
                 'The care plan request could not be completed.',
             statusCode: response.statusCode,
             retryable: retryableStatus,
-            data: decoded['data'] is Map<String, dynamic>
-                ? decoded['data'] as Map<String, dynamic>
-                : null,
+            data: errorData.isEmpty ? null : errorData,
           );
           if (safeToRetry && retryableStatus && attempt < maxAttempts) {
             await Future<void>.delayed(

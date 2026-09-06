@@ -7,6 +7,11 @@ String localizedCarePlanExceptionMessage(
   CarePlanException exception,
   AppLanguage language,
 ) {
+  final code = exception.data?['code']?.toString();
+  if (code != null) {
+    final key = _knownErrorCodeKeys[code];
+    if (key != null) return AppStrings.get(key, language);
+  }
   return localizedKnownMessage(exception.message, language);
 }
 
@@ -89,4 +94,14 @@ const _knownMessageKeys = <String, String>{
       'error_api_url_not_configured',
   'The server did not return a valid session.':
       'error_invalid_session',
+  'Plan name is required.':
+      'plan_name_required',
+  'Care plan name must be between 2 and 80 characters.':
+      'plan_name_length_error',
+  'A care plan with this name already exists.':
+      'care_plan_name_already_exists',
+};
+
+const _knownErrorCodeKeys = <String, String>{
+  'CARE_PLAN_TITLE_EXISTS': 'care_plan_name_already_exists',
 };

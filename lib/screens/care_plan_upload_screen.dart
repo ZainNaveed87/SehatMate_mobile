@@ -153,10 +153,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
 
       try {
         final bytes = await file.readAsBytes();
-        final selectedTypes = widget.draft!.documentTypes;
-        final documentType = selectedTypes.isEmpty
-            ? 'other'
-            : selectedTypes[index.clamp(0, selectedTypes.length - 1).toInt()];
+        final documentType = widget.draft!.documentTypeForUpload(index);
         final serverId = await CarePlanService.instance.uploadDocument(
           planId: widget.draft!.planId,
           documentType: documentType,
@@ -249,8 +246,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
 
       try {
         final bytes = await photo.readAsBytes();
-        final selectedTypes = widget.draft!.documentTypes;
-        final documentType = selectedTypes.isEmpty ? 'other' : selectedTypes.first;
+        final documentType = widget.draft!.documentTypeForUpload(0);
         final serverId = await CarePlanService.instance.uploadDocument(
           planId: widget.draft!.planId,
           documentType: documentType,

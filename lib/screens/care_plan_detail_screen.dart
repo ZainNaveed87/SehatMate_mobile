@@ -280,8 +280,6 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               const SizedBox(height: 20),
             ],
             _tabContent(detail),
-            const SizedBox(height: 32),
-            SafetyNote(text: context.tr('care_plan_detail_safety_note')),
           ],
         ),
       ),

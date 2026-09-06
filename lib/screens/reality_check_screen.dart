@@ -560,7 +560,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
                 _trOrFallback(
                   context,
                   'reality_answer_signal_note',
-                  'Your answer helps SehatRoute understand how well this care-plan step fits your real routine.',
+                  'Your answer helps SehatMate understand how well this care-plan step fits your real routine.',
                 ),
                 style: const TextStyle(
                   fontSize: 13,
@@ -677,13 +677,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
 
         const SizedBox(height: 20),
 
-        SafetyNote(
-          text: _trOrFallback(
-            context,
-            'reality_check_safety_note',
-            'Reality Check only reviews practical fit. It does not change treatment or verified medical instructions.',
-          ),
-        ),
+
       ],
     );
   }
