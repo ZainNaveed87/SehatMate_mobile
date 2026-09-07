@@ -14,14 +14,20 @@ class _TokenProvider implements AgentAuthTokenProvider {
 }
 
 void main() {
-  AgentService serviceFor(http.Response response) {
+  AgentService serviceFor(
+    http.Response response, {
+    void Function(http.Request request)? onRequest,
+    DateTime Function()? now,
+  }) {
     return AgentService(
       tokenProvider: const _TokenProvider('test-token'),
       client: MockClient((request) async {
         expect(request.method, 'POST');
         expect(request.headers['Authorization'], 'Bearer test-token');
+        onRequest?.call(request);
         return response;
       }),
+      now: now,
     );
   }
 
@@ -141,5 +147,105 @@ void main() {
 
     expect(error.code, AgentErrorCode.malformed);
     expect(error.message, 'SehatMate AI returned an invalid response.');
+  });
+
+  test('normal message transport includes device local today', () async {
+    late Map<String, dynamic> body;
+    final response = jsonResponse(200, const {
+      'success': true,
+      'data': {
+        'sessionId': 's1',
+        'language': 'en',
+        'reply': 'Ready.',
+        'navigation': null,
+        'referencedEntities': [],
+      },
+    });
+
+    await serviceFor(
+      response,
+      now: () => DateTime(2026, 9, 7, 0, 15),
+      onRequest: (request) {
+        body = jsonDecode(request.body) as Map<String, dynamic>;
+      },
+    ).send(const AgentRequest(message: 'Hello'));
+
+    expect(body['message'], 'Hello');
+    expect(body['today'], '2026-09-07');
+  });
+
+  test(
+    'clarification selection transport preserves today and opaque ids',
+    () async {
+      late Map<String, dynamic> body;
+      final response = jsonResponse(200, const {
+        'success': true,
+        'data': {
+          'sessionId': 's1',
+          'language': 'en',
+          'reply': 'Opening selected plan.',
+          'navigation': null,
+          'referencedEntities': [],
+        },
+      });
+
+      await serviceFor(
+        response,
+        now: () => DateTime(2026, 9, 7, 0, 15),
+        onRequest: (request) {
+          body = jsonDecode(request.body) as Map<String, dynamic>;
+        },
+      ).send(
+        const AgentRequest.clarification(
+          sessionId: 's1',
+          message: 'us wala dikhao',
+          clarificationId: 'clarify-1',
+          choiceId: 'choice-a',
+        ),
+      );
+
+      expect(body, {
+        'sessionId': 's1',
+        'message': 'us wala dikhao',
+        'clarification': {
+          'clarificationId': 'clarify-1',
+          'choiceId': 'choice-a',
+        },
+        'today': '2026-09-07',
+      });
+    },
+  );
+
+  test('confirmation transport does not add local today', () async {
+    late Map<String, dynamic> body;
+    final response = jsonResponse(200, const {
+      'success': true,
+      'data': {
+        'sessionId': 's1',
+        'language': 'en',
+        'reply': 'Confirmed.',
+        'navigation': null,
+        'referencedEntities': [],
+      },
+    });
+
+    await serviceFor(
+      response,
+      now: () => DateTime(2026, 9, 7, 0, 15),
+      onRequest: (request) {
+        body = jsonDecode(request.body) as Map<String, dynamic>;
+      },
+    ).send(
+      const AgentRequest.confirmation(
+        sessionId: 's1',
+        confirmationId: 'confirm-1',
+        confirmationDecision: 'confirm',
+      ),
+    );
+
+    expect(body, {
+      'sessionId': 's1',
+      'confirmation': {'confirmationId': 'confirm-1', 'decision': 'confirm'},
+    });
   });
 }

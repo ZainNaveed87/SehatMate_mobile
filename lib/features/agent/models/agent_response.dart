@@ -24,7 +24,7 @@ class AgentReferencedEntity {
     return AgentReferencedEntity(type: type, id: id);
   }
 
-  static const supportedTypes = {'care_plan', 'care_gap'};
+  static const supportedTypes = {'care_plan', 'care_gap', 'family_member'};
 }
 
 class AgentConfirmation {
@@ -64,6 +64,81 @@ class AgentConfirmation {
   static const supportedKinds = {'task_outcome', 'schedule_time'};
 }
 
+class AgentClarificationOption {
+  const AgentClarificationOption({required this.choiceId, required this.label});
+
+  final String choiceId;
+  final String label;
+
+  factory AgentClarificationOption.fromJson(Object? value) {
+    if (value is! Map<String, dynamic>) {
+      throw const FormatException('Agent clarification option must be object.');
+    }
+    for (final key in value.keys) {
+      if (key != 'choiceId' && key != 'label') {
+        throw const FormatException('Agent clarification option is invalid.');
+      }
+    }
+    final choiceId = value['choiceId']?.toString().trim() ?? '';
+    final label = value['label']?.toString().trim() ?? '';
+    if (!isSafeAgentIdentifier(choiceId) || label.isEmpty) {
+      throw const FormatException('Agent clarification option is invalid.');
+    }
+    return AgentClarificationOption(choiceId: choiceId, label: label);
+  }
+}
+
+class AgentClarification {
+  const AgentClarification({
+    required this.clarificationId,
+    required this.kind,
+    required this.question,
+    required this.options,
+    this.expiresAt,
+  });
+
+  final String clarificationId;
+  final String kind;
+  final String question;
+  final List<AgentClarificationOption> options;
+  final String? expiresAt;
+
+  factory AgentClarification.fromJson(Object? value) {
+    if (value is! Map<String, dynamic>) {
+      throw const FormatException('Agent clarification must be an object.');
+    }
+    final clarificationId = value['clarificationId']?.toString().trim() ?? '';
+    final kind = value['kind']?.toString().trim() ?? '';
+    final question = value['question']?.toString().trim() ?? '';
+    final expiresAt = value['expiresAt']?.toString().trim();
+    final rawOptions = value['options'];
+
+    if (!isSafeAgentIdentifier(clarificationId) ||
+        !supportedKinds.contains(kind) ||
+        question.isEmpty ||
+        rawOptions is! List) {
+      throw const FormatException('Agent clarification is invalid.');
+    }
+
+    final options = rawOptions
+        .map<AgentClarificationOption>(AgentClarificationOption.fromJson)
+        .toList(growable: false);
+    if (options.length < 2 || options.length > 5) {
+      throw const FormatException('Agent clarification options are invalid.');
+    }
+
+    return AgentClarification(
+      clarificationId: clarificationId,
+      kind: kind,
+      question: question,
+      options: options,
+      expiresAt: expiresAt == null || expiresAt.isEmpty ? null : expiresAt,
+    );
+  }
+
+  static const supportedKinds = {'entity_reference'};
+}
+
 class AgentResponse {
   const AgentResponse({
     required this.sessionId,
@@ -72,6 +147,7 @@ class AgentResponse {
     required this.referencedEntities,
     this.navigation,
     this.confirmation,
+    this.clarification,
     this.speech,
     this.actionStatus,
     this.fallbackCode,
@@ -82,6 +158,7 @@ class AgentResponse {
   final String reply;
   final AgentNavigation? navigation;
   final AgentConfirmation? confirmation;
+  final AgentClarification? clarification;
   final AgentSpeech? speech;
   final String? actionStatus;
   final List<AgentReferencedEntity> referencedEntities;
@@ -129,6 +206,12 @@ class AgentResponse {
       );
     }
 
+    final clarificationJson = json['clarification'];
+    AgentClarification? clarification;
+    if (clarificationJson != null) {
+      clarification = AgentClarification.fromJson(clarificationJson);
+    }
+
     AgentSpeech? speech;
     if (json['speech'] != null) {
       try {
@@ -153,6 +236,7 @@ class AgentResponse {
       reply: reply,
       navigation: navigation,
       confirmation: confirmation,
+      clarification: clarification,
       speech: speech,
       actionStatus: actionStatus,
       referencedEntities: referencedEntities,

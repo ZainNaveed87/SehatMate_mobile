@@ -51,6 +51,57 @@ void main() {
       expect(response.actionStatus, 'awaiting_confirmation');
     });
 
+    test('parse structured clarification response', () {
+      final response = AgentResponse.fromJson(const {
+        'success': true,
+        'sessionId': 's1',
+        'language': 'roman_ur',
+        'reply': 'Aap kis wale ki baat kar rahe hain?',
+        'navigation': null,
+        'clarification': {
+          'clarificationId': 'clarify-1',
+          'kind': 'entity_reference',
+          'question': 'Aap kis wale ki baat kar rahe hain?',
+          'options': [
+            {'choiceId': 'choice-a', 'label': 'QA Prescription Plan'},
+            {'choiceId': 'choice-b', 'label': 'QA Discharge Plan'},
+          ],
+          'expiresAt': '2999-01-01T00:00:00.000Z',
+        },
+        'referencedEntities': [],
+      });
+
+      expect(response.clarification?.clarificationId, 'clarify-1');
+      expect(response.clarification?.kind, 'entity_reference');
+      expect(response.clarification?.options.first.choiceId, 'choice-a');
+      expect(response.clarification?.options.map((item) => item.label), [
+        'QA Prescription Plan',
+        'QA Discharge Plan',
+      ]);
+    });
+
+    test('malformed clarification response fails closed', () {
+      expect(
+        () => AgentResponse.fromJson(const {
+          'success': true,
+          'sessionId': 's1',
+          'language': 'en',
+          'reply': 'Which one do you mean?',
+          'navigation': null,
+          'clarification': {
+            'clarificationId': 'clarify-1',
+            'kind': 'entity_reference',
+            'question': 'Which one do you mean?',
+            'options': [
+              {'choiceId': '../raw', 'label': 'Plan'},
+            ],
+          },
+          'referencedEntities': [],
+        }),
+        throwsFormatException,
+      );
+    });
+
     test('awaiting confirmation without valid confirmation fails closed', () {
       expect(
         () => AgentResponse.fromJson(const {
@@ -148,12 +199,14 @@ void main() {
         'referencedEntities': [
           {'type': 'care_plan', 'id': 'cp1'},
           {'type': 'care_gap', 'id': 'gap-1'},
+          {'type': 'family_member', 'id': 'family:1'},
         ],
       });
 
       expect(response.referencedEntities.map((item) => item.type), [
         'care_plan',
         'care_gap',
+        'family_member',
       ]);
     });
 
@@ -246,6 +299,26 @@ void main() {
         'confirmationId': 'confirm-1',
         'decision': 'cancel',
       });
+    });
+
+    test('serializes clarification request with opaque ids', () {
+      const request = AgentRequest.clarification(
+        sessionId: 's1',
+        message: 'us wala dikhao',
+        clarificationId: 'clarify-1',
+        choiceId: 'choice-a',
+      );
+
+      expect(request.toJson(), {
+        'sessionId': 's1',
+        'message': 'us wala dikhao',
+        'clarification': {
+          'clarificationId': 'clarify-1',
+          'choiceId': 'choice-a',
+        },
+      });
+      expect(request.toJson().toString(), isNot(contains('carePlanId')));
+      expect(request.toJson().toString(), isNot(contains('planId')));
     });
 
     test('malformed confirmation request fails safely', () {

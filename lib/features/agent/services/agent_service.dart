@@ -60,10 +60,12 @@ class AgentService {
     http.Client? client,
     AuthSession? authSession,
     AgentAuthTokenProvider? tokenProvider,
+    DateTime Function()? now,
   }) : _client = client ?? http.Client(),
        _tokenProvider =
            tokenProvider ??
-           AuthSessionAgentTokenProvider(authSession ?? AuthSession.instance);
+           AuthSessionAgentTokenProvider(authSession ?? AuthSession.instance),
+       _now = now ?? DateTime.now;
 
   static final instance = AgentService();
 
@@ -71,6 +73,15 @@ class AgentService {
 
   final http.Client _client;
   final AgentAuthTokenProvider _tokenProvider;
+  final DateTime Function() _now;
+
+  String _localDateKey([DateTime? value]) {
+    final date = value ?? _now();
+
+    return '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+  }
 
   Future<AgentResponse> send(AgentRequest request) async {
     if (!ApiConfig.isConfigured) {
@@ -90,6 +101,12 @@ class AgentService {
     }
 
     try {
+      final body = request.toJson();
+
+      if ((body['message']?.toString().trim() ?? '').isNotEmpty) {
+        body['today'] = _localDateKey();
+      }
+
       final response = await _client
           .post(
             ApiConfig.endpoint('/agent/message'),
@@ -98,7 +115,7 @@ class AgentService {
               'Content-Type': 'application/json; charset=utf-8',
               'Authorization': 'Bearer $token',
             },
-            body: jsonEncode(request.toJson()),
+            body: jsonEncode(body),
           )
           .timeout(_timeout);
 

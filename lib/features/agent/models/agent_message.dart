@@ -12,6 +12,7 @@ class AgentChatMessage {
     required this.createdAt,
     this.navigation,
     this.confirmation,
+    this.clarification,
     this.speech,
     this.actionStatus,
     this.failed = false,
@@ -23,6 +24,7 @@ class AgentChatMessage {
   final DateTime createdAt;
   final AgentNavigation? navigation;
   final AgentConfirmation? confirmation;
+  final AgentClarification? clarification;
   final AgentSpeech? speech;
   final String? actionStatus;
   final bool failed;
@@ -30,6 +32,7 @@ class AgentChatMessage {
   AgentChatMessage copyWith({
     AgentNavigation? navigation,
     AgentConfirmation? confirmation,
+    AgentClarification? clarification,
     AgentSpeech? speech,
     String? actionStatus,
     bool? failed,
@@ -41,6 +44,7 @@ class AgentChatMessage {
       createdAt: createdAt,
       navigation: navigation ?? this.navigation,
       confirmation: confirmation ?? this.confirmation,
+      clarification: clarification ?? this.clarification,
       speech: speech ?? this.speech,
       actionStatus: actionStatus ?? this.actionStatus,
       failed: failed ?? this.failed,

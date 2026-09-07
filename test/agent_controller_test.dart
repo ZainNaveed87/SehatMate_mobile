@@ -56,15 +56,35 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  AgentResponse response(String sessionId, String reply) {
+  AgentResponse response(
+    String sessionId,
+    String reply, {
+    Map<String, Object?>? clarification,
+  }) {
     return AgentResponse.fromJson({
       'success': true,
       'sessionId': sessionId,
       'language': 'en',
       'reply': reply,
       'navigation': null,
+      'clarification': clarification,
       'referencedEntities': [],
     });
+  }
+
+  Map<String, Object?> clarificationJson({
+    String clarificationId = 'clarify-1',
+  }) {
+    return {
+      'clarificationId': clarificationId,
+      'kind': 'entity_reference',
+      'question': 'Which one do you mean?',
+      'options': [
+        {'choiceId': 'choice-a', 'label': 'QA Prescription Plan'},
+        {'choiceId': 'choice-b', 'label': 'QA Discharge Plan'},
+      ],
+      'expiresAt': '2999-01-01T00:00:00.000Z',
+    };
   }
 
   AgentResponse confirmationResponse(
@@ -401,5 +421,121 @@ void main() {
     await Future.wait([first, second]);
 
     expect(client.requests, hasLength(2));
+  });
+
+  test(
+    'controller tracks clarification and sends opaque choice payload',
+    () async {
+      final client = _FakeAgentClient([
+        response(
+          'session-k',
+          'Which one do you mean?',
+          clarification: clarificationJson(),
+        ),
+        response('session-k', 'Opening QA Prescription Plan.'),
+      ]);
+      final controller = AgentController(client: client);
+
+      await controller.initialize();
+      await controller.sendText('us wala dikhao');
+
+      expect(controller.pendingClarification?.clarificationId, 'clarify-1');
+      expect(controller.messages.last.clarification?.options, hasLength(2));
+
+      await controller.chooseClarificationOption('clarify-1', 'choice-a');
+
+      expect(client.requests.last.toJson(), {
+        'sessionId': 'session-k',
+        'message': 'us wala dikhao',
+        'clarification': {
+          'clarificationId': 'clarify-1',
+          'choiceId': 'choice-a',
+        },
+      });
+      expect(controller.pendingClarification, isNull);
+      expect(controller.messages.last.text, 'Opening QA Prescription Plan.');
+    },
+  );
+
+  test('clarification double tap is ignored while loading', () async {
+    final completer = Completer<AgentResponse>();
+    final client = _FakeAgentClient([
+      response(
+        'session-l',
+        'Which one do you mean?',
+        clarification: clarificationJson(),
+      ),
+      completer,
+    ]);
+    final controller = AgentController(client: client);
+
+    await controller.initialize();
+    await controller.sendText('us wala dikhao');
+    final first = controller.chooseClarificationOption('clarify-1', 'choice-a');
+    final second = controller.chooseClarificationOption(
+      'clarify-1',
+      'choice-a',
+    );
+
+    expect(controller.clarificationLoading, isTrue);
+    expect(client.requests, hasLength(2));
+
+    completer.complete(response('session-l', 'Opening selected plan.'));
+    await Future.wait([first, second]);
+
+    expect(controller.clarificationLoading, isFalse);
+    expect(client.requests, hasLength(2));
+    expect(controller.pendingClarification, isNull);
+  });
+
+  test(
+    'normal composer message clears stale pending clarification locally',
+    () async {
+      final client = _FakeAgentClient([
+        response(
+          'session-m',
+          'Which one do you mean?',
+          clarification: clarificationJson(),
+        ),
+        response('session-m', 'Normal read reply.'),
+      ]);
+      final controller = AgentController(client: client);
+
+      await controller.initialize();
+      await controller.sendText('us wala dikhao');
+      expect(controller.pendingClarification, isNotNull);
+
+      await controller.sendText('show all care plans');
+
+      expect(controller.pendingClarification, isNull);
+      await controller.chooseClarificationOption('clarify-1', 'choice-a');
+      expect(client.requests, hasLength(2));
+    },
+  );
+
+  test('clarification choice does not consume pending confirmation', () async {
+    final client = _FakeAgentClient([
+      confirmationResponse('session-n'),
+      response(
+        'session-n',
+        'Which one do you mean?',
+        clarification: clarificationJson(),
+      ),
+      response('session-n', 'Opening selected plan.'),
+    ]);
+    final controller = AgentController(client: client);
+
+    await controller.initialize();
+    await controller.sendText('Prepare skip');
+    await controller.sendText('us wala dikhao');
+
+    expect(controller.pendingConfirmation?.confirmationId, 'confirm-1');
+    expect(controller.pendingClarification?.clarificationId, 'clarify-1');
+
+    await controller.chooseClarificationOption('clarify-1', 'choice-a');
+
+    expect(controller.pendingConfirmation?.confirmationId, 'confirm-1');
+    expect(client.requests.last.toJson()['confirmation'], isNull);
+    expect(client.requests.last.toJson()['clarification'], isNotNull);
   });
 }

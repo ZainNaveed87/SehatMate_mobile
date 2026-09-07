@@ -43,21 +43,26 @@ class AgentController extends ChangeNotifier {
   bool _loading = false;
   bool _initializing = false;
   bool _confirmationLoading = false;
+  bool _clarificationLoading = false;
   bool _initialized = false;
   AgentException? _error;
   AgentConfirmation? _pendingConfirmation;
+  AgentClarification? _pendingClarification;
+  String? _pendingClarificationMessage;
   Future<void>? _initializationFuture;
   int _idSeed = 0;
 
   List<AgentChatMessage> get messages => List.unmodifiable(_messages);
   bool get loading => _loading;
   bool get confirmationLoading => _confirmationLoading;
+  bool get clarificationLoading => _clarificationLoading;
   bool get initializing => _initializing;
   bool get initialized => _initialized;
   AgentException? get error => _error;
   String? get sessionId => _sessionId;
   String? get lastFailedText => _lastFailedText;
   AgentConfirmation? get pendingConfirmation => _pendingConfirmation;
+  AgentClarification? get pendingClarification => _pendingClarification;
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -81,7 +86,12 @@ class AgentController extends ChangeNotifier {
     bool requestSpeech = false,
   }) async {
     final trimmed = text.trim();
-    if (_loading || _confirmationLoading || trimmed.isEmpty) return null;
+    if (_loading ||
+        _confirmationLoading ||
+        _clarificationLoading ||
+        trimmed.isEmpty) {
+      return null;
+    }
     return _send(
       trimmed,
       appendUserMessage: true,
@@ -93,6 +103,7 @@ class AgentController extends ChangeNotifier {
     final text = _lastFailedText;
     if (_loading ||
         _confirmationLoading ||
+        _clarificationLoading ||
         text == null ||
         text.trim().isEmpty) {
       return null;
@@ -110,6 +121,8 @@ class AgentController extends ChangeNotifier {
     _loading = true;
     _error = null;
     _lastFailedText = null;
+    _pendingClarification = null;
+    _pendingClarificationMessage = null;
 
     if (appendUserMessage) {
       _append(
@@ -140,11 +153,12 @@ class AgentController extends ChangeNotifier {
           createdAt: DateTime.now(),
           navigation: response.navigation,
           confirmation: response.confirmation,
+          clarification: response.clarification,
           speech: response.speech,
           actionStatus: response.actionStatus,
         ),
       );
-      _applyActionState(response);
+      _applyActionState(response, sourceMessage: text);
       return response;
     } on AgentException catch (exception) {
       _error = exception;
@@ -207,7 +221,12 @@ class AgentController extends ChangeNotifier {
     String decision,
   ) async {
     final pending = _pendingConfirmation;
-    if (_loading || _confirmationLoading || pending == null) return;
+    if (_loading ||
+        _confirmationLoading ||
+        _clarificationLoading ||
+        pending == null) {
+      return;
+    }
     if (pending.confirmationId != confirmationId.trim()) return;
     final sessionId = _sessionId;
     if (sessionId == null || sessionId.trim().isEmpty) return;
@@ -254,10 +273,90 @@ class AgentController extends ChangeNotifier {
     }
   }
 
+  Future<void> chooseClarificationOption(
+    String clarificationId,
+    String choiceId,
+  ) async {
+    final pending = _pendingClarification;
+    final sourceMessage = _pendingClarificationMessage;
+    if (_loading ||
+        _confirmationLoading ||
+        _clarificationLoading ||
+        pending == null ||
+        sourceMessage == null) {
+      return;
+    }
+    if (pending.clarificationId != clarificationId.trim()) return;
+    final sessionId = _sessionId;
+    if (sessionId == null || sessionId.trim().isEmpty) return;
+
+    _clarificationLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _client.send(
+        AgentRequest.clarification(
+          sessionId: sessionId,
+          message: sourceMessage,
+          clarificationId: clarificationId,
+          choiceId: choiceId,
+        ),
+      );
+      _sessionId = response.sessionId;
+      await _sessionStore.save(response.sessionId);
+      _append(
+        AgentChatMessage(
+          id: _nextId(),
+          author: AgentMessageAuthor.assistant,
+          text: response.reply,
+          createdAt: DateTime.now(),
+          navigation: response.navigation,
+          confirmation: response.confirmation,
+          clarification: response.clarification,
+          speech: response.speech,
+          actionStatus: response.actionStatus,
+        ),
+      );
+      _applyActionState(
+        response,
+        completedClarificationId: clarificationId,
+        sourceMessage: sourceMessage,
+      );
+    } on AgentException catch (exception) {
+      _error = exception;
+      _pendingClarification = null;
+      _pendingClarificationMessage = null;
+      _append(
+        AgentChatMessage(
+          id: _nextId(),
+          author: AgentMessageAuthor.assistant,
+          text: exception.message,
+          createdAt: DateTime.now(),
+          failed: true,
+        ),
+      );
+    } finally {
+      _clarificationLoading = false;
+      notifyListeners();
+    }
+  }
+
   void _applyActionState(
     AgentResponse response, {
     String? completedConfirmationId,
+    String? completedClarificationId,
+    String? sourceMessage,
   }) {
+    if (response.clarification != null) {
+      _pendingClarification = response.clarification;
+      _pendingClarificationMessage = sourceMessage;
+    } else if (completedClarificationId == null ||
+        _pendingClarification?.clarificationId == completedClarificationId) {
+      _pendingClarification = null;
+      _pendingClarificationMessage = null;
+    }
+
     if (response.actionStatus == 'awaiting_confirmation' &&
         response.confirmation != null) {
       _pendingConfirmation = response.confirmation;

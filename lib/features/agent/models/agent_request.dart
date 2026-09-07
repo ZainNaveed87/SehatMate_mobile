@@ -7,7 +7,9 @@ class AgentRequest {
     this.context,
     this.requestSpeech = false,
   }) : confirmationId = null,
-       confirmationDecision = null;
+       confirmationDecision = null,
+       clarificationId = null,
+       choiceId = null;
 
   const AgentRequest.confirmation({
     required this.sessionId,
@@ -15,7 +17,19 @@ class AgentRequest {
     required this.confirmationDecision,
   }) : message = '',
        context = null,
-       requestSpeech = false;
+       requestSpeech = false,
+       clarificationId = null,
+       choiceId = null;
+
+  const AgentRequest.clarification({
+    required this.sessionId,
+    required this.message,
+    required this.clarificationId,
+    required this.choiceId,
+  }) : context = null,
+       requestSpeech = false,
+       confirmationId = null,
+       confirmationDecision = null;
 
   static const maxMessageLength = 2000;
   static const _confirmationDecisions = {'confirm', 'cancel'};
@@ -26,6 +40,8 @@ class AgentRequest {
   final bool requestSpeech;
   final String? confirmationId;
   final String? confirmationDecision;
+  final String? clarificationId;
+  final String? choiceId;
 
   Map<String, dynamic> toJson() {
     final trimmedConfirmationId = confirmationId?.trim() ?? '';
@@ -42,6 +58,28 @@ class AgentRequest {
         'confirmation': {
           'confirmationId': trimmedConfirmationId,
           'decision': trimmedDecision,
+        },
+      };
+    }
+
+    final trimmedClarificationId = clarificationId?.trim() ?? '';
+    final trimmedChoiceId = choiceId?.trim() ?? '';
+    if (trimmedClarificationId.isNotEmpty || trimmedChoiceId.isNotEmpty) {
+      final trimmedSessionId = sessionId?.trim() ?? '';
+      final trimmedMessage = message.trim();
+      if (trimmedSessionId.isEmpty ||
+          trimmedMessage.isEmpty ||
+          trimmedMessage.length > maxMessageLength ||
+          trimmedClarificationId.isEmpty ||
+          trimmedChoiceId.isEmpty) {
+        throw const FormatException('Agent clarification request is invalid.');
+      }
+      return {
+        'sessionId': trimmedSessionId,
+        'message': trimmedMessage,
+        'clarification': {
+          'clarificationId': trimmedClarificationId,
+          'choiceId': trimmedChoiceId,
         },
       };
     }

@@ -125,6 +125,7 @@ AgentResponse _response({
   String? actionStatus,
   Map<String, Object?>? navigation,
   Map<String, Object?>? speech,
+  Map<String, Object?>? clarification,
 }) {
   return AgentResponse.fromJson({
     'success': true,
@@ -133,6 +134,7 @@ AgentResponse _response({
     'reply': reply,
     'navigation': navigation,
     'speech': speech,
+    'clarification': clarification,
     'confirmation': confirmationId == null
         ? null
         : {
@@ -143,6 +145,21 @@ AgentResponse _response({
     'actionStatus': actionStatus,
     'referencedEntities': [],
   });
+}
+
+Map<String, Object?> _clarificationJson({
+  String clarificationId = 'clarify-ui',
+}) {
+  return {
+    'clarificationId': clarificationId,
+    'kind': 'entity_reference',
+    'question': 'Which one do you mean?',
+    'options': [
+      {'choiceId': 'choice-a', 'label': 'QA Prescription Plan'},
+      {'choiceId': 'choice-b', 'label': 'QA Discharge Plan'},
+    ],
+    'expiresAt': '2999-01-01T00:00:00.000Z',
+  };
 }
 
 Future<AgentController> _pumpAgent(
@@ -230,6 +247,9 @@ FilledButton _confirmButton(WidgetTester tester, String key) =>
 
 TextButton _cancelButton(WidgetTester tester, String key) =>
     tester.widget<TextButton>(find.byKey(ValueKey(key)));
+
+OutlinedButton _choiceButton(WidgetTester tester, String key) =>
+    tester.widget<OutlinedButton>(find.byKey(ValueKey(key)));
 
 void main() {
   setUpAll(() async {
@@ -355,6 +375,162 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+    'clarification question and choices render and send one selection',
+    (tester) async {
+      final client = _UiFakeClient([
+        _response(
+          reply: 'Which one do you mean?',
+          clarification: _clarificationJson(),
+        ),
+        _response(reply: 'Opening QA Prescription Plan.'),
+      ]);
+      final controller = await _pumpAgent(tester, client: client);
+
+      await _sendFromComposer(tester, controller, client, 'us wala dikhao');
+
+      expect(find.text('Which one do you mean?'), findsNWidgets(2));
+      expect(find.text('QA Prescription Plan'), findsOneWidget);
+      expect(find.text('QA Discharge Plan'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('agent_clarification_card_agent_msg_2_clarify-ui'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'agent_clarification_choice_agent_msg_2_clarify-ui_choice-a',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(client.requests.last.toJson(), {
+        'sessionId': 's-ui',
+        'message': 'us wala dikhao',
+        'clarification': {
+          'clarificationId': 'clarify-ui',
+          'choiceId': 'choice-a',
+        },
+      });
+      expect(controller.pendingClarification, isNull);
+      expect(
+        _choiceButton(
+          tester,
+          'agent_clarification_choice_agent_msg_2_clarify-ui_choice-a',
+        ).onPressed,
+        isNull,
+      );
+    },
+  );
+
+  testWidgets('clarification double tap cannot send twice', (tester) async {
+    final selectionCompleter = Completer<AgentResponse>();
+    final client = _UiFakeClient([
+      _response(
+        reply: 'Which one do you mean?',
+        clarification: _clarificationJson(),
+      ),
+      selectionCompleter,
+    ]);
+    final controller = await _pumpAgent(tester, client: client);
+
+    await _sendFromComposer(tester, controller, client, 'us wala dikhao');
+    final choiceFinder = find.byKey(
+      const ValueKey(
+        'agent_clarification_choice_agent_msg_2_clarify-ui_choice-a',
+      ),
+    );
+
+    await tester.tap(choiceFinder);
+    await tester.tap(choiceFinder);
+    await tester.pump();
+
+    expect(controller.clarificationLoading, isTrue);
+    expect(client.requests, hasLength(2));
+    expect(
+      _choiceButton(
+        tester,
+        'agent_clarification_choice_agent_msg_2_clarify-ui_choice-a',
+      ).onPressed,
+      isNull,
+    );
+
+    selectionCompleter.complete(_response(reply: 'Opening selected plan.'));
+    await tester.pumpAndSettle();
+
+    expect(client.requests, hasLength(2));
+    expect(controller.clarificationLoading, isFalse);
+  });
+
+  testWidgets('normal composer remains usable and retires old clarification', (
+    tester,
+  ) async {
+    final client = _UiFakeClient([
+      _response(
+        reply: 'Which one do you mean?',
+        clarification: _clarificationJson(),
+      ),
+      _response(reply: 'Here are your care plans.'),
+    ]);
+    final controller = await _pumpAgent(tester, client: client);
+
+    await _sendFromComposer(tester, controller, client, 'us wala dikhao');
+    expect(controller.pendingClarification?.clarificationId, 'clarify-ui');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('agent_composer')))
+          .enabled,
+      isTrue,
+    );
+
+    await _sendFromComposer(tester, controller, client, 'show all care plans');
+
+    expect(controller.pendingClarification, isNull);
+    expect(
+      _choiceButton(
+        tester,
+        'agent_clarification_choice_agent_msg_2_clarify-ui_choice-a',
+      ).onPressed,
+      isNull,
+    );
+    expect(client.requests, hasLength(2));
+  });
+
+  testWidgets('voice ambiguity renders choices and does not auto-select', (
+    tester,
+  ) async {
+    final voice = _FakeVoiceService(
+      transcripts: [const AgentVoiceTranscript(text: 'us wala dikhao')],
+    );
+    final client = _UiFakeClient([
+      _response(
+        reply: 'Aap kis wale ki baat kar rahe hain?',
+        language: 'roman_ur',
+        clarification: _clarificationJson(),
+      ),
+    ]);
+    final controller = await _pumpAgent(
+      tester,
+      client: client,
+      voiceService: voice,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('agent_mic_button')));
+    await tester.pumpAndSettle();
+
+    expect(client.requests, hasLength(1));
+    expect(client.requests.single.message, 'us wala dikhao');
+    expect(controller.pendingClarification?.clarificationId, 'clarify-ui');
+    expect(find.text('QA Prescription Plan'), findsOneWidget);
+    expect(voice.spoken, ['Aap kis wale ki baat kar rahe hain?']);
   });
 
   testWidgets('voice response speech follows Agent reply language', (

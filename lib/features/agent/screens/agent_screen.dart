@@ -10,6 +10,7 @@ import '../../../widgets/ui.dart';
 import '../agent_entry.dart';
 import '../controllers/agent_controller.dart';
 import '../models/agent_message.dart';
+import '../models/agent_response.dart';
 import '../navigation/agent_navigation_handler.dart';
 import '../services/agent_service.dart';
 import '../services/agent_voice_service.dart';
@@ -112,7 +113,8 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
     final text = (override ?? _composer.text).trim();
     if (text.isEmpty ||
         _controller.loading ||
-        _controller.confirmationLoading) {
+        _controller.confirmationLoading ||
+        _controller.clarificationLoading) {
       return;
     }
     _composer.clear();
@@ -135,7 +137,10 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
       await _completeVoiceCapture();
       return;
     }
-    if (_voiceBusy || _controller.loading || _controller.confirmationLoading) {
+    if (_voiceBusy ||
+        _controller.loading ||
+        _controller.confirmationLoading ||
+        _controller.clarificationLoading) {
       return;
     }
 
@@ -249,6 +254,7 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
                   loading:
                       _controller.loading ||
                       _controller.confirmationLoading ||
+                      _controller.clarificationLoading ||
                       !_controller.initialized,
                   voiceState: _voiceState,
                   voiceBusy: _voiceBusy,
@@ -266,12 +272,23 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
     final messages = _controller.messages;
     final pendingConfirmationId =
         _controller.pendingConfirmation?.confirmationId;
+    final pendingClarificationId =
+        _controller.pendingClarification?.clarificationId;
     String? latestActiveConfirmationMessageId;
+    String? latestActiveClarificationMessageId;
     if (pendingConfirmationId != null) {
       for (final message in messages) {
         if (message.author == AgentMessageAuthor.assistant &&
             message.confirmation?.confirmationId == pendingConfirmationId) {
           latestActiveConfirmationMessageId = message.id;
+        }
+      }
+    }
+    if (pendingClarificationId != null) {
+      for (final message in messages) {
+        if (message.author == AgentMessageAuthor.assistant &&
+            message.clarification?.clarificationId == pendingClarificationId) {
+          latestActiveClarificationMessageId = message.id;
         }
       }
     }
@@ -293,10 +310,14 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
             message: message,
             navigationHandler: widget.navigationHandler,
             confirmationLoading: _controller.confirmationLoading,
+            clarificationLoading: _controller.clarificationLoading,
             currentConfirmationId: pendingConfirmationId,
+            currentClarificationId: pendingClarificationId,
             activeConfirmationMessageId: latestActiveConfirmationMessageId,
+            activeClarificationMessageId: latestActiveClarificationMessageId,
             onConfirm: _controller.confirmPendingAction,
             onCancel: _controller.cancelPendingAction,
+            onChooseClarification: _controller.chooseClarificationOption,
           ),
         ),
         if (_controller.loading || _controller.initializing)
@@ -453,19 +474,28 @@ class _MessageBubble extends StatelessWidget {
     required this.message,
     required this.navigationHandler,
     required this.confirmationLoading,
+    required this.clarificationLoading,
     required this.currentConfirmationId,
+    required this.currentClarificationId,
     required this.activeConfirmationMessageId,
+    required this.activeClarificationMessageId,
     required this.onConfirm,
     required this.onCancel,
+    required this.onChooseClarification,
   });
 
   final AgentChatMessage message;
   final AgentNavigationHandler navigationHandler;
   final bool confirmationLoading;
+  final bool clarificationLoading;
   final String? currentConfirmationId;
+  final String? currentClarificationId;
   final String? activeConfirmationMessageId;
+  final String? activeClarificationMessageId;
   final ValueChanged<String> onConfirm;
   final ValueChanged<String> onCancel;
+  final void Function(String clarificationId, String choiceId)
+  onChooseClarification;
 
   @override
   Widget build(BuildContext context) {
@@ -527,6 +557,19 @@ class _MessageBubble extends StatelessWidget {
                 label: Text(context.tr('open')),
               ),
             ],
+            if (!isUser && message.clarification != null) ...[
+              const SizedBox(height: 10),
+              _ClarificationCard(
+                messageId: message.id,
+                clarification: message.clarification!,
+                active:
+                    message.clarification!.clarificationId ==
+                        currentClarificationId &&
+                    message.id == activeClarificationMessageId,
+                loading: clarificationLoading,
+                onChoose: onChooseClarification,
+              ),
+            ],
             if (!isUser && message.confirmation != null) ...[
               const SizedBox(height: 10),
               _ConfirmationCard(
@@ -545,6 +588,74 @@ class _MessageBubble extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ClarificationCard extends StatelessWidget {
+  const _ClarificationCard({
+    required this.messageId,
+    required this.clarification,
+    required this.active,
+    required this.loading,
+    required this.onChoose,
+  });
+
+  final String messageId;
+  final AgentClarification clarification;
+  final bool active;
+  final bool loading;
+  final void Function(String clarificationId, String choiceId) onChoose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: ValueKey(
+        'agent_clarification_card_${messageId}_${clarification.clarificationId}',
+      ),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            clarification.question,
+            style: const TextStyle(fontWeight: FontWeight.w700, height: 1.35),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final option in clarification.options)
+                OutlinedButton.icon(
+                  key: ValueKey(
+                    'agent_clarification_choice_${messageId}_${clarification.clarificationId}_${option.choiceId}',
+                  ),
+                  onPressed: active && !loading
+                      ? () => onChoose(
+                          clarification.clarificationId,
+                          option.choiceId,
+                        )
+                      : null,
+                  icon: loading
+                      ? const SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check_circle_outline, size: 17),
+                  label: Text(option.label),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
