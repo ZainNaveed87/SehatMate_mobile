@@ -103,6 +103,27 @@ String? _mapTextValue(Map value, String key) {
   return text;
 }
 
+/// Converts backend/AI navigation intents into a small, safe allowlist.
+///
+/// The backend/context classifier may decide which workflow best matches an
+/// issue, but Flutter never executes arbitrary route strings. Legacy action
+/// names are kept as aliases so existing care plans continue to work.
+String canonicalSimulationNavigationAction(String? rawAction) {
+  final action = rawAction?.trim().toLowerCase() ?? '';
+  return switch (action) {
+    'schedule' || 'review_schedule' => 'review_schedule',
+    'recheck_reality' || 'keep_at_risk' || 'reality_check' => 'reality_check',
+    'review_verified_instruction' ||
+    'review_instruction' => 'review_instruction',
+    'documents' => 'documents',
+    'family_care' => 'family_care',
+    'calendar' => 'calendar',
+    'care_plan' => 'care_plan',
+    'no_change' || '' => 'no_change',
+    _ => 'care_plan',
+  };
+}
+
 class _SimulationViewState extends State<SimulationView> {
   CareSimulationData? data;
   String? error;
@@ -796,17 +817,10 @@ class _SimulationViewState extends State<SimulationView> {
       background = AppColors.infoSoft;
     }
 
-    final String action;
-
-    if (requiresInstructionReview ||
-        nextAction == 'review_verified_instruction') {
-      action = 'review_instruction';
-    } else if (nextAction == 'recheck_reality' ||
-        nextAction == 'keep_at_risk') {
-      action = 'reality_check';
-    } else {
-      action = '';
-    }
+    final resolvedAction = requiresInstructionReview
+        ? 'review_instruction'
+        : canonicalSimulationNavigationAction(nextAction);
+    final action = resolvedAction == 'no_change' ? '' : resolvedAction;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1329,34 +1343,44 @@ class _SimulationViewState extends State<SimulationView> {
     return '$hour12:${minute.toString().padLeft(2, '0')} $suffix';
   }
 
-  String _findingActionLabel(String action) => switch (action) {
-    'schedule' || 'review_schedule' => context.tr('sim_action_review_schedule'),
+  String _findingActionLabel(String action) =>
+      switch (canonicalSimulationNavigationAction(action)) {
+        'review_schedule' => context.tr('sim_action_review_schedule'),
+        'family_care' => context.tr('sim_action_open_family_care'),
+        'calendar' => context.tr('sim_action_open_calendar'),
+        'care_plan' => context.tr('sim_action_review_care_plan'),
+        'reality_check' => context.tr('sim_action_recheck_fit'),
+        'review_instruction' => context.tr('sim_action_review_instruction'),
+        'documents' => context.tr('documents'),
+        _ => context.tr('sim_action_review_care_plan'),
+      };
 
-    'family_care' => context.tr('sim_action_open_family_care'),
+  Map? _findingActionTarget(Map? finding) {
+    if (finding == null) return null;
+    final direct = finding['target'];
+    if (direct is Map) return direct;
+    final action = finding['action'];
+    if (action is Map && action['target'] is Map) {
+      return action['target'] as Map;
+    }
+    return null;
+  }
 
-    'calendar' => context.tr('sim_action_open_calendar'),
-
-    'care_plan' => context.tr('sim_action_review_care_plan'),
-
-    'reality_check' => context.tr('sim_action_recheck_fit'),
-
-    'review_instruction' => context.tr('sim_action_review_instruction'),
-
-    'documents' => context.tr('documents'),
-
-    _ => context.tr('sim_action_review_care_plan'),
-  };
+  int? _safeCarePlanTab(Map? finding) {
+    final target = _findingActionTarget(finding);
+    final raw = target?['care_plan_tab'] ?? target?['carePlanTab'];
+    final parsed = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+    if (parsed == null || parsed < 0 || parsed > 4) return null;
+    return parsed;
+  }
 
   void _openFindingAction(String action, {Map? finding}) {
     final planId = widget.planId;
+    final resolvedAction = canonicalSimulationNavigationAction(action);
 
-    switch (action) {
-      case 'schedule':
+    switch (resolvedAction) {
       case 'review_schedule':
-        if (planId == null) {
-          return;
-        }
-
+        if (planId == null) return;
         Navigator.pushNamed(
           context,
           AppRoutes.carePlan(planId),
@@ -1365,12 +1389,10 @@ class _SimulationViewState extends State<SimulationView> {
             returnToPrevious: true,
           ),
         );
-
         return;
 
       case 'family_care':
         Navigator.pushNamed(context, AppRoutes.family);
-
         return;
 
       case 'calendar':
@@ -1384,39 +1406,23 @@ class _SimulationViewState extends State<SimulationView> {
                   data?.tasks ?? const <DemoTask>[],
                 ),
         );
-
         return;
 
-      case 'care_plan':
-        if (planId != null) {
-          Navigator.pushNamed(context, AppRoutes.carePlan(planId));
-        }
-
-        return;
-
-      // NEW
       case 'reality_check':
         _openRealityCheck();
         return;
 
       case 'review_instruction':
-        if (planId == null) {
-          return;
-        }
-
+        if (planId == null) return;
         Navigator.pushNamed(
           context,
           AppRoutes.carePlanReview,
           arguments: CarePlanReviewArgs(planId: planId, returnToPrevious: true),
         );
-
         return;
 
       case 'documents':
-        if (planId == null) {
-          return;
-        }
-
+        if (planId == null) return;
         Navigator.pushNamed(
           context,
           AppRoutes.carePlan(planId),
@@ -1425,10 +1431,30 @@ class _SimulationViewState extends State<SimulationView> {
             returnToPrevious: true,
           ),
         );
+        return;
 
+      case 'care_plan':
+        if (planId == null) return;
+        final targetTab = _safeCarePlanTab(finding);
+        Navigator.pushNamed(
+          context,
+          AppRoutes.carePlan(planId),
+          arguments: targetTab == null
+              ? null
+              : CarePlanDetailArgs(
+                  initialTab: targetTab,
+                  returnToPrevious: true,
+                ),
+        );
+        return;
+
+      case 'no_change':
         return;
 
       default:
+        // canonicalSimulationNavigationAction already fails closed to the
+        // current care plan, so arbitrary AI/backend route strings are never
+        // executed directly.
         _openCarePlan();
     }
   }
@@ -1569,6 +1595,10 @@ class _SimulationViewState extends State<SimulationView> {
         _findingValue(blocker, const ['recommendation', 'next_step', 'fix']) ??
         context.tr('sim_blocker_default_fix');
     final action = _findingValue(blocker, const ['action']) ?? 'care_plan';
+    final actionLabel = _findingValue(blocker, const [
+      'actionLabel',
+      'action_label',
+    ]);
 
     return _issueBox(
       icon: Icons.block_outlined,
@@ -1578,7 +1608,7 @@ class _SimulationViewState extends State<SimulationView> {
       fix: fix,
       foreground: AppColors.criticalForeground,
       background: AppColors.criticalSoft,
-      actionLabel: _findingActionLabel(action),
+      actionLabel: actionLabel ?? _findingActionLabel(action),
       onAction: () => _openFindingAction(action, finding: blocker),
     );
   }
