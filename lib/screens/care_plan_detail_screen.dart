@@ -60,7 +60,9 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   CareTaskDaySummary? _todaySummary;
   final Set<String> _outcomeSavingIds = {};
   bool _lifecycleSaving = false;
-
+  DateTime? _planEndDate;
+  bool _savingPlanDuration = false;
+  final Set<String> _medicineDurationSavingKeys = <String>{};
   @override
   void initState() {
     super.initState();
@@ -114,6 +116,13 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         _detail = detail;
         _todayOccurrences = occurrences;
         _todaySummary = daySummary;
+
+        final plannedEndDate = detail.plan.plannedEndDate.trim();
+
+        _planEndDate = plannedEndDate.isEmpty
+            ? null
+            : DateTime.tryParse(plannedEndDate);
+
         _loading = false;
       });
     } on CarePlanException catch (error) {
@@ -499,6 +508,717 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     }
   }
 
+  String _dateKey(DateTime value) {
+    return '${value.year.toString().padLeft(4, '0')}-'
+        '${value.month.toString().padLeft(2, '0')}-'
+        '${value.day.toString().padLeft(2, '0')}';
+  }
+
+  String _displayPlanEndDate(DateTime value) {
+    return MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(DateUtils.dateOnly(value));
+  }
+
+  Future<void> _pickPlanEndDate() async {
+    final today = DateUtils.dateOnly(DateTime.now());
+
+    final initial =
+        _planEndDate == null ||
+            DateUtils.dateOnly(_planEndDate!).isBefore(today)
+        ? today
+        : DateUtils.dateOnly(_planEndDate!);
+
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 3650)),
+    );
+
+    if (selected == null || !mounted) return;
+
+    setState(() {
+      _planEndDate = DateUtils.dateOnly(selected);
+    });
+  }
+
+  Future<void> _savePlanEndDate() async {
+    if (_planEndDate == null) {
+      await _pickPlanEndDate();
+
+      if (_planEndDate == null || !mounted) {
+        return;
+      }
+    }
+
+    setState(() {
+      _savingPlanDuration = true;
+      _scheduleSaveState = 'Saving…';
+    });
+
+    try {
+      await CarePlanService.instance.savePlanDuration(
+        widget.planId,
+        mode: 'custom',
+        endDate: _dateKey(_planEndDate!),
+      );
+
+      await _loadPlan();
+
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleSaveState = 'Saved';
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Care plan end date saved.')));
+    } on CarePlanException catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleSaveState = 'Retry needed';
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _savingPlanDuration = false;
+        });
+      }
+    }
+  }
+
+  Widget _planEndDateCard(DemoPlan plan) {
+    final selectedDate = _planEndDate;
+
+    final suggestedDate = DateTime.tryParse(plan.suggestedEndDate);
+
+    return AppCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.event_outlined, color: AppColors.primary),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Care plan end date',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Choose how long this care plan should remain active. '
+                      'Medicine durations are set separately below.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(AppRadii.xl),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Selected end date',
+                        style: TextStyle(fontSize: 12, color: AppColors.muted),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        selectedDate == null
+                            ? 'Not selected'
+                            : _displayPlanEndDate(selectedDate),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _savingPlanDuration ? null : _pickPlanEndDate,
+                  icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                  label: const Text('Choose date'),
+                ),
+              ],
+            ),
+          ),
+          if (suggestedDate != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Suggested plan end: '
+              '${_displayPlanEndDate(suggestedDate)}',
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+          ],
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: _savingPlanDuration || selectedDate == null
+                ? null
+                : _savePlanEndDate,
+            icon: _savingPlanDuration
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined, size: 18),
+            label: Text(_savingPlanDuration ? 'Saving…' : 'Save end date'),
+          ),
+          const SizedBox(height: 10),
+          const SafetyNote(
+            text:
+                'The care-plan end date does not automatically extend a medicine that has a verified fixed duration.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Map<String, List<DemoTask>> _medicineScheduleGroups(
+    CarePlanDetailData detail,
+  ) {
+    final groups = <String, List<DemoTask>>{};
+
+    for (final task in detail.tasks) {
+      final meta = detail.metaForTask(task.id);
+
+      final isMedicine = meta?.isMedicine ?? task.kind == TaskKind.medicine;
+
+      if (!isMedicine) continue;
+
+      final key = meta?.medicineGroupKey ?? task.id;
+
+      groups.putIfAbsent(key, () => <DemoTask>[]).add(task);
+    }
+
+    return groups;
+  }
+
+  ScheduleTaskMeta? _medicineMetaForGroup(
+    CarePlanDetailData detail,
+    List<DemoTask> tasks,
+  ) {
+    ScheduleTaskMeta? fallback;
+
+    for (final task in tasks) {
+      final meta = detail.metaForTask(task.id);
+
+      if (meta == null) continue;
+
+      fallback ??= meta;
+
+      if (meta.verifiedDuration) {
+        return meta;
+      }
+    }
+
+    for (final task in tasks) {
+      final meta = detail.metaForTask(task.id);
+
+      if (meta == null) continue;
+
+      if (meta.userDuration || meta.followsPlanEnd) {
+        return meta;
+      }
+    }
+
+    return fallback;
+  }
+
+  bool _medicineGroupDurationResolved(
+    CarePlanDetailData detail,
+    List<DemoTask> tasks,
+  ) {
+    if (tasks.isEmpty) return true;
+
+    return tasks.every((task) {
+      final meta = detail.metaForTask(task.id);
+
+      if (meta == null) {
+        return false;
+      }
+
+      if (meta.followsPlanEnd) {
+        return detail.plan.plannedEndDate.trim().isNotEmpty;
+      }
+
+      return meta.durationResolved;
+    });
+  }
+
+  bool _hasUnresolvedMedicineDurations(CarePlanDetailData detail) {
+    if (AuthSession.instance.isGuest) {
+      return false;
+    }
+
+    final groups = _medicineScheduleGroups(detail);
+
+    return groups.values.any(
+      (tasks) => !_medicineGroupDurationResolved(detail, tasks),
+    );
+  }
+
+  String _medicineDurationKey(DemoTask task, ScheduleTaskMeta? meta) {
+    return meta?.medicineGroupKey ?? task.id;
+  }
+
+  String _medicineDurationLabel(ScheduleTaskMeta? meta, bool resolved) {
+    if (!resolved || meta == null) {
+      return 'Duration not set';
+    }
+
+    if (meta.verifiedDuration) {
+      final days = meta.durationDays!;
+
+      return '$days ${days == 1 ? 'day' : 'days'} · Verified instruction';
+    }
+
+    if (meta.userDuration) {
+      final days = meta.durationDays!;
+
+      return '$days ${days == 1 ? 'day' : 'days'} · User provided';
+    }
+
+    if (meta.followsPlanEnd) {
+      return 'Until care-plan end date · User provided';
+    }
+
+    return 'Duration not set';
+  }
+
+  Future<void> _setMedicineCustomDuration(
+    DemoTask task,
+    ScheduleTaskMeta? meta,
+  ) async {
+    final controller = TextEditingController(
+      text: meta?.userDuration == true ? meta!.durationDays.toString() : '',
+    );
+
+    String? validationMessage;
+
+    final selectedDays = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Set duration for ${task.title}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Enter the number of days you were told to use this medicine.',
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Number of days',
+                  hintText: 'Example: 5',
+                  errorText: validationMessage,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const SafetyNote(
+                text:
+                    'This is recorded as user-provided information. It does not change the verified prescription.',
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final days = int.tryParse(controller.text.trim());
+
+                if (days == null || days < 1 || days > 3650) {
+                  setDialogState(() {
+                    validationMessage = 'Enter a value from 1 to 3650 days.';
+                  });
+                  return;
+                }
+
+                Navigator.pop(dialogContext, days);
+              },
+              child: const Text('Save duration'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    controller.dispose();
+
+    if (selectedDays == null || !mounted) {
+      return;
+    }
+
+    final key = _medicineDurationKey(task, meta);
+
+    if (_medicineDurationSavingKeys.contains(key)) {
+      return;
+    }
+
+    setState(() {
+      _medicineDurationSavingKeys.add(key);
+      _scheduleSaveState = 'Saving…';
+    });
+
+    try {
+      await CarePlanService.instance.saveMedicineDuration(
+        task.id,
+        mode: 'days',
+        durationDays: selectedDays,
+      );
+
+      await _loadPlan();
+
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleSaveState = 'Saved';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Duration saved for ${task.title}.')),
+      );
+    } on CarePlanException catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleSaveState = 'Retry needed';
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _medicineDurationSavingKeys.remove(key);
+        });
+      }
+    }
+  }
+
+  Future<void> _setMedicineUntilPlanEnd(
+    DemoTask task,
+    ScheduleTaskMeta? meta,
+  ) async {
+    final detail = _detail;
+
+    if (detail == null || detail.plan.plannedEndDate.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Save the care-plan end date first.')),
+      );
+      return;
+    }
+
+    final key = _medicineDurationKey(task, meta);
+
+    if (_medicineDurationSavingKeys.contains(key)) {
+      return;
+    }
+
+    setState(() {
+      _medicineDurationSavingKeys.add(key);
+      _scheduleSaveState = 'Saving…';
+    });
+
+    try {
+      await CarePlanService.instance.saveMedicineDuration(
+        task.id,
+        mode: 'plan_end',
+      );
+
+      await _loadPlan();
+
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleSaveState = 'Saved';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${task.title} will follow the care-plan end date.'),
+        ),
+      );
+    } on CarePlanException catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleSaveState = 'Retry needed';
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _medicineDurationSavingKeys.remove(key);
+        });
+      }
+    }
+  }
+
+  Widget _medicineDurationCard(
+    CarePlanDetailData detail,
+    List<DemoTask> tasks,
+  ) {
+    final task = tasks.first;
+
+    final meta = _medicineMetaForGroup(detail, tasks);
+
+    final resolved = _medicineGroupDurationResolved(detail, tasks);
+
+    final verified = resolved && meta?.verifiedDuration == true;
+
+    final key = _medicineDurationKey(task, meta);
+
+    final saving = _medicineDurationSavingKeys.contains(key);
+
+    final planEndAvailable = detail.plan.plannedEndDate.trim().isNotEmpty;
+
+    final durationLabel = _medicineDurationLabel(meta, resolved);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.medication_outlined,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      task.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${tasks.length} '
+                      '${tasks.length == 1 ? 'reminder slot' : 'reminder slots'}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: verified
+                  ? AppColors.successSoft
+                  : resolved
+                  ? AppColors.infoSoft
+                  : AppColors.warningSoft,
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  verified
+                      ? Icons.lock_outline
+                      : resolved
+                      ? Icons.check_circle_outline
+                      : Icons.warning_amber_rounded,
+                  size: 18,
+                  color: verified
+                      ? AppColors.successForeground
+                      : resolved
+                      ? AppColors.infoForeground
+                      : AppColors.warningForeground,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    durationLabel,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: verified
+                          ? AppColors.successForeground
+                          : resolved
+                          ? AppColors.infoForeground
+                          : AppColors.warningForeground,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (verified) ...[
+            const SizedBox(height: 10),
+            const Text(
+              'This duration comes from the verified instruction and cannot be extended here.',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: AppColors.muted,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: saving
+                      ? null
+                      : () => _setMedicineCustomDuration(task, meta),
+                  icon: saving
+                      ? const SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.edit_calendar_outlined, size: 17),
+                  label: Text(
+                    meta?.userDuration == true ? 'Change days' : 'Custom days',
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: saving || !planEndAvailable
+                      ? null
+                      : () => _setMedicineUntilPlanEnd(task, meta),
+                  icon: const Icon(Icons.event_available_outlined, size: 17),
+                  label: const Text('Until plan end'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _medicineDurationsSection(CarePlanDetailData detail) {
+    final groups = _medicineScheduleGroups(detail);
+
+    if (groups.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return AppCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.medication_liquid_outlined, color: AppColors.primary),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Medicine durations',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Set the duration once for each medicine. '
+                      'It applies to all reminder times for that medicine.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...groups.values.map(
+            (tasks) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _medicineDurationCard(detail, tasks),
+            ),
+          ),
+          const SizedBox(height: 2),
+          const SafetyNote(
+            text:
+                'Choosing a duration does not create a new dosing frequency. Reminder recurrence still follows the verified instruction.',
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _tabContent(CarePlanDetailData detail) {
     switch (tab) {
       case 0:
@@ -566,9 +1286,19 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             ),
           );
         }
+
+        final hasUnresolvedMedicineDurations = _hasUnresolvedMedicineDurations(
+          detail,
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _planEndDateCard(detail.plan),
+            const SizedBox(height: 22),
+            if (!AuthSession.instance.isGuest) ...[
+              _medicineDurationsSection(detail),
+              const SizedBox(height: 22),
+            ],
             if (detail.plan.status == PlanStatus.active ||
                 detail.plan.status == PlanStatus.completed) ...[
               _todayTaskOutcomesSection(detail.plan),
@@ -612,7 +1342,8 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   detail.tasks.any(
                         (task) => task.status == TaskStatus.atRisk,
                       ) ||
-                      _unsavedPeriodChanges.isNotEmpty
+                      _unsavedPeriodChanges.isNotEmpty ||
+                      hasUnresolvedMedicineDurations
                   ? null
                   : _continueFromSchedule,
               icon: Icon(
@@ -620,8 +1351,12 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                 size: 18,
               ),
               label: Text(
-                detail.tasks.any((task) => task.status == TaskStatus.atRisk) ||
-                        _unsavedPeriodChanges.isNotEmpty
+                hasUnresolvedMedicineDurations
+                    ? 'Set medicine durations first'
+                    : detail.tasks.any(
+                            (task) => task.status == TaskStatus.atRisk,
+                          ) ||
+                          _unsavedPeriodChanges.isNotEmpty
                     ? context.tr('confirm_schedule_items_first')
                     : widget.returnToPrevious
                     ? context.tr('done')

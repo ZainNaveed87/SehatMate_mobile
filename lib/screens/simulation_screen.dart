@@ -108,10 +108,6 @@ class _SimulationViewState extends State<SimulationView> {
   String? error;
   bool loading = true;
   bool activating = false;
-  DemoPlan? plan;
-  String durationMode = 'prescription';
-  DateTime? endDate;
-  bool savingDuration = false;
   bool adaptingPlan = false;
   CareGapListData? careGaps;
   final Set<String> applyingSuggestionIds = <String>{};
@@ -138,9 +134,7 @@ class _SimulationViewState extends State<SimulationView> {
       final result = await CarePlanService.instance.fetchSimulation(
         widget.planId!,
       );
-      final detail = await CarePlanService.instance.fetchPlanDetail(
-        widget.planId!,
-      );
+
       final gapResult = widget.guidedSetup
           ? await CarePlanService.instance.fetchCareGaps(widget.planId!)
           : null;
@@ -152,12 +146,7 @@ class _SimulationViewState extends State<SimulationView> {
           data = result;
           careGaps = gapResult;
           setupProgress = progress;
-          plan = detail.plan;
-          durationMode = detail.plan.durationMode;
-          endDate =
-              DateTime.tryParse(detail.plan.plannedEndDate) ??
-              DateTime.tryParse(detail.plan.suggestedEndDate) ??
-              DateTime.now().add(const Duration(days: 7));
+
           loading = false;
         });
       }
@@ -664,8 +653,6 @@ class _SimulationViewState extends State<SimulationView> {
         ],
         if (!widget.guidedSetup ||
             setupProgress?.step == CareSetupStep.activate) ...[
-          const SizedBox(height: 16),
-          _durationCard(),
           const SizedBox(height: 16),
           AppCard(
             padding: const EdgeInsets.all(20),
@@ -1723,170 +1710,13 @@ class _SimulationViewState extends State<SimulationView> {
 
   bool _canActivate(CareSimulationData value) => value.activationAllowed;
 
-  String _displayPlanDate(String value) {
-    final parsed = DateTime.tryParse(value);
-
-    if (parsed == null) {
-      return value;
-    }
-
-    final dateOnly = DateTime(parsed.year, parsed.month, parsed.day);
-
-    return MaterialLocalizations.of(context).formatMediumDate(dateOnly);
-  }
-
-  Widget _durationCard() => AppCard(
-    padding: const EdgeInsets.all(20),
-    child: RadioGroup<String>(
-      groupValue: durationMode,
-      onChanged: (value) {
-        if (value == null) return;
-        setState(() => durationMode = value);
-        if (value == 'custom') {
-          _pickEndDate();
-        }
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            context.tr('sim_duration_title'),
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            context.tr('sim_duration_note'),
-            style: const TextStyle(color: AppColors.muted),
-          ),
-          const SizedBox(height: 12),
-          RadioListTile<String>(
-            contentPadding: EdgeInsets.zero,
-            value: 'prescription',
-            title: Text(context.tr('sim_duration_prescription')),
-            subtitle: Text(
-              plan?.suggestedEndDate.isNotEmpty == true
-                  ? context.tr(
-                      'sim_duration_suggested_end',
-                      values: {
-                        'date': _displayPlanDate(plan!.suggestedEndDate),
-                      },
-                    )
-                  : context.tr('sim_duration_prescription_hint'),
-            ),
-          ),
-          RadioListTile<String>(
-            contentPadding: EdgeInsets.zero,
-            value: 'custom',
-            title: Text(context.tr('sim_duration_choose_end')),
-            subtitle: Text(
-              endDate == null
-                  ? context.tr('sim_duration_no_date')
-                  : '${endDate!.year}-${endDate!.month.toString().padLeft(2, '0')}-${endDate!.day.toString().padLeft(2, '0')}',
-            ),
-          ),
-          if (durationMode == 'custom') ...[
-            Padding(
-              padding: const EdgeInsets.only(left: 40, bottom: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: _pickEndDate,
-                  icon: const Icon(Icons.calendar_month_outlined, size: 18),
-                  label: Text(context.tr('sim_duration_choose_end')),
-                ),
-              ),
-            ),
-          ],
-          RadioListTile<String>(
-            contentPadding: EdgeInsets.zero,
-            value: 'ongoing',
-            title: Text(context.tr('sim_duration_ongoing')),
-            subtitle: Text(context.tr('sim_duration_ongoing_hint')),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: savingDuration ? null : _saveDuration,
-            icon: savingDuration
-                ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.event_available_outlined),
-            label: Text(context.tr('sim_duration_save')),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Future<void> _pickEndDate() async {
-    final today = DateUtils.dateOnly(DateTime.now());
-
-    final currentEndDate = endDate == null
-        ? today.add(const Duration(days: 7))
-        : DateUtils.dateOnly(endDate!);
-
-    final initialDate = currentEndDate.isBefore(today) ? today : currentEndDate;
-
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: today,
-      lastDate: today.add(const Duration(days: 3650)),
-    );
-
-    if (selected != null && mounted) {
-      setState(() {
-        durationMode = 'custom';
-        endDate = DateUtils.dateOnly(selected);
-      });
-    }
-  }
-
-  String? get _endDateText => durationMode == 'ongoing'
-      ? null
-      : endDate == null
-      ? null
-      : '${endDate!.year}-${endDate!.month.toString().padLeft(2, '0')}-${endDate!.day.toString().padLeft(2, '0')}';
-
-  Future<void> _saveDuration() async {
-    if (durationMode != 'ongoing' && endDate == null) {
-      await _pickEndDate();
-      if (endDate == null) return;
-    }
-    setState(() => savingDuration = true);
-    try {
-      await CarePlanService.instance.savePlanDuration(
-        widget.planId!,
-        mode: durationMode,
-        endDate: _endDateText,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('sim_duration_saved_snackbar'))),
-        );
-      }
-    } on CarePlanException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.message)));
-      }
-    } finally {
-      if (mounted) setState(() => savingDuration = false);
-    }
-  }
-
   Future<void> _activate() async {
     final planId = widget.planId;
     if (planId == null) return;
+
     setState(() => activating = true);
+
     try {
-      await CarePlanService.instance.savePlanDuration(
-        planId,
-        mode: durationMode,
-        endDate: _endDateText,
-      );
       final detail = await CarePlanService.instance.activatePlan(planId);
       final notificationResult = await NotificationService.instance
           .scheduleNextOccurrences(planId: planId, tasks: detail.tasks);

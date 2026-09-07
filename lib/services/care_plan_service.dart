@@ -641,6 +641,38 @@ class CareTaskAppOutcomeSummary {
       decided == 0 ? 0 : ((completed / decided) * 100).round();
 }
 
+class ScheduleTaskMeta {
+  const ScheduleTaskMeta({
+    required this.taskId,
+    required this.instructionId,
+    required this.taskKind,
+    required this.durationDays,
+    required this.durationSource,
+  });
+
+  final String taskId;
+  final String instructionId;
+  final String taskKind;
+  final int? durationDays;
+  final String durationSource;
+
+  bool get isMedicine => taskKind.trim().toLowerCase() == 'medicine';
+
+  bool get verifiedDuration =>
+      isMedicine && durationSource == 'verified' && durationDays != null;
+
+  bool get userDuration =>
+      isMedicine && durationSource == 'user' && durationDays != null;
+
+  bool get followsPlanEnd => isMedicine && durationSource == 'user_plan_end';
+
+  bool get durationResolved =>
+      !isMedicine || verifiedDuration || userDuration || followsPlanEnd;
+
+  String get medicineGroupKey =>
+      instructionId.trim().isNotEmpty ? instructionId : taskId;
+}
+
 class CarePlanDetailData {
   const CarePlanDetailData({
     required this.plan,
@@ -648,6 +680,7 @@ class CarePlanDetailData {
     required this.tasks,
     required this.gaps,
     required this.documents,
+    this.scheduleMetaByTaskId = const <String, ScheduleTaskMeta>{},
   });
 
   final DemoPlan plan;
@@ -655,6 +688,10 @@ class CarePlanDetailData {
   final List<DemoTask> tasks;
   final List<DemoGap> gaps;
   final List<DemoDocument> documents;
+
+  final Map<String, ScheduleTaskMeta> scheduleMetaByTaskId;
+
+  ScheduleTaskMeta? metaForTask(String taskId) => scheduleMetaByTaskId[taskId];
 }
 
 class CareGapSummaryData {
@@ -1101,6 +1138,22 @@ class CarePlanService {
     );
   }
 
+  Future<void> saveMedicineDuration(
+    String itemId, {
+    required String mode,
+    int? durationDays,
+  }) async {
+    await _request(
+      'PATCH',
+      '/schedule-items/$itemId/duration',
+      body: <String, dynamic>{
+        'mode': mode,
+        if (durationDays != null) 'durationDays': durationDays,
+        'today': _dateKey(_now()),
+      },
+    );
+  }
+
   Future<void> completePlan(String planId) async {
     await _request(
       'PATCH',
@@ -1425,7 +1478,18 @@ class CarePlanService {
           ? data['verifiedInstructions']
           : data['instructions'],
     ).map(_instructionFromJson).toList();
-    final tasks = _listOfMaps(data['tasks']).map(_taskFromJson).toList();
+    final rawTasks = _listOfMaps(data['tasks']);
+    final tasks = rawTasks.map(_taskFromJson).toList();
+
+    final scheduleMetaByTaskId = <String, ScheduleTaskMeta>{};
+
+    for (final item in rawTasks) {
+      final meta = _scheduleTaskMetaFromJson(item);
+
+      if (meta.taskId.isNotEmpty) {
+        scheduleMetaByTaskId[meta.taskId] = meta;
+      }
+    }
     final gaps = _listOfMaps(data['gaps']).map(_gapFromJson).toList();
     final documents = _listOfMaps(
       data['documents'],
@@ -1437,6 +1501,7 @@ class CarePlanService {
       tasks: tasks,
       gaps: gaps,
       documents: documents,
+      scheduleMetaByTaskId: scheduleMetaByTaskId,
     );
   }
 
@@ -2172,6 +2237,28 @@ class CarePlanService {
       outcomeSource: _displayText(json['outcomeSource']),
       note: _displayText(json['note']),
       planTitle: _displayText(json['planTitle']),
+    );
+  }
+
+  ScheduleTaskMeta _scheduleTaskMetaFromJson(Map<String, dynamic> json) {
+    final rawDurationDays = json['instruction_duration_days'];
+
+    final parsedDurationDays = rawDurationDays == null
+        ? null
+        : int.tryParse(rawDurationDays.toString());
+
+    final durationDays = parsedDurationDays != null && parsedDurationDays > 0
+        ? parsedDurationDays
+        : null;
+
+    return ScheduleTaskMeta(
+      taskId: _displayText(json['id']),
+      instructionId: _displayText(json['instruction_id']),
+      taskKind: _displayText(json['task_kind']),
+      durationDays: durationDays,
+      durationSource: _displayText(
+        json['instruction_duration_source'],
+      ).toLowerCase(),
     );
   }
 
