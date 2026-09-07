@@ -13,7 +13,6 @@ import '../services/care_plan_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/care_setup_progress.dart';
-import '../widgets/page_header.dart';
 import '../widgets/ui.dart';
 
 enum ReviewState { verified, review, unclear }
@@ -254,6 +253,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
               item.instruction.trim().isNotEmpty,
         )
         .toList();
+
     final visibleGroups = <String>[
       ...groupOrder.where(
         (group) => visibleItems.any((item) => item.group == group),
@@ -263,12 +263,28 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
           .where((group) => !groupOrder.contains(group))
           .toSet(),
     ];
+
     final verified = visibleItems
         .where((item) => item.state == ReviewState.verified)
         .length;
+
     final reviewed = visibleItems
         .where((item) => item.state != ReviewState.review)
         .length;
+
+    final attention = visibleItems
+        .where(
+          (item) =>
+              item.state == ReviewState.unclear ||
+              item.requiresProfessionalConfirmation,
+        )
+        .length;
+
+    final pending = (visibleItems.length - reviewed).clamp(
+      0,
+      visibleItems.length,
+    );
+
     return AppShell(
       currentRoute: AppRoutes.carePlanReview,
       title: context.tr('verify_instructions'),
@@ -276,7 +292,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Align(
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: TextButton.icon(
               onPressed: () {
                 if (widget.returnToPrevious && Navigator.canPop(context)) {
@@ -285,105 +301,747 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
                   Navigator.pushReplacementNamed(context, AppRoutes.carePlans);
                 }
               },
-              icon: const Icon(Icons.arrow_back, size: 17),
+              icon: const Icon(Icons.arrow_back_rounded, size: 17),
               label: Text(context.tr('back')),
             ),
           ),
-          PageHeader(
-            title: context.tr('review_extracted_instructions'),
-            subtitle: context.tr(
-              'review_instructions_progress',
-              values: {
-                'reviewed': reviewed,
-                'total': visibleItems.length,
-                'verified': verified,
-              },
+          const SizedBox(height: 6),
+
+          FadeSlideIn(
+            child: _reviewHero(
+              reviewed: reviewed,
+              total: visibleItems.length,
+              verified: verified,
+              attention: attention,
             ),
           ),
+
           if (widget.guidedSetup && widget.planId != null) ...[
-            GuidedCareSetupProgress(
-              currentStep: 2,
-              planId: widget.planId!,
-              saveState: savingIds.isNotEmpty ? 'Saving…' : 'Saved',
-            ),
             const SizedBox(height: 16),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 50),
+              child: GuidedCareSetupProgress(
+                currentStep: 2,
+                planId: widget.planId!,
+                saveState: savingIds.isNotEmpty ? 'Saving…' : 'Saved',
+              ),
+            ),
           ],
-          _reviewSummary(visibleItems),
-          const SizedBox(height: 28),
-          if (loading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else if (error != null)
-            AppCard(
-              child: Column(
-                children: [
-                  Text(
-                    error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.critical),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: _load,
-                    child: Text(context.tr('retry')),
-                  ),
-                ],
-              ),
-            )
-          else if (visibleItems.isEmpty)
-            AppCard(
-              child: Text(
-                context.tr('no_instructions_extracted_upload_clearer'),
-              ),
-            )
-          else ...[
-            ...visibleGroups.map((group) => _group(group, visibleItems)),
-            SafetyNote(text: context.tr('review_instructions_safety_note')),
-            const SizedBox(height: 24),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: confirmed,
-                    onChanged: (value) =>
-                        setState(() => confirmed = value ?? false),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: Text(
-                      context.tr('reviewed_against_original_document'),
-                      style: const TextStyle(fontSize: 15),
+
+          const SizedBox(height: 18),
+
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 70),
+            child: _reviewMetricGrid(
+              total: visibleItems.length,
+              verified: verified,
+              pending: pending,
+              attention: attention,
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: loading
+                ? Padding(
+                    key: const ValueKey('review-loading'),
+                    padding: const EdgeInsets.only(top: 4),
+                    child: _reviewLoadingSkeleton(),
+                  )
+                : error != null
+                ? FadeSlideIn(
+                    key: const ValueKey('review-error'),
+                    child: _reviewErrorCard(),
+                  )
+                : visibleItems.isEmpty
+                ? FadeSlideIn(
+                    key: const ValueKey('review-empty'),
+                    child: _reviewEmptyState(),
+                  )
+                : Column(
+                    key: ValueKey(
+                      'review-content-${visibleItems.length}-$reviewed',
                     ),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      FadeSlideIn(
+                        delay: const Duration(milliseconds: 90),
+                        child: _reviewSummary(visibleItems),
+                      ),
+                      const SizedBox(height: 24),
+                      ...visibleGroups.asMap().entries.map(
+                        (entry) => FadeSlideIn(
+                          delay: Duration(
+                            milliseconds: 35 * entry.key.clamp(0, 5),
+                          ),
+                          child: _group(entry.value, visibleItems),
+                        ),
+                      ),
+                      FadeSlideIn(
+                        delay: const Duration(milliseconds: 120),
+                        child: SafetyNote(
+                          text: context.tr('review_instructions_safety_note'),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      FadeSlideIn(
+                        delay: const Duration(milliseconds: 140),
+                        child: _finalReviewCard(
+                          reviewed: reviewed,
+                          total: visibleItems.length,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton(
-                      onPressed:
-                          confirmed &&
-                              reviewed == visibleItems.length &&
-                              !continuing
-                          ? _continue
-                          : null,
-                      child: Text(
-                        continuing
-                            ? context.tr('saving')
-                            : widget.returnToPrevious
-                            ? context.tr('save_changes')
-                            : widget.guidedSetup
-                            ? context.tr('continue_to_schedule')
-                            : context.tr('continue'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reviewHero({
+    required int reviewed,
+    required int total,
+    required int verified,
+    required int attention,
+  }) {
+    final progress = total == 0 ? 0.0 : reviewed / total;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 650;
+
+        return Container(
+          padding: EdgeInsets.all(compact ? 20 : 26),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0F766E), Color(0xFF0D9488), Color(0xFF14B8A6)],
+            ),
+            borderRadius: BorderRadius.circular(AppRadii.xxxl),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x260F766E),
+                blurRadius: 32,
+                spreadRadius: -12,
+                offset: Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              PositionedDirectional(
+                top: -72,
+                end: -54,
+                child: Container(
+                  width: 190,
+                  height: 190,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0x16FFFFFF),
+                  ),
+                ),
+              ),
+              PositionedDirectional(
+                bottom: -92,
+                start: -62,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0x0FFFFFFF),
+                  ),
+                ),
+              ),
+              if (compact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _heroCopy(
+                      reviewed: reviewed,
+                      total: total,
+                      verified: verified,
+                      attention: attention,
+                    ),
+                    const SizedBox(height: 18),
+                    _heroProgressPanel(
+                      reviewed: reviewed,
+                      total: total,
+                      progress: progress,
+                      wide: true,
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: _heroCopy(
+                        reviewed: reviewed,
+                        total: total,
+                        verified: verified,
+                        attention: attention,
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    _heroProgressPanel(
+                      reviewed: reviewed,
+                      total: total,
+                      progress: progress,
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _heroCopy({
+    required int reviewed,
+    required int total,
+    required int verified,
+    required int attention,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0x20FFFFFF),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0x30FFFFFF)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.fact_check_outlined, size: 15, color: Colors.white),
+              SizedBox(width: 6),
+              Text(
+                'Instruction verification',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          context.tr('review_extracted_instructions'),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 29,
+            height: 1.08,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -.45,
+          ),
+        ),
+        const SizedBox(height: 9),
+        Text(
+          context.tr(
+            'review_instructions_progress',
+            values: {
+              'reviewed': reviewed,
+              'total': total,
+              'verified': verified,
+            },
+          ),
+          style: const TextStyle(
+            color: Color(0xE6FFFFFF),
+            fontSize: 13,
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _heroChip(
+              icon: Icons.check_circle_outline_rounded,
+              label: '$verified ${context.tr('verified')}',
+            ),
+            if (attention > 0)
+              _heroChip(
+                icon: Icons.warning_amber_rounded,
+                label: '$attention ${context.tr('needs_confirmation')}',
+                warning: true,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _heroChip({
+    required IconData icon,
+    required String label,
+    bool warning = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: warning ? const Color(0x33FFF7ED) : const Color(0x1FFFFFFF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: warning ? const Color(0x50FED7AA) : const Color(0x26FFFFFF),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroProgressPanel({
+    required int reviewed,
+    required int total,
+    required double progress,
+    bool wide = false,
+  }) {
+    final percent = (progress.clamp(0.0, 1.0) * 100).round();
+
+    return Container(
+      width: wide ? double.infinity : 180,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0x1FFFFFFF),
+        borderRadius: BorderRadius.circular(AppRadii.xxl),
+        border: Border.all(color: const Color(0x30FFFFFF)),
+      ),
+      child: wide
+          ? Row(
+              children: [
+                _reviewProgressCircle(percent, progress),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Review progress',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$reviewed of $total instructions reviewed',
+                        style: const TextStyle(
+                          color: Color(0xD5FFFFFF),
+                          fontSize: 11,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                _reviewProgressCircle(percent, progress),
+                const SizedBox(height: 10),
+                const Text(
+                  'Review progress',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$reviewed / $total',
+                  style: const TextStyle(
+                    color: Color(0xD5FFFFFF),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _reviewProgressCircle(int percent, double progress) {
+    return SizedBox(
+      width: 70,
+      height: 70,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: CircularProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              strokeWidth: 6,
+              strokeCap: StrokeCap.round,
+              backgroundColor: const Color(0x2AFFFFFF),
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            '$percent%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reviewMetricGrid({
+    required int total,
+    required int verified,
+    required int pending,
+    required int attention,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 760 ? 4 : 2;
+        const gap = 10.0;
+        final width = (constraints.maxWidth - ((columns - 1) * gap)) / columns;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            _reviewMetric(
+              width: width,
+              value: total,
+              label: context.tr('instructions'),
+              icon: Icons.document_scanner_outlined,
+              background: AppColors.infoSoft,
+              foreground: AppColors.infoForeground,
+            ),
+            _reviewMetric(
+              width: width,
+              value: verified,
+              label: context.tr('verified'),
+              icon: Icons.verified_outlined,
+              background: AppColors.successSoft,
+              foreground: AppColors.successForeground,
+            ),
+            _reviewMetric(
+              width: width,
+              value: pending,
+              label: context.tr('needs_review'),
+              icon: Icons.manage_search_outlined,
+              background: const Color(0xFFF1F5F9),
+              foreground: AppColors.muted,
+            ),
+            _reviewMetric(
+              width: width,
+              value: attention,
+              label: context.tr('needs_confirmation'),
+              icon: Icons.help_outline_rounded,
+              background: AppColors.warningSoft,
+              foreground: AppColors.warningForeground,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _reviewMetric({
+    required double width,
+    required int value,
+    required String label,
+    required IconData icon,
+    required Color background,
+    required Color foreground,
+  }) {
+    return SizedBox(
+      width: width,
+      child: AppCard(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+              ),
+              child: Icon(icon, size: 18, color: foreground),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    child: Text(
+                      '$value',
+                      key: ValueKey('$label-$value'),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        height: 1,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _reviewLoadingSkeleton() {
+    return Column(
+      children: [
+        for (var index = 0; index < 3; index++) ...[
+          AppCard(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _skeleton(width: 44, height: 44, radius: 14),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _skeleton(width: 180, height: 16),
+                      const SizedBox(height: 9),
+                      _skeleton(width: 230, height: 11),
+                      const SizedBox(height: 7),
+                      _skeleton(width: 140, height: 11),
+                      const SizedBox(height: 14),
+                      _skeleton(width: double.infinity, height: 40, radius: 12),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (index != 2) const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+
+  Widget _skeleton({
+    required double width,
+    required double height,
+    double radius = 999,
+  }) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8EEF2),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  Widget _reviewErrorCard() {
+    return AppCard(
+      color: const Color(0xFFFFFBEB),
+      borderColor: const Color(0xFFFDE68A),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.warningSoft,
+              borderRadius: BorderRadius.circular(AppRadii.xl),
+            ),
+            child: const Icon(
+              Icons.cloud_off_outlined,
+              color: AppColors.warningForeground,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            error!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, height: 1.45),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: _load,
+            icon: const Icon(Icons.refresh_rounded, size: 17),
+            label: Text(context.tr('retry')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reviewEmptyState() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 34),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF0FDFA), Color(0xFFF8FAFC)],
+        ),
+        borderRadius: BorderRadius.circular(AppRadii.xxxl),
+        border: Border.all(color: const Color(0xFFCCFBF1)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(AppRadii.xl),
+            ),
+            child: const Icon(
+              Icons.document_scanner_outlined,
+              color: AppColors.primary,
+              size: 27,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            context.tr('no_instructions_extracted_upload_clearer'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 15,
+              color: AppColors.muted,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _finalReviewCard({required int reviewed, required int total}) {
+    final ready = confirmed && reviewed == total && !continuing;
+
+    return AppCard(
+      padding: const EdgeInsets.all(18),
+      color: ready ? const Color(0xFFF0FDFA) : const Color(0xFFFAFCFD),
+      borderColor: ready ? const Color(0xFF99F6E4) : AppColors.border,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: ready ? AppColors.successSoft : AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(AppRadii.xl),
+                ),
+                child: Icon(
+                  ready
+                      ? Icons.verified_user_outlined
+                      : Icons.fact_check_outlined,
+                  color: ready
+                      ? AppColors.successForeground
+                      : AppColors.primary,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  value: confirmed,
+                  onChanged: (value) =>
+                      setState(() => confirmed = value ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(
+                    context.tr('reviewed_against_original_document'),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: ready ? _continue : null,
+              icon: continuing
+                  ? const SizedBox(
+                      width: 17,
+                      height: 17,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(
+                      widget.returnToPrevious
+                          ? Icons.save_outlined
+                          : Icons.arrow_forward_rounded,
+                      size: 18,
+                    ),
+              label: Text(
+                continuing
+                    ? context.tr('saving')
+                    : widget.returnToPrevious
+                    ? context.tr('save_changes')
+                    : widget.guidedSetup
+                    ? context.tr('continue_to_schedule')
+                    : context.tr('continue'),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -393,21 +1051,84 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
     final groupItems = visibleItems
         .where((item) => item.group == group)
         .toList();
-    if (groupItems.isEmpty) return const SizedBox.shrink();
+
+    if (groupItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final verifiedCount = groupItems
+        .where((item) => item.state == ReviewState.verified)
+        .length;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 28),
+      padding: const EdgeInsets.only(bottom: 26),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            _reviewGroupLabel(group),
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: _groupColor(group),
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                ),
+                child: Icon(
+                  _groupIcon(group),
+                  size: 19,
+                  color: _groupForeground(group),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _reviewGroupLabel(group),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$verifiedCount / ${groupItems.length} ${context.tr('verified')}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${groupItems.length}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          ...groupItems.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _instruction(item),
+          ...groupItems.asMap().entries.map(
+            (entry) => FadeSlideIn(
+              delay: Duration(milliseconds: 30 * entry.key.clamp(0, 5)),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _instruction(entry.value),
+              ),
             ),
           ),
         ],
@@ -415,10 +1136,41 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
     );
   }
 
+  IconData _groupIcon(String group) {
+    return switch (group) {
+      'Medicines' => Icons.medication_outlined,
+      'Follow-Ups' => Icons.event_available_outlined,
+      'Lab Tests' => Icons.science_outlined,
+      'Care Tasks' => Icons.checklist_rounded,
+      _ => Icons.notes_outlined,
+    };
+  }
+
+  Color _groupColor(String group) {
+    return switch (group) {
+      'Medicines' => AppColors.primaryLight,
+      'Follow-Ups' => AppColors.infoSoft,
+      'Lab Tests' => const Color(0xFFF3E8FF),
+      'Care Tasks' => AppColors.successSoft,
+      _ => const Color(0xFFF1F5F9),
+    };
+  }
+
+  Color _groupForeground(String group) {
+    return switch (group) {
+      'Medicines' => AppColors.primary,
+      'Follow-Ups' => AppColors.infoForeground,
+      'Lab Tests' => const Color(0xFF7E22CE),
+      'Care Tasks' => AppColors.successForeground,
+      _ => AppColors.muted,
+    };
+  }
+
   Widget _reviewSummary(List<ReviewInstruction> visibleItems) {
     final confirmedCount = visibleItems
         .where((item) => item.state == ReviewState.verified)
         .length;
+
     final attentionCount = visibleItems
         .where(
           (item) =>
@@ -426,69 +1178,91 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
               item.requiresProfessionalConfirmation,
         )
         .length;
+
     final pendingCount = visibleItems.length - confirmedCount - attentionCount;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.secondary,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(AppRadii.xl),
-      ),
-      child: Column(
+
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      color: const Color(0xFFFAFCFD),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            context.tr('review_summary'),
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+            ),
+            child: const Icon(
+              Icons.analytics_outlined,
+              size: 20,
+              color: AppColors.primary,
+            ),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _summaryChip(
-                context.tr(
-                  'instructions_found_count',
-                  values: {'count': visibleItems.length},
-                ),
-                Icons.document_scanner_outlined,
-                AppColors.primary,
-              ),
-              _summaryChip(
-                context.tr(
-                  'instructions_confirmed_count',
-                  values: {'count': confirmedCount},
-                ),
-                Icons.check_circle_outline,
-                AppColors.successForeground,
-              ),
-              if (pendingCount > 0)
-                _summaryChip(
-                  context.tr(
-                    'instructions_to_review_count',
-                    values: {'count': pendingCount},
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  context.tr('review_summary'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                   ),
-                  Icons.manage_search_outlined,
-                  AppColors.muted,
                 ),
-              if (attentionCount > 0)
-                _summaryChip(
-                  context.tr(
-                    'instructions_need_confirmation_count',
-                    values: {'count': attentionCount},
+                const SizedBox(height: 4),
+                Text(
+                  context.tr('review_summary_help'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.muted,
+                    height: 1.4,
                   ),
-                  Icons.help_outline,
-                  AppColors.warningForeground,
                 ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            context.tr('review_summary_help'),
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.muted,
-              height: 1.4,
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _summaryChip(
+                      context.tr(
+                        'instructions_found_count',
+                        values: {'count': visibleItems.length},
+                      ),
+                      Icons.document_scanner_outlined,
+                      AppColors.primary,
+                    ),
+                    _summaryChip(
+                      context.tr(
+                        'instructions_confirmed_count',
+                        values: {'count': confirmedCount},
+                      ),
+                      Icons.check_circle_outline,
+                      AppColors.successForeground,
+                    ),
+                    if (pendingCount > 0)
+                      _summaryChip(
+                        context.tr(
+                          'instructions_to_review_count',
+                          values: {'count': pendingCount},
+                        ),
+                        Icons.manage_search_outlined,
+                        AppColors.muted,
+                      ),
+                    if (attentionCount > 0)
+                      _summaryChip(
+                        context.tr(
+                          'instructions_need_confirmation_count',
+                          values: {'count': attentionCount},
+                        ),
+                        Icons.help_outline,
+                        AppColors.warningForeground,
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -555,7 +1329,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
       ),
       ReviewState.review => (
         AppColors.muted,
-        AppColors.secondary,
+        const Color(0xFFF1F5F9),
         AppColors.border,
         context.tr('needs_review'),
       ),
@@ -566,209 +1340,344 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
         context.tr('unclear'),
       ),
     };
+
     final saving = savingIds.contains(item.id);
     final checking = checkingIds.contains(item.id);
-    return Stack(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(AppRadii.xxl),
-            border: Border.all(color: AppColors.border),
+    final needsAttention =
+        item.state == ReviewState.unclear ||
+        item.requiresProfessionalConfirmation;
+
+    return HoverLift(
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(AppRadii.xxl),
+          border: Border.all(
+            color: needsAttention
+                ? AppColors.warning.withValues(alpha: .24)
+                : item.state == ReviewState.verified
+                ? AppColors.success.withValues(alpha: .18)
+                : AppColors.border,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D0F172A),
+              blurRadius: 18,
+              spreadRadius: -10,
+              offset: Offset(0, 9),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(height: 4, color: border),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: Column(
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final compact = constraints.maxWidth < 520;
+
+                      final heading = Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: background,
+                              borderRadius: BorderRadius.circular(AppRadii.xl),
+                            ),
+                            child: Icon(
+                              item.state == ReviewState.verified
+                                  ? Icons.verified_outlined
+                                  : needsAttention
+                                  ? Icons.help_outline_rounded
+                                  : Icons.manage_search_outlined,
+                              size: 20,
+                              color: foreground,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.title,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    height: 1.25,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  _instructionDetails(item),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.muted,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.description_outlined,
+                                      size: 13,
+                                      color: AppColors.subtle,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Expanded(
+                                      child: Text(
+                                        context.tr(
+                                          'source_label_value',
+                                          values: {
+                                            'source': _sourceDisplay(
+                                              item.source,
+                                            ),
+                                          },
+                                        ),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.subtle,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+
+                      final status = Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: background,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: foreground,
+                          ),
+                        ),
+                      );
+
+                      if (compact) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            heading,
+                            const SizedBox(height: 10),
+                            status,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: heading),
+                          const SizedBox(width: 12),
+                          status,
+                        ],
+                      );
+                    },
+                  ),
+
+                  if (item.isCorrected || item.possibleDuplicate) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 7,
+                      runSpacing: 7,
+                      children: [
+                        if (item.isCorrected)
+                          _metaPill(
+                            Icons.history_outlined,
+                            context.tr('corrected_original_preserved'),
+                            AppColors.primary,
+                          ),
+                        if (item.possibleDuplicate)
+                          _metaPill(
+                            Icons.content_copy_outlined,
+                            context.tr('possible_duplicate_medicine'),
+                            AppColors.warningForeground,
+                          ),
+                      ],
+                    ),
+                  ],
+
+                  const SizedBox(height: 13),
+
+                  Container(
+                    padding: const EdgeInsets.all(11),
+                    decoration: BoxDecoration(
+                      color: needsAttention
+                          ? AppColors.warningSoft
+                          : item.state == ReviewState.verified
+                          ? AppColors.successSoft
+                          : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                    ),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.title,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
+                        Icon(
+                          needsAttention
+                              ? Icons.warning_amber_rounded
+                              : item.safetyCheck != null
+                              ? Icons.fact_check_outlined
+                              : Icons.info_outline_rounded,
+                          size: 16,
+                          color: needsAttention
+                              ? AppColors.warningForeground
+                              : item.state == ReviewState.verified
+                              ? AppColors.successForeground
+                              : AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _compactReviewMessage(item),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.muted,
+                              height: 1.4,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _instructionDetails(item),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.muted,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          context.tr(
-                            'source_label_value',
-                            values: {'source': _sourceDisplay(item.source)},
-                          ),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.subtle,
-                          ),
+                        const SizedBox(width: 6),
+                        TextButton(
+                          onPressed: () => _showInstructionDetails(item),
+                          child: Text(context.tr('details')),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: background,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: foreground,
-                      ),
-                    ),
+
+                  const SizedBox(height: 14),
+
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final narrow = constraints.maxWidth < 480;
+
+                      final confirmButton = FilledButton.icon(
+                        onPressed: saving || item.state == ReviewState.verified
+                            ? null
+                            : () => _saveState(item, ReviewState.verified),
+                        icon: saving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.check_circle_outline, size: 17),
+                        label: Text(
+                          saving
+                              ? context.tr('saving')
+                              : item.state == ReviewState.verified
+                              ? context.tr('saved')
+                              : item.requiresProfessionalConfirmation
+                              ? context.tr('doctor_confirmed')
+                              : context.tr('looks_correct'),
+                        ),
+                      );
+
+                      final editButton = OutlinedButton.icon(
+                        onPressed: saving ? null : () => _edit(item),
+                        icon: const Icon(Icons.edit_outlined, size: 17),
+                        label: Text(context.tr('edit')),
+                      );
+
+                      final checkButton = OutlinedButton.icon(
+                        onPressed: saving || checking
+                            ? null
+                            : () => _checkSafety(item),
+                        icon: checking
+                            ? const SizedBox(
+                                width: 17,
+                                height: 17,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.fact_check_outlined, size: 17),
+                        label: Text(
+                          checking
+                              ? context.tr('checking')
+                              : item.safetyCheck == null
+                              ? context.tr('check_sources')
+                              : context.tr('view_sources'),
+                        ),
+                      );
+
+                      final duplicateButton = item.possibleDuplicate
+                          ? OutlinedButton.icon(
+                              onPressed: saving
+                                  ? null
+                                  : () => _removeDuplicate(item),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 17,
+                                color: AppColors.criticalForeground,
+                              ),
+                              label: Text(context.tr('remove_duplicate')),
+                            )
+                          : null;
+
+                      if (narrow) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            confirmButton,
+                            const SizedBox(height: 8),
+                            editButton,
+                            const SizedBox(height: 8),
+                            checkButton,
+                            if (duplicateButton != null) ...[
+                              const SizedBox(height: 8),
+                              duplicateButton,
+                            ],
+                          ],
+                        );
+                      }
+
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          confirmButton,
+                          editButton,
+                          checkButton,
+                          if (duplicateButton != null) duplicateButton,
+                        ],
+                      );
+                    },
                   ),
                 ],
-              ),
-              if (item.isCorrected || item.possibleDuplicate) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
-                  children: [
-                    if (item.isCorrected)
-                      _metaPill(
-                        Icons.history_outlined,
-                        context.tr('corrected_original_preserved'),
-                        AppColors.primary,
-                      ),
-                    if (item.possibleDuplicate)
-                      _metaPill(
-                        Icons.content_copy_outlined,
-                        context.tr('possible_duplicate_medicine'),
-                        AppColors.warningForeground,
-                      ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(
-                    item.requiresProfessionalConfirmation ||
-                            item.state == ReviewState.unclear
-                        ? Icons.help_outline
-                        : item.safetyCheck != null
-                        ? Icons.fact_check_outlined
-                        : Icons.info_outline,
-                    size: 16,
-                    color:
-                        item.requiresProfessionalConfirmation ||
-                            item.state == ReviewState.unclear
-                        ? AppColors.warningForeground
-                        : AppColors.primary,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      _compactReviewMessage(item),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.muted,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => _showInstructionDetails(item),
-                    child: Text(context.tr('details')),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton.icon(
-                    onPressed: saving || item.state == ReviewState.verified
-                        ? null
-                        : () => _saveState(item, ReviewState.verified),
-                    icon: const Icon(Icons.check, size: 17),
-                    label: Text(
-                      saving
-                          ? context.tr('saving')
-                          : item.state == ReviewState.verified
-                          ? context.tr('saved')
-                          : item.requiresProfessionalConfirmation
-                          ? context.tr('doctor_confirmed')
-                          : context.tr('looks_correct'),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: saving ? null : () => _edit(item),
-                    icon: const Icon(Icons.edit_outlined, size: 17),
-                    label: Text(context.tr('edit')),
-                  ),
-                  if (item.possibleDuplicate)
-                    OutlinedButton.icon(
-                      onPressed: saving ? null : () => _removeDuplicate(item),
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        size: 17,
-                        color: AppColors.criticalForeground,
-                      ),
-                      label: Text(context.tr('remove_duplicate')),
-                    ),
-                  OutlinedButton.icon(
-                    onPressed: saving || checking
-                        ? null
-                        : () => _checkSafety(item),
-                    icon: checking
-                        ? const SizedBox(
-                            width: 17,
-                            height: 17,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.fact_check_outlined, size: 17),
-                    label: Text(
-                      checking
-                          ? context.tr('checking')
-                          : item.safetyCheck == null
-                          ? context.tr('check_sources')
-                          : context.tr('view_sources'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: Container(
-            width: 4,
-            decoration: BoxDecoration(
-              color: border,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(AppRadii.xxl),
-                bottomLeft: Radius.circular(AppRadii.xxl),
               ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 

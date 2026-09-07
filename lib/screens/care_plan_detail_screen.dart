@@ -13,7 +13,6 @@ import '../services/care_reliability_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/care_setup_progress.dart';
-import '../widgets/page_header.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ui.dart';
 import 'simulation_screen.dart';
@@ -161,9 +160,15 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return _loadingView();
+
     final detail = _detail;
     if (detail == null) return _notFound(_error);
+
     final plan = detail.plan;
+    final openGaps = detail.gaps
+        .where((gap) => gap.status != TaskStatus.resolved)
+        .length;
+
     return AnimatedBuilder(
       animation: CareDemoState.instance,
       builder: (context, _) => AppShell(
@@ -173,13 +178,14 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Align(
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               child: TextButton.icon(
                 onPressed: () {
                   if (widget.returnToPrevious && Navigator.canPop(context)) {
                     Navigator.pop(context);
                     return;
                   }
+
                   if (widget.guidedSetup && tab == 1) {
                     Navigator.pushReplacementNamed(
                       context,
@@ -191,9 +197,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                     );
                     return;
                   }
+
                   Navigator.pushReplacementNamed(context, AppRoutes.carePlans);
                 },
-                icon: const Icon(Icons.arrow_back, size: 17),
+                icon: const Icon(Icons.arrow_back_rounded, size: 17),
                 label: Text(
                   widget.guidedSetup && tab == 1
                       ? context.tr('back_to_review')
@@ -203,110 +210,563 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                 ),
               ),
             ),
-            PageHeader(
-              title: demoPlanTitle(plan, context.appLanguage),
-              subtitle: context.tr(
-                'care_plan_header_subtitle',
-                values: {
-                  'date': displayPlanStartDate(
-                    plan.startDate,
-                    context.appLanguage,
-                  ),
-                  'next': demoPlanNextTask(plan, context.appLanguage),
-                },
-              ),
-              action: PlanStatusBadge(status: plan.status),
-            ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: () => openAgent(
-                  context,
-                  screenContext: AgentScreenContext(
-                    screenId: 'care_plan_detail',
-                    entity: AgentEntityContext(
-                      type: 'care_plan',
-                      id: widget.planId,
-                    ),
-                  ),
-                ),
-                icon: const Icon(Icons.auto_awesome_outlined, size: 17),
-                label: Text(context.tr('ask_agent')),
-              ),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
+
+            FadeSlideIn(child: _premiumPlanHero(detail, openGaps)),
+
             if (!widget.guidedSetup &&
                 !AuthSession.instance.isGuest &&
                 (plan.status == PlanStatus.active ||
                     plan.status == PlanStatus.completed)) ...[
-              const SizedBox(height: 12),
-              _planLifecycleActions(plan),
-            ],
-            if (widget.guidedSetup) ...[
-              GuidedCareSetupProgress(
-                currentStep: 3,
-                planId: widget.planId,
-                saveState: _scheduleSaveState,
-              ),
               const SizedBox(height: 16),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 50),
+                child: _planLifecycleActions(plan),
+              ),
             ],
-            AppCard(
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+
+            if (widget.guidedSetup) ...[
+              const SizedBox(height: 16),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 60),
+                child: GuidedCareSetupProgress(
+                  currentStep: 3,
+                  planId: widget.planId,
+                  saveState: _scheduleSaveState,
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 18),
+
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 80),
+              child: _planOverviewMetrics(detail, openGaps),
+            ),
+
+            if (!widget.guidedSetup) ...[
+              const SizedBox(height: 20),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 100),
+                child: _premiumTabBar(),
+              ),
+            ],
+
+            const SizedBox(height: 18),
+
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final slide = Tween<Offset>(
+                  begin: const Offset(0, .025),
+                  end: Offset.zero,
+                ).animate(animation);
+
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(position: slide, child: child),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey('care-plan-tab-$tab'),
+                child: _tabContent(detail),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _premiumPlanHero(CarePlanDetailData detail, int openGaps) {
+    final plan = detail.plan;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 650;
+
+        return Container(
+          padding: EdgeInsets.all(compact ? 20 : 26),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0F766E), Color(0xFF0D9488), Color(0xFF14B8A6)],
+            ),
+            borderRadius: BorderRadius.circular(AppRadii.xxxl),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x260F766E),
+                blurRadius: 32,
+                spreadRadius: -12,
+                offset: Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              PositionedDirectional(
+                top: -72,
+                end: -54,
+                child: Container(
+                  width: 190,
+                  height: 190,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0x16FFFFFF),
+                  ),
+                ),
+              ),
+              PositionedDirectional(
+                bottom: -92,
+                start: -62,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0x0FFFFFFF),
+                  ),
+                ),
+              ),
+              if (compact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _heroPlanContent(plan, openGaps),
+                    const SizedBox(height: 18),
+                    _heroReadiness(plan.readiness, wide: true),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: _heroPlanContent(plan, openGaps)),
+                    const SizedBox(width: 24),
+                    _heroReadiness(plan.readiness),
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _heroPlanContent(DemoPlan plan, int openGaps) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0x20FFFFFF),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0x30FFFFFF)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.verified_user_outlined, size: 15, color: Colors.white),
+              SizedBox(width: 6),
+              Text(
+                'Verified care plan',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          demoPlanTitle(plan, context.appLanguage),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 29,
+            height: 1.08,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -.45,
+          ),
+        ),
+        const SizedBox(height: 9),
+        Text(
+          context.tr(
+            'care_plan_header_subtitle',
+            values: {
+              'date': displayPlanStartDate(plan.startDate, context.appLanguage),
+              'next': demoPlanNextTask(plan, context.appLanguage),
+            },
+          ),
+          style: const TextStyle(
+            color: Color(0xE6FFFFFF),
+            fontSize: 13,
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            PlanStatusBadge(status: plan.status),
+            _heroInfoChip(
+              icon: Icons.health_and_safety_outlined,
+              label: '$openGaps ${context.tr('care_gaps')}',
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Color(0x48FFFFFF)),
+            backgroundColor: const Color(0x12FFFFFF),
+          ),
+          onPressed: () => openAgent(
+            context,
+            screenContext: AgentScreenContext(
+              screenId: 'care_plan_detail',
+              entity: AgentEntityContext(type: 'care_plan', id: widget.planId),
+            ),
+          ),
+          icon: const Icon(Icons.auto_awesome_outlined, size: 17),
+          label: Text(context.tr('ask_agent')),
+        ),
+      ],
+    );
+  }
+
+  Widget _heroInfoChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0x1BFFFFFF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x26FFFFFF)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xE8FFFFFF),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroReadiness(int readiness, {bool wide = false}) {
+    final safe = readiness.clamp(0, 100);
+
+    return Container(
+      width: wide ? double.infinity : 176,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0x1FFFFFFF),
+        borderRadius: BorderRadius.circular(AppRadii.xxl),
+        border: Border.all(color: const Color(0x30FFFFFF)),
+      ),
+      child: wide
+          ? Row(
+              children: [
+                _readinessCircle(safe),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          context.tr('care_readiness'),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      Text(
+                        context.tr('care_readiness'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      Text(
-                        '${plan.readiness}%',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Plan readiness for practical day-to-day care.',
+                        style: TextStyle(
+                          color: Color(0xD5FFFFFF),
+                          fontSize: 11,
+                          height: 1.35,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: LinearProgressIndicator(
-                      value: plan.readiness / 100,
-                      minHeight: 10,
-                      color: AppColors.primary,
-                      backgroundColor: AppColors.secondary,
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                _readinessCircle(safe),
+                const SizedBox(height: 10),
+                Text(
+                  context.tr('care_readiness'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _readinessCircle(int readiness) {
+    return SizedBox(
+      width: 70,
+      height: 70,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: CircularProgressIndicator(
+              value: readiness / 100,
+              strokeWidth: 6,
+              strokeCap: StrokeCap.round,
+              backgroundColor: const Color(0x2AFFFFFF),
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            '$readiness%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _planOverviewMetrics(CarePlanDetailData detail, int openGaps) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 760 ? 4 : 2;
+        const gap = 10.0;
+        final width = (constraints.maxWidth - ((columns - 1) * gap)) / columns;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            _overviewMetric(
+              width: width,
+              value: detail.instructions.length,
+              label: context.tr('instructions'),
+              icon: Icons.fact_check_outlined,
+              background: AppColors.primaryLight,
+              foreground: AppColors.primary,
+              onTap: widget.guidedSetup ? null : () => _changeTab(0),
+            ),
+            _overviewMetric(
+              width: width,
+              value: detail.tasks.length,
+              label: context.tr('schedule'),
+              icon: Icons.calendar_month_outlined,
+              background: AppColors.infoSoft,
+              foreground: AppColors.infoForeground,
+              onTap: widget.guidedSetup ? null : () => _changeTab(1),
+            ),
+            _overviewMetric(
+              width: width,
+              value: openGaps,
+              label: context.tr('care_gaps'),
+              icon: Icons.health_and_safety_outlined,
+              background: openGaps > 0
+                  ? AppColors.warningSoft
+                  : AppColors.successSoft,
+              foreground: openGaps > 0
+                  ? AppColors.warningForeground
+                  : AppColors.successForeground,
+              onTap: widget.guidedSetup ? null : () => _changeTab(3),
+            ),
+            _overviewMetric(
+              width: width,
+              value: detail.documents.length,
+              label: context.tr('documents'),
+              icon: Icons.description_outlined,
+              background: const Color(0xFFF1F5F9),
+              foreground: AppColors.muted,
+              onTap: widget.guidedSetup ? null : () => _changeTab(4),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _overviewMetric({
+    required double width,
+    required int value,
+    required String label,
+    required IconData icon,
+    required Color background,
+    required Color foreground,
+    VoidCallback? onTap,
+  }) {
+    final card = AppCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+            ),
+            child: Icon(icon, size: 18, color: foreground),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  child: Text(
+                    '$value',
+                    key: ValueKey('$label-$value'),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      height: 1,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onTap != null)
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: AppColors.subtle,
+            ),
+        ],
+      ),
+    );
+
+    return SizedBox(
+      width: width,
+      child: onTap == null
+          ? card
+          : HoverLift(
+              cursor: SystemMouseCursors.click,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(AppRadii.xxl),
+                child: card,
               ),
             ),
-            const SizedBox(height: 24),
-            if (!widget.guidedSetup) ...[
-              Align(
-                alignment: Alignment.centerLeft,
-                child: AppTabs<int>(
-                  tabs: [
-                    AppTab(0, context.tr('instructions')),
-                    AppTab(1, context.tr('schedule')),
-                    AppTab(2, context.tr('simulation')),
-                    AppTab(3, context.tr('care_gaps')),
-                    AppTab(4, context.tr('documents')),
-                  ],
-                  selected: tab,
-                  onChanged: (value) => setState(() => tab = value),
-                ),
+    );
+  }
+
+  void _changeTab(int value) {
+    if (tab == value) return;
+    setState(() => tab = value);
+  }
+
+  Widget _premiumTabBar() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F5F4),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        border: Border.all(color: const Color(0xFFE1ECE9)),
+      ),
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: [
+          _premiumTab(0, context.tr('instructions'), Icons.fact_check_outlined),
+          _premiumTab(1, context.tr('schedule'), Icons.calendar_month_outlined),
+          _premiumTab(2, context.tr('simulation'), Icons.auto_graph_outlined),
+          _premiumTab(
+            3,
+            context.tr('care_gaps'),
+            Icons.health_and_safety_outlined,
+          ),
+          _premiumTab(4, context.tr('documents'), Icons.description_outlined),
+        ],
+      ),
+    );
+  }
+
+  Widget _premiumTab(int value, String label, IconData icon) {
+    final active = tab == value;
+
+    return InkWell(
+      onTap: () => _changeTab(value),
+      borderRadius: BorderRadius.circular(AppRadii.lg),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+        decoration: BoxDecoration(
+          color: active ? AppColors.card : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          boxShadow: active
+              ? const [
+                  BoxShadow(
+                    color: Color(0x140F172A),
+                    blurRadius: 12,
+                    spreadRadius: -6,
+                    offset: Offset(0, 5),
+                  ),
+                ]
+              : const [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: active ? AppColors.primary : AppColors.muted,
+            ),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                color: active ? AppColors.foreground : AppColors.muted,
               ),
-              const SizedBox(height: 20),
-            ],
-            _tabContent(detail),
+            ),
           ],
         ),
       ),
@@ -315,34 +775,60 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
   Widget _planLifecycleActions(DemoPlan plan) {
     final completed = plan.status == PlanStatus.completed;
+    final explanation = completed
+        ? context.tr('completed_plan_reactivate_explanation')
+        : context.tr('active_plan_complete_explanation');
 
     return AppCard(
       padding: const EdgeInsets.all(16),
+      color: completed ? const Color(0xFFF8FAFC) : const Color(0xFFF0FDFA),
+      borderColor: completed ? AppColors.border : const Color(0xFFCCFBF1),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final explanation = completed
-              ? context.tr('completed_plan_reactivate_explanation')
-              : context.tr('active_plan_complete_explanation');
-
-          final text = Column(
+          final content = Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                completed
-                    ? context.tr('plan_completed')
-                    : context.tr('plan_actions'),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: completed
+                      ? const Color(0xFFF1F5F9)
+                      : AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(AppRadii.xl),
+                ),
+                child: Icon(
+                  completed
+                      ? Icons.restart_alt_rounded
+                      : Icons.check_circle_outline_rounded,
+                  color: completed ? AppColors.muted : AppColors.primary,
+                  size: 21,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                explanation,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.4,
-                  color: AppColors.muted,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      completed
+                          ? context.tr('plan_completed')
+                          : context.tr('plan_actions'),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      explanation,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -357,7 +843,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                       ? const SizedBox(
                           width: 17,
                           height: 17,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.restart_alt_outlined, size: 18),
                   label: Text(
@@ -384,17 +873,17 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   ),
                 );
 
-          if (constraints.maxWidth < 520) {
+          if (constraints.maxWidth < 560) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [text, const SizedBox(height: 14), action],
+              children: [content, const SizedBox(height: 14), action],
             );
           }
 
           return Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(child: text),
+              Expanded(child: content),
               const SizedBox(width: 18),
               action,
             ],
@@ -619,27 +1108,30 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             !DateUtils.isSameDay(selectedDate, suggestedDate));
 
     return AppCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+      padding: const EdgeInsets.all(16),
+      color: const Color(0xFFFAFCFD),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 560;
+
+          final header = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.infoSoft,
+                  borderRadius: BorderRadius.circular(AppRadii.xl),
                 ),
                 alignment: Alignment.center,
                 child: const Icon(
                   Icons.event_outlined,
-                  size: 20,
-                  color: AppColors.primary,
+                  size: 21,
+                  color: AppColors.info,
                 ),
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: 12),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,10 +1140,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                       'Care plan end date',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    SizedBox(height: 3),
                     Text(
                       'Overall plan boundary',
                       style: TextStyle(fontSize: 12, color: AppColors.muted),
@@ -660,13 +1152,14 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          );
+
+          final dateBox = Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.secondary,
-              borderRadius: BorderRadius.circular(AppRadii.lg),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadii.xl),
               border: Border.all(color: AppColors.border),
             ),
             child: Row(
@@ -677,55 +1170,150 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                     children: [
                       const Text(
                         'Ends',
-                        style: TextStyle(fontSize: 11, color: AppColors.muted),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         selectedDate == null
                             ? 'Not selected'
                             : _displayPlanEndDate(selectedDate),
                         style: const TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
                   ),
                 ),
-                OutlinedButton.icon(
-                  onPressed: _savingPlanDuration ? null : _pickPlanEndDate,
-                  icon: const Icon(Icons.edit_calendar_outlined, size: 17),
-                  label: const Text('Change'),
-                ),
-                const SizedBox(width: 7),
-                FilledButton(
-                  onPressed: _savingPlanDuration || selectedDate == null
-                      ? null
-                      : _savePlanEndDate,
-                  child: _savingPlanDuration
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save'),
-                ),
+                if (!compact) ...[
+                  OutlinedButton.icon(
+                    onPressed: _savingPlanDuration ? null : _pickPlanEndDate,
+                    icon: const Icon(Icons.edit_calendar_outlined, size: 17),
+                    label: const Text('Change'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _savingPlanDuration || selectedDate == null
+                        ? null
+                        : _savePlanEndDate,
+                    child: _savingPlanDuration
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Save'),
+                  ),
+                ],
               ],
             ),
-          ),
-          if (showSuggestion) ...[
-            const SizedBox(height: 7),
-            Text(
-              'Suggested: ${_displayPlanEndDate(suggestedDate)}',
-              style: const TextStyle(fontSize: 11, color: AppColors.muted),
-            ),
-          ],
-          const SizedBox(height: 7),
-          const Text(
-            'This caps the care plan. It never extends a verified medicine course.',
-            style: TextStyle(fontSize: 11, height: 1.3, color: AppColors.muted),
-          ),
-        ],
+          );
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              header,
+              const SizedBox(height: 14),
+              dateBox,
+              if (compact) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _savingPlanDuration
+                            ? null
+                            : _pickPlanEndDate,
+                        icon: const Icon(
+                          Icons.edit_calendar_outlined,
+                          size: 17,
+                        ),
+                        label: const Text('Change'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _savingPlanDuration || selectedDate == null
+                            ? null
+                            : _savePlanEndDate,
+                        child: _savingPlanDuration
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Save'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (showSuggestion) ...[
+                const SizedBox(height: 9),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.lightbulb_outline_rounded,
+                      size: 15,
+                      color: AppColors.muted,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Suggested: ${_displayPlanEndDate(suggestedDate)}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 9),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.shield_outlined,
+                      size: 15,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        'This caps the care plan. It never extends a verified medicine course.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          height: 1.35,
+                          color: AppColors.accentForeground,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1485,6 +2073,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         : resolved
         ? Icons.check_circle_outline
         : Icons.warning_amber_rounded;
+
     final iconColor = verified
         ? AppColors.successForeground
         : resolved
@@ -1492,53 +2081,86 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         : AppColors.warningForeground;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 28,
-            child: Center(
-              child: saving
-                  ? SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: iconColor,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final content = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: verified
+                      ? AppColors.successSoft
+                      : resolved
+                      ? AppColors.primaryLight
+                      : AppColors.warningSoft,
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                ),
+                alignment: Alignment.center,
+                child: saving
+                    ? SizedBox(
+                        width: 15,
+                        height: 15,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: iconColor,
+                        ),
+                      )
+                    : Icon(icon, size: 17, color: iconColor),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.muted,
                       ),
-                    )
-                  : Icon(icon, size: 18, color: iconColor),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.3,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.foreground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          if (action == null) return content;
+
+          if (constraints.maxWidth < 440) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.muted,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.25,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.foreground,
-                  ),
-                ),
+                content,
+                const SizedBox(height: 8),
+                Align(alignment: AlignmentDirectional.centerEnd, child: action),
               ],
-            ),
-          ),
-          if (action != null) ...[const SizedBox(width: 6), action],
-        ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: content),
+              const SizedBox(width: 8),
+              action,
+            ],
+          );
+        },
       ),
     );
   }
@@ -1650,15 +2272,12 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
     Widget? recurrenceAction;
     if (!recurrenceVerified) {
-      recurrenceAction = TextButton(
+      recurrenceAction = TextButton.icon(
         onPressed: recurrenceSaving
             ? null
             : () => _setMedicineRepeatPattern(task, meta),
-        style: TextButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-        ),
-        child: Text(
+        icon: const Icon(Icons.repeat_rounded, size: 16),
+        label: Text(
           meta?.userRecurrence == true ? 'Change' : 'Set repeat pattern',
         ),
       );
@@ -1688,97 +2307,180 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               child: Text('Use care-plan end date'),
             ),
         ],
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Icon(Icons.more_horiz, size: 20, color: AppColors.primary),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+          decoration: BoxDecoration(
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+          ),
+          child: const Icon(
+            Icons.more_horiz_rounded,
+            size: 20,
+            color: AppColors.primary,
+          ),
         ),
       );
     }
 
-    return AppCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(12),
+    final needsAttention = !durationResolved || !recurrenceResolved;
+
+    return HoverLift(
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        borderColor: needsAttention
+            ? AppColors.warning.withValues(alpha: .22)
+            : const Color(0xFFCCFBF1),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: needsAttention ? AppColors.warning : AppColors.primary,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppRadii.xxl),
                 ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.medication_outlined,
-                  size: 21,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Text(
-                  task.title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.secondary,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Text(
-                  '$reminderTimeCount ${reminderTimeCount == 1 ? 'time' : 'times'}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.muted,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(height: 1, color: AppColors.border),
-          _medicineSettingRow(
-            title: 'Repeat pattern',
-            label: recurrenceLabel,
-            resolved: recurrenceResolved,
-            verified: recurrenceVerified,
-            saving: recurrenceSaving,
-            action: recurrenceAction,
-          ),
-          Container(height: 1, color: AppColors.border),
-          _medicineSettingRow(
-            title: 'Course duration',
-            label: durationLabel,
-            resolved: durationResolved,
-            verified: durationVerified,
-            saving: durationSaving,
-            action: durationAction,
-          ),
-          Container(height: 1, color: AppColors.border),
-          Padding(
-            padding: const EdgeInsets.only(top: 9, bottom: 1),
-            child: Text(
-              reminderTimeCount == 1
-                  ? 'Reminder time'
-                  : 'Reminder times ($reminderTimeCount)',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.muted,
               ),
             ),
-          ),
-          ...reminderTasks.map(_medicineReminderRow),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: needsAttention
+                                ? const [Color(0xFFFFF7ED), Color(0xFFFFFBEB)]
+                                : const [Color(0xFFCCFBF1), Color(0xFFF0FDFA)],
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadii.xl),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.medication_outlined,
+                          size: 22,
+                          color: needsAttention
+                              ? AppColors.warningForeground
+                              : AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              task.title,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: needsAttention
+                                    ? AppColors.warningSoft
+                                    : AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                needsAttention
+                                    ? 'Needs schedule details'
+                                    : 'Schedule ready',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: needsAttention
+                                      ? AppColors.warningForeground
+                                      : AppColors.accentForeground,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Text(
+                          '$reminderTimeCount ${reminderTimeCount == 1 ? 'time' : 'times'}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(height: 1, color: AppColors.border),
+                  _medicineSettingRow(
+                    title: 'Repeat pattern',
+                    label: recurrenceLabel,
+                    resolved: recurrenceResolved,
+                    verified: recurrenceVerified,
+                    saving: recurrenceSaving,
+                    action: recurrenceAction,
+                  ),
+                  Container(height: 1, color: AppColors.border),
+                  _medicineSettingRow(
+                    title: 'Course duration',
+                    label: durationLabel,
+                    resolved: durationResolved,
+                    verified: durationVerified,
+                    saving: durationSaving,
+                    action: durationAction,
+                  ),
+                  Container(height: 1, color: AppColors.border),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 11, bottom: 2),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.alarm_outlined,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          reminderTimeCount == 1
+                              ? 'Reminder time'
+                              : 'Reminder times ($reminderTimeCount)',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.foreground,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...reminderTasks.map(_medicineReminderRow),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1793,38 +2495,63 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Row(
-            children: [
-              const Icon(
+        Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+              ),
+              child: const Icon(
                 Icons.medication_liquid_outlined,
-                size: 20,
+                size: 19,
                 color: AppColors.primary,
               ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Medicines',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Medicines',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Repeat pattern, duration and reminder times',
+                    style: TextStyle(fontSize: 12, color: AppColors.muted),
+                  ),
+                ],
               ),
-              Text(
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
                 '${groups.length}',
                 style: const TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.muted,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.accentForeground,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        const SizedBox(height: 10),
-        ...groups.values.map(
-          (tasks) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _medicineDurationCard(detail, tasks),
+        const SizedBox(height: 12),
+        ...groups.values.toList().asMap().entries.map(
+          (entry) => FadeSlideIn(
+            delay: Duration(milliseconds: 35 * entry.key.clamp(0, 5)),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _medicineDurationCard(detail, entry.value),
+            ),
           ),
         ),
       ],
@@ -1841,11 +2568,12 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             description: context.tr('upload_documents_to_extract_instructions'),
           );
         }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Align(
-              alignment: Alignment.centerRight,
+              alignment: AlignmentDirectional.centerEnd,
               child: OutlinedButton.icon(
                 onPressed: () async {
                   await Navigator.pushNamed(
@@ -1863,38 +2591,87 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            ...detail.instructions.map(
-              (task) => _InstructionRow(
-                task: task,
-                onRemove: task.kind == TaskKind.medicine
-                    ? () => _removeMedicineInstruction(task)
-                    : null,
+            ...detail.instructions.asMap().entries.map(
+              (entry) => FadeSlideIn(
+                delay: Duration(milliseconds: 35 * entry.key.clamp(0, 5)),
+                child: _InstructionRow(
+                  task: entry.value,
+                  onRemove: entry.value.kind == TaskKind.medicine
+                      ? () => _removeMedicineInstruction(entry.value)
+                      : null,
+                ),
               ),
             ),
           ],
         );
+
       case 1:
         if (detail.tasks.isEmpty) {
-          return EmptyState(
-            icon: Icons.calendar_today_outlined,
-            title: context.tr('no_scheduled_tasks_yet'),
-            description: context.tr(
-              'generate_schedule_from_verified_instructions',
-            ),
-            action: FilledButton.icon(
-              onPressed: _generatingSchedule ? null : _generateSchedule,
-              icon: _generatingSchedule
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.auto_awesome, size: 18),
-              label: Text(
-                _generatingSchedule
-                    ? context.tr('generating')
-                    : context.tr('generate_schedule'),
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 34),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFF0FDFA), Color(0xFFF8FAFC)],
               ),
+              borderRadius: BorderRadius.circular(AppRadii.xxxl),
+              border: Border.all(color: const Color(0xFFCCFBF1)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(AppRadii.xl),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month_outlined,
+                    color: AppColors.primary,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  context.tr('no_scheduled_tasks_yet'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  context.tr('generate_schedule_from_verified_instructions'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: _generatingSchedule ? null : _generateSchedule,
+                  icon: _generatingSchedule
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.auto_awesome_rounded, size: 18),
+                  label: Text(
+                    _generatingSchedule
+                        ? context.tr('generating')
+                        : context.tr('generate_schedule'),
+                  ),
+                ),
+              ],
             ),
           );
         }
@@ -1905,86 +2682,150 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         final hasUnresolvedMedicineRecurrences =
             _hasUnresolvedMedicineRecurrences(detail);
         final scheduleRows = _nonMedicineScheduleRows(detail);
+        final scheduleBlocked =
+            detail.tasks.any((task) => task.status == TaskStatus.atRisk) ||
+            _unsavedPeriodChanges.isNotEmpty ||
+            hasUnresolvedMedicineRecurrences ||
+            hasUnresolvedMedicineDurations;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _planEndDateCard(detail.plan),
+            FadeSlideIn(child: _planEndDateCard(detail.plan)),
             const SizedBox(height: 22),
+
             if (!AuthSession.instance.isGuest) ...[
               _medicineDurationsSection(detail),
               const SizedBox(height: 22),
             ],
+
             if (detail.plan.status == PlanStatus.active ||
                 detail.plan.status == PlanStatus.completed) ...[
-              _todayTaskOutcomesSection(detail.plan),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 80),
+                child: _todayTaskOutcomesSection(detail.plan),
+              ),
               const SizedBox(height: 22),
             ],
+
             if (scheduleRows.isNotEmpty) ...[
-              const Text(
-                'Other schedule items',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.infoSoft,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                    ),
+                    child: const Icon(
+                      Icons.event_note_outlined,
+                      size: 18,
+                      color: AppColors.info,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Other schedule items',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              ...scheduleRows.map(
-                (task) => _ScheduleRow(
-                  task: task,
-                  period:
-                      _periodOverrides[task.id] ??
-                      _periodFrom('${task.time} ${task.note}'),
-                  displayTime: _timeOverrides[task.id] ?? task.time,
-                  periodChanged: _unsavedPeriodChanges.contains(task.id),
-                  onEditPeriod: () => _editSchedulePeriod(task),
-                  onSetTime: () => _confirmScheduleItem(task),
+              const SizedBox(height: 12),
+              ...scheduleRows.asMap().entries.map(
+                (entry) => FadeSlideIn(
+                  delay: Duration(milliseconds: 35 * entry.key.clamp(0, 5)),
+                  child: _ScheduleRow(
+                    task: entry.value,
+                    period:
+                        _periodOverrides[entry.value.id] ??
+                        _periodFrom('${entry.value.time} ${entry.value.note}'),
+                    displayTime:
+                        _timeOverrides[entry.value.id] ?? entry.value.time,
+                    periodChanged: _unsavedPeriodChanges.contains(
+                      entry.value.id,
+                    ),
+                    onEditPeriod: () => _editSchedulePeriod(entry.value),
+                    onSetTime: () => _confirmScheduleItem(entry.value),
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
             ],
+
             Align(
-              alignment: Alignment.centerRight,
+              alignment: AlignmentDirectional.centerEnd,
               child: TextButton.icon(
                 onPressed: _generatingSchedule ? null : _generateSchedule,
-                icon: const Icon(Icons.refresh, size: 16),
+                icon: _generatingSchedule
+                    ? const SizedBox(
+                        width: 15,
+                        height: 15,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh_rounded, size: 16),
                 label: Text(context.tr('regenerate')),
               ),
             ),
             const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed:
-                  detail.tasks.any(
-                        (task) => task.status == TaskStatus.atRisk,
-                      ) ||
-                      _unsavedPeriodChanges.isNotEmpty ||
-                      hasUnresolvedMedicineRecurrences ||
-                      hasUnresolvedMedicineDurations
-                  ? null
-                  : _continueFromSchedule,
-              icon: Icon(
-                widget.returnToPrevious ? Icons.check : Icons.arrow_forward,
-                size: 18,
+
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: scheduleBlocked
+                    ? AppColors.warningSoft
+                    : AppColors.successSoft,
+                borderRadius: BorderRadius.circular(AppRadii.xxl),
+                border: Border.all(
+                  color:
+                      (scheduleBlocked ? AppColors.warning : AppColors.success)
+                          .withValues(alpha: .18),
+                ),
               ),
-              label: Text(
-                hasUnresolvedMedicineRecurrences
-                    ? 'Set medicine repeat patterns first'
-                    : hasUnresolvedMedicineDurations
-                    ? 'Set medicine course durations first'
-                    : detail.tasks.any(
-                            (task) => task.status == TaskStatus.atRisk,
-                          ) ||
-                          _unsavedPeriodChanges.isNotEmpty
-                    ? context.tr('confirm_schedule_items_first')
-                    : widget.returnToPrevious
-                    ? context.tr('done')
-                    : context.tr('continue_to_reality_check'),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: scheduleBlocked ? null : _continueFromSchedule,
+                  icon: Icon(
+                    scheduleBlocked
+                        ? Icons.lock_outline_rounded
+                        : widget.returnToPrevious
+                        ? Icons.check_rounded
+                        : Icons.arrow_forward_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    hasUnresolvedMedicineRecurrences
+                        ? 'Set medicine repeat patterns first'
+                        : hasUnresolvedMedicineDurations
+                        ? 'Set medicine course durations first'
+                        : detail.tasks.any(
+                                (task) => task.status == TaskStatus.atRisk,
+                              ) ||
+                              _unsavedPeriodChanges.isNotEmpty
+                        ? context.tr('confirm_schedule_items_first')
+                        : widget.returnToPrevious
+                        ? context.tr('done')
+                        : context.tr('continue_to_reality_check'),
+                  ),
+                ),
               ),
             ),
           ],
         );
+
       case 2:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Align(
-              alignment: Alignment.centerRight,
+              alignment: AlignmentDirectional.centerEnd,
               child: OutlinedButton.icon(
                 onPressed: () async {
                   await Navigator.pushNamed(
@@ -2002,56 +2843,146 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            SimulationView(compact: true, planId: widget.planId),
+            FadeSlideIn(
+              child: AppCard(
+                padding: const EdgeInsets.all(10),
+                child: SimulationView(compact: true, planId: widget.planId),
+              ),
+            ),
           ],
         );
+
       case 3:
         final openGaps = detail.gaps
             .where((gap) => gap.status != TaskStatus.resolved)
             .toList();
+
         if (openGaps.isEmpty) {
-          return EmptyState(
-            icon: Icons.check_circle_outline,
-            title: context.tr('no_open_care_gaps'),
-            description: context.tr('no_unresolved_care_plan_issues'),
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 34),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFF0FDFA), Color(0xFFF8FAFC)],
+              ),
+              borderRadius: BorderRadius.circular(AppRadii.xxxl),
+              border: Border.all(color: const Color(0xFFCCFBF1)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: AppColors.successSoft,
+                    borderRadius: BorderRadius.circular(AppRadii.xl),
+                  ),
+                  child: const Icon(
+                    Icons.verified_user_outlined,
+                    color: AppColors.successForeground,
+                    size: 27,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  context.tr('no_open_care_gaps'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  context.tr('no_unresolved_care_plan_issues'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.muted,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           );
         }
+
         return Column(
           children: openGaps
+              .asMap()
+              .entries
               .map(
-                (gap) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: InkWell(
-                    onTap: () async {
-                      await Navigator.pushNamed(
-                        context,
-                        AppRoutes.careGap(gap.id),
-                      );
-                      if (mounted) await _loadPlan();
-                    },
-                    borderRadius: BorderRadius.circular(AppRadii.xxl),
-                    child: AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          StatusBadge(status: gap.status),
-                          const SizedBox(height: 8),
-                          Text(
-                            gap.title,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                (entry) => FadeSlideIn(
+                  delay: Duration(milliseconds: 35 * entry.key.clamp(0, 5)),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: HoverLift(
+                      cursor: SystemMouseCursors.click,
+                      child: InkWell(
+                        onTap: () async {
+                          await Navigator.pushNamed(
+                            context,
+                            AppRoutes.careGap(entry.value.id),
+                          );
+                          if (mounted) await _loadPlan();
+                        },
+                        borderRadius: BorderRadius.circular(AppRadii.xxl),
+                        child: AppCard(
+                          borderColor: AppColors.warning.withValues(alpha: .18),
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: AppColors.warningSoft,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadii.xl,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.health_and_safety_outlined,
+                                  color: AppColors.warningForeground,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    StatusBadge(status: entry.value.status),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      entry.value.title,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      entry.value.summary,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.muted,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: AppColors.subtle,
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            gap.summary,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppColors.muted,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -2059,14 +2990,16 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               )
               .toList(),
         );
+
       default:
         final documents = detail.documents;
+
         if (documents.isEmpty) {
           return EmptyState(
             icon: Icons.description_outlined,
             title: context.tr('no_documents_yet'),
             description: context.tr('upload_document_to_build_plan'),
-            action: FilledButton(
+            action: FilledButton.icon(
               onPressed: () => Navigator.pushNamed(
                 context,
                 AppRoutes.carePlanUpload,
@@ -2076,15 +3009,17 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   returnToPrevious: true,
                 ),
               ),
-              child: Text(context.tr('upload_document')),
+              icon: const Icon(Icons.upload_file_outlined, size: 18),
+              label: Text(context.tr('upload_document')),
             ),
           );
         }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Align(
-              alignment: Alignment.centerRight,
+              alignment: AlignmentDirectional.centerEnd,
               child: OutlinedButton.icon(
                 onPressed: () async {
                   await Navigator.pushNamed(
@@ -2098,60 +3033,75 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   );
                   if (mounted) await _loadPlan();
                 },
-                icon: const Icon(Icons.add, size: 17),
+                icon: const Icon(Icons.add_rounded, size: 17),
                 label: Text(context.tr('add_document')),
               ),
             ),
             const SizedBox(height: 12),
-            ...documents.map(
-              (document) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: AppCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.description_outlined,
-                        size: 21,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              document.name,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              context.tr(
-                                document.pages == 1
-                                    ? 'document_meta_page'
-                                    : 'document_meta_pages',
-                                values: {
-                                  'type': document.type,
-                                  'pages': document.pages,
-                                  'date': document.date,
-                                },
-                              ),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.muted,
-                              ),
-                            ),
-                          ],
+            ...documents.asMap().entries.map(
+              (entry) => FadeSlideIn(
+                delay: Duration(milliseconds: 35 * entry.key.clamp(0, 5)),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: AppCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.infoSoft,
+                            borderRadius: BorderRadius.circular(AppRadii.xl),
+                          ),
+                          child: const Icon(
+                            Icons.description_outlined,
+                            size: 21,
+                            color: AppColors.info,
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () => _deleteDocument(document.id),
-                        icon: const Icon(Icons.delete_outline, size: 19),
-                        tooltip: context.tr('remove_document'),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                entry.value.name,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                context.tr(
+                                  entry.value.pages == 1
+                                      ? 'document_meta_page'
+                                      : 'document_meta_pages',
+                                  values: {
+                                    'type': entry.value.type,
+                                    'pages': entry.value.pages,
+                                    'date': entry.value.date,
+                                  },
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => _deleteDocument(entry.value.id),
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 19,
+                          ),
+                          tooltip: context.tr('remove_document'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -3091,31 +4041,150 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   Widget _loadingView() => AppShell(
     currentRoute: AppRoutes.carePlans,
     title: context.tr('care_plan'),
-    child: const Center(child: CircularProgressIndicator()),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _loadingSkeleton(width: 96, height: 14),
+        const SizedBox(height: 14),
+        AppCard(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _loadingSkeleton(width: 115, height: 12),
+              const SizedBox(height: 14),
+              _loadingSkeleton(width: 250, height: 28),
+              const SizedBox(height: 10),
+              _loadingSkeleton(width: 210, height: 12),
+              const SizedBox(height: 22),
+              _loadingSkeleton(width: double.infinity, height: 10),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 760 ? 4 : 2;
+            const gap = 10.0;
+            final width =
+                (constraints.maxWidth - ((columns - 1) * gap)) / columns;
+
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: List.generate(
+                4,
+                (_) => SizedBox(
+                  width: width,
+                  child: AppCard(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        _loadingSkeleton(width: 38, height: 38, radius: 12),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _loadingSkeleton(width: 46, height: 18),
+                              const SizedBox(height: 6),
+                              _loadingSkeleton(width: 82, height: 10),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 18),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _loadingSkeleton(width: 180, height: 16),
+              const SizedBox(height: 14),
+              _loadingSkeleton(width: double.infinity, height: 74, radius: 14),
+              const SizedBox(height: 10),
+              _loadingSkeleton(width: double.infinity, height: 74, radius: 14),
+            ],
+          ),
+        ),
+      ],
+    ),
   );
+
+  Widget _loadingSkeleton({
+    required double width,
+    required double height,
+    double radius = 999,
+  }) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8EEF2),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
 
   Widget _notFound(String? message) => AppShell(
     currentRoute: AppRoutes.carePlans,
     title: context.tr('care_plan'),
-    child: AppCard(
-      child: Column(
-        children: [
-          Text(
-            context.tr('cpd_care_plan_not_found'),
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: AppCard(
+          padding: const EdgeInsets.all(26),
+          child: Column(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: AppColors.warningSoft,
+                  borderRadius: BorderRadius.circular(AppRadii.xl),
+                ),
+                child: const Icon(
+                  Icons.find_in_page_outlined,
+                  color: AppColors.warningForeground,
+                  size: 27,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                context.tr('care_plan'),
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                message ?? context.tr('care_plan_load_failed'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: () => Navigator.pushReplacementNamed(
+                  context,
+                  AppRoutes.carePlans,
+                ),
+                icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                label: Text(context.tr('care_plans')),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            message ?? context.tr('cpd_plan_removed'),
-            style: const TextStyle(color: AppColors.muted),
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pushReplacementNamed(context, AppRoutes.carePlans),
-            child: Text(context.tr('cpd_back_to_care_plans')),
-          ),
-        ],
+        ),
       ),
     ),
   );
@@ -3130,60 +4199,103 @@ class _InstructionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
-    child: AppCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(AppRadii.xl),
+    child: HoverLift(
+      child: AppCard(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFCCFBF1), Color(0xFFF0FDFA)],
+                ),
+                borderRadius: BorderRadius.circular(AppRadii.xl),
+              ),
+              child: Icon(task.icon, size: 20, color: AppColors.primary),
             ),
-            child: Icon(task.icon, size: 18, color: AppColors.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (task.note.trim().isNotEmpty) ...[
+                    const SizedBox(height: 5),
+                    Text(
+                      task.note,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.muted,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                  if (task.time.trim().isNotEmpty) ...[
+                    const SizedBox(height: 9),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.schedule_outlined,
+                            size: 13,
+                            color: AppColors.muted,
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              task.time,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.muted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  task.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                StatusBadge(status: task.status),
+                if (onRemove != null) ...[
+                  const SizedBox(height: 6),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onRemove,
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    tooltip: context.tr('remove'),
                   ),
-                ),
-                Text(
-                  '${task.note} · ${task.time}',
-                  style: const TextStyle(fontSize: 14, color: AppColors.muted),
-                ),
+                ],
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              StatusBadge(status: task.status),
-              if (onRemove != null) ...[
-                const SizedBox(height: 6),
-                IconButton(
-                  onPressed: onRemove,
-                  tooltip: context.tr('cpd_remove_medicine_tooltip'),
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: 20,
-                    color: AppColors.criticalForeground,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     ),
   );
@@ -3327,191 +4439,196 @@ class _ScheduleRow extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: AppCard(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(14),
+      child: HoverLift(
+        child: AppCard(
+          padding: const EdgeInsets.all(18),
+          borderColor: needsTime
+              ? AppColors.warning.withValues(alpha: .22)
+              : AppColors.border,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(task.icon, size: 21, color: AppColors.primary),
                   ),
-                  alignment: Alignment.center,
-                  child: Icon(task.icon, size: 21, color: AppColors.primary),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        task.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          height: 1.25,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (task.note.trim().isNotEmpty) ...[
-                        const SizedBox(height: 5),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          task.note,
+                          task.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 13,
-                            height: 1.35,
-                            color: AppColors.muted,
+                            fontSize: 16,
+                            height: 1.25,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
+                        if (task.note.trim().isNotEmpty) ...[
+                          const SizedBox(height: 5),
+                          Text(
+                            task.note,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              height: 1.35,
+                              color: AppColors.muted,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _infoChip(
-                  icon: _periodIcon(),
-                  label: _localizedPeriod(context, period),
-                ),
-                _infoChip(
-                  icon: needsTime
-                      ? Icons.schedule_outlined
-                      : Icons.alarm_outlined,
-                  label: needsTime
-                      ? context.tr('cpd_choose_exact_time')
-                      : formattedTime,
-                  warning: needsTime,
-                ),
-              ],
-            ),
-            if (exactTimeLocked) ...[
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.lock_outline,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      context.tr('cpd_exact_time_locked_note'),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.35,
-                        color: AppColors.muted,
-                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-            if (periodChanged) ...[
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  const Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: AppColors.warningForeground,
+                  _infoChip(
+                    icon: _periodIcon(),
+                    label: _localizedPeriod(context, period),
                   ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      context.tr('cpd_period_changed_note'),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.35,
-                        color: AppColors.warningForeground,
-                      ),
-                    ),
+                  _infoChip(
+                    icon: needsTime
+                        ? Icons.schedule_outlined
+                        : Icons.alarm_outlined,
+                    label: needsTime
+                        ? context.tr('cpd_choose_exact_time')
+                        : formattedTime,
+                    warning: needsTime,
                   ),
                 ],
               ),
-            ],
-            const SizedBox(height: 16),
-            Container(height: 1, color: AppColors.border),
-            const SizedBox(height: 14),
-            if (exactTimeLocked)
-              Container(
-                height: 46,
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              if (exactTimeLocked) ...[
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(
                       Icons.lock_outline,
-                      size: 17,
-                      color: AppColors.muted,
+                      size: 16,
+                      color: AppColors.primary,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      context.tr('cpd_verified_exact_time'),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        context.tr('cpd_exact_time_locked_note'),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: AppColors.muted,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              )
-            else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final stackActions = constraints.maxWidth < 300;
-                  final editPeriod = _actionButton(
-                    icon: Icons.edit_outlined,
-                    label: context.tr('cpd_edit_period'),
-                    onPressed: onEditPeriod,
-                  );
-                  final editTime = _actionButton(
-                    icon: Icons.schedule_outlined,
-                    label: needsTime
-                        ? context.tr('cpd_set_time')
-                        : context.tr('cpd_edit_time'),
-                    onPressed: onSetTime,
-                    primary: needsTime,
-                  );
+              ],
+              if (periodChanged) ...[
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: AppColors.warningForeground,
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        context.tr('cpd_period_changed_note'),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: AppColors.warningForeground,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
+              Container(height: 1, color: AppColors.border),
+              const SizedBox(height: 14),
+              if (exactTimeLocked)
+                Container(
+                  height: 46,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.lock_outline,
+                        size: 17,
+                        color: AppColors.muted,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.tr('cpd_verified_exact_time'),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final stackActions = constraints.maxWidth < 300;
+                    final editPeriod = _actionButton(
+                      icon: Icons.edit_outlined,
+                      label: context.tr('cpd_edit_period'),
+                      onPressed: onEditPeriod,
+                    );
+                    final editTime = _actionButton(
+                      icon: Icons.schedule_outlined,
+                      label: needsTime
+                          ? context.tr('cpd_set_time')
+                          : context.tr('cpd_edit_time'),
+                      onPressed: onSetTime,
+                      primary: needsTime,
+                    );
 
-                  if (stackActions) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    if (stackActions) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          editPeriod,
+                          const SizedBox(height: 8),
+                          editTime,
+                        ],
+                      );
+                    }
+
+                    return Row(
                       children: [
-                        editPeriod,
-                        const SizedBox(height: 8),
-                        editTime,
+                        Expanded(child: editPeriod),
+                        const SizedBox(width: 10),
+                        Expanded(child: editTime),
                       ],
                     );
-                  }
-
-                  return Row(
-                    children: [
-                      Expanded(child: editPeriod),
-                      const SizedBox(width: 10),
-                      Expanded(child: editTime),
-                    ],
-                  );
-                },
-              ),
-          ],
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );

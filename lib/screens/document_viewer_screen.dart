@@ -139,14 +139,66 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final fileType = widget.file.isPdf
+        ? 'PDF'
+        : widget.file.isImage
+        ? 'Image'
+        : 'Document';
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF4F8F7),
       appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: AppColors.card,
+        surfaceTintColor: Colors.transparent,
         titleSpacing: 0,
-        title: Text(
-          widget.file.originalName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        title: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+              ),
+              child: Icon(
+                widget.file.isPdf
+                    ? Icons.picture_as_pdf_outlined
+                    : widget.file.isImage
+                    ? Icons.image_outlined
+                    : Icons.description_outlined,
+                size: 18,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.file.originalName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$fileType · ${_formattedFileSize(widget.file.bytes.length)}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       body: SafeArea(
@@ -154,15 +206,109 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         child: Column(
           children: [
             Expanded(
-              child: Container(
-                width: double.infinity,
-                color: AppColors.card,
-                child: _buildViewer(context),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                child: Container(
+                  width: double.infinity,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF121A1B),
+                    borderRadius: BorderRadius.circular(AppRadii.xxl),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: .12),
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x160F172A),
+                        blurRadius: 24,
+                        spreadRadius: -10,
+                        offset: Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      PositionedDirectional(
+                        top: -80,
+                        end: -60,
+                        child: Container(
+                          width: 180,
+                          height: 180,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0x120D9488),
+                          ),
+                        ),
+                      ),
+                      PositionedDirectional(
+                        bottom: -100,
+                        start: -70,
+                        child: Container(
+                          width: 220,
+                          height: 220,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0x0D14B8A6),
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(child: _buildViewer(context)),
+                      PositionedDirectional(
+                        top: 12,
+                        end: 12,
+                        child: _viewerStatusChip(),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             _buildToolbar(context),
           ],
         ),
+      ),
+    );
+  }
+
+  String _formattedFileSize(int bytes) {
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / 1024).ceil().clamp(1, 999999)} KB';
+  }
+
+  Widget _viewerStatusChip() {
+    final label = widget.file.isPdf
+        ? (_pdfPageCount > 0 ? '$_pdfPage / $_pdfPageCount' : 'PDF')
+        : '${(_imageScale * 100).round()}%';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xD91F2930),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x22FFFFFF)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            widget.file.isPdf
+                ? Icons.menu_book_outlined
+                : Icons.zoom_in_map_outlined,
+            size: 13,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -234,16 +380,28 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         ? _pdfToolbarButtons(context)
         : _imageToolbarButtons(context);
 
-    return Material(
-      color: AppColors.background,
-      elevation: 8,
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadii.xxl),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x140F172A),
+            blurRadius: 20,
+            spreadRadius: -10,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 76,
+          height: 66,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: children,
@@ -370,9 +528,30 @@ class _ToolbarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: IconButton(tooltip: label, onPressed: onPressed, icon: Icon(icon)),
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Tooltip(
+        message: label,
+        child: Material(
+          color: enabled ? const Color(0xFFF0F7F6) : const Color(0xFFF5F7F8),
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Icon(
+                icon,
+                size: 20,
+                color: enabled ? AppColors.primary : AppColors.subtle,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -388,17 +567,37 @@ class _ViewerMessage extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 48, color: AppColors.muted),
-            const SizedBox(height: 12),
-            Text(
-              text,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: AppColors.muted),
-            ),
-          ],
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 420),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xE6FFFFFF),
+            borderRadius: BorderRadius.circular(AppRadii.xxl),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(AppRadii.xl),
+                ),
+                child: Icon(icon, size: 25, color: AppColors.primary),
+              ),
+              const SizedBox(height: 13),
+              Text(
+                text,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.muted,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

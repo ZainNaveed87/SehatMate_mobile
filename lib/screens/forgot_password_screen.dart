@@ -458,77 +458,380 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     };
   }
 
+  int get _stepIndex => switch (_step) {
+    _PasswordResetStep.email => 0,
+    _PasswordResetStep.code => 1,
+    _PasswordResetStep.newPassword => 2,
+    _PasswordResetStep.done => 3,
+  };
+
+  IconData get _stepIcon => switch (_step) {
+    _PasswordResetStep.email => Icons.alternate_email_rounded,
+    _PasswordResetStep.code => Icons.password_rounded,
+    _PasswordResetStep.newPassword => Icons.lock_reset_rounded,
+    _PasswordResetStep.done => Icons.verified_rounded,
+  };
+
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final desktop = width >= 900;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF4F8F7),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    height: 64,
-                    child: Row(
-                      children: [
-                        IconButton(
-                          tooltip: MaterialLocalizations.of(
-                            context,
-                          ).backButtonTooltip,
-                          onPressed: _submitting
-                              ? null
-                              : () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back),
+        child: Stack(
+          children: [
+            PositionedDirectional(
+              top: -110,
+              end: -90,
+              child: Container(
+                width: 290,
+                height: 290,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0x120D9488),
+                ),
+              ),
+            ),
+            PositionedDirectional(
+              bottom: -140,
+              start: -100,
+              child: Container(
+                width: 320,
+                height: 320,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0x0D14B8A6),
+                ),
+              ),
+            ),
+            SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: width >= 640 ? 24 : 16,
+                vertical: 18,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        height: 58,
+                        child: Row(
+                          children: [
+                            IconButton(
+                              tooltip: MaterialLocalizations.of(
+                                context,
+                              ).backButtonTooltip,
+                              onPressed: _submitting
+                                  ? null
+                                  : () => Navigator.pop(context),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                            ),
+                            const SizedBox(width: 6),
+                            const BrandLogo(),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        const BrandLogo(),
-                      ],
+                      ),
+                      const SizedBox(height: 12),
+                      FadeSlideIn(
+                        child: desktop
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 4, child: _resetHero()),
+                                  const SizedBox(width: 18),
+                                  Expanded(flex: 6, child: _resetCard()),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  _resetHero(compact: true),
+                                  const SizedBox(height: 14),
+                                  _resetCard(),
+                                ],
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _resetHero({bool compact = false}) {
+    final progress = (_stepIndex + 1) / 4;
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 18 : 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F766E), Color(0xFF0D9488), Color(0xFF14B8A6)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x240F766E),
+            blurRadius: 30,
+            spreadRadius: -12,
+            offset: Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          PositionedDirectional(
+            top: -65,
+            end: -48,
+            child: Container(
+              width: 170,
+              height: 170,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0x14FFFFFF),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0x20FFFFFF),
+                  borderRadius: BorderRadius.circular(AppRadii.xl),
+                  border: Border.all(color: const Color(0x2FFFFFFF)),
+                ),
+                child: Icon(_stepIcon, color: Colors.white, size: 23),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                _title,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: compact ? 24 : 28,
+                  height: 1.12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -.35,
+                ),
+              ),
+              const SizedBox(height: 9),
+              Text(
+                _description,
+                style: const TextStyle(
+                  color: Color(0xE6FFFFFF),
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Text(
+                    'Step ${_stepIndex + 1} of 4',
+                    style: const TextStyle(
+                      color: Color(0xE6FFFFFF),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  AppCard(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          _title,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _description,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            height: 1.5,
-                            color: AppColors.muted,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        _buildStep(),
-                        if (_info != null) ...[
-                          const SizedBox(height: 16),
-                          _MessageBox(message: _info!, isError: false),
-                        ],
-                        if (_error != null) ...[
-                          const SizedBox(height: 16),
-                          _MessageBox(message: _error!, isError: true),
-                        ],
-                      ],
+                  const Spacer(),
+                  Text(
+                    '${(progress * 100).round()}%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  color: Colors.white,
+                  backgroundColor: const Color(0x30FFFFFF),
+                ),
+              ),
+              if (!compact) ...[
+                const SizedBox(height: 24),
+                _resetStepLine(
+                  index: 0,
+                  icon: Icons.mail_outline_rounded,
+                  label: 'Confirm email',
+                ),
+                _resetStepLine(
+                  index: 1,
+                  icon: Icons.password_rounded,
+                  label: 'Verify code',
+                ),
+                _resetStepLine(
+                  index: 2,
+                  icon: Icons.lock_reset_rounded,
+                  label: 'Set new password',
+                ),
+                _resetStepLine(
+                  index: 3,
+                  icon: Icons.check_circle_outline_rounded,
+                  label: 'Done',
+                  last: true,
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resetStepLine({
+    required int index,
+    required IconData icon,
+    required String label,
+    bool last = false,
+  }) {
+    final complete = index < _stepIndex;
+    final active = index == _stepIndex;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: complete || active
+                    ? Colors.white
+                    : const Color(0x16FFFFFF),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: complete || active
+                      ? Colors.white
+                      : const Color(0x40FFFFFF),
+                ),
+              ),
+              child: Icon(
+                complete ? Icons.check_rounded : icon,
+                size: 15,
+                color: complete || active
+                    ? AppColors.primary
+                    : const Color(0xC8FFFFFF),
+              ),
+            ),
+            if (!last)
+              Container(width: 1, height: 26, color: const Color(0x36FFFFFF)),
+          ],
+        ),
+        const SizedBox(width: 10),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active || complete
+                  ? Colors.white
+                  : const Color(0xBFFFFFFF),
+              fontSize: 12,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w600,
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _resetCard() {
+    return AppCard(
+      padding: EdgeInsets.zero,
+      radius: 28,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(AppRadii.xl),
+                      ),
+                      child: Icon(
+                        _stepIcon,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Text(
+                        _title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  _description,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.45,
+                    color: AppColors.muted,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  child: KeyedSubtree(
+                    key: ValueKey(_step),
+                    child: _buildStep(),
+                  ),
+                ),
+                if (_info != null) ...[
+                  const SizedBox(height: 16),
+                  _MessageBox(message: _info!, isError: false),
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  _MessageBox(message: _error!, isError: true),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -569,7 +872,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               _requestCode();
             }
           },
-          decoration: const InputDecoration(hintText: 'you@example.com'),
+          decoration: const InputDecoration(
+            hintText: 'you@example.com',
+            prefixIcon: Icon(Icons.alternate_email_rounded),
+          ),
         ),
         const SizedBox(height: 20),
         FilledButton(
@@ -624,6 +930,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           decoration: const InputDecoration(
             hintText: '000000',
             counterText: '',
+            prefixIcon: Icon(Icons.password_rounded),
           ),
         ),
         const SizedBox(height: 20),
@@ -681,6 +988,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           autofillHints: const [AutofillHints.newPassword],
           textInputAction: TextInputAction.next,
           decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.lock_outline_rounded),
             hintText: _copy(
               english: 'At least 8 characters',
               urdu: 'Ú©Ù… Ø§Ø² Ú©Ù… 8 Ø­Ø±ÙˆÙ',
@@ -723,6 +1031,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             }
           },
           decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.lock_person_outlined),
             hintText: _copy(
               english: 'Enter it again',
               urdu: 'Ø¯ÙˆØ¨Ø§Ø±Û Ø¯Ø±Ø¬ Ú©Ø±ÛŒÚº',

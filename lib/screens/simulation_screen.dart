@@ -13,7 +13,6 @@ import '../services/notification_service.dart';
 import 'task_outcome_screens.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/care_setup_progress.dart';
-import '../widgets/page_header.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ui.dart';
 
@@ -199,24 +198,73 @@ class _SimulationViewState extends State<SimulationView> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Padding(
-        padding: EdgeInsets.all(48),
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const _SimulationPremiumLoading();
     }
+
     if (error != null || data == null) {
-      return EmptyState(
-        icon: Icons.route_outlined,
-        title: context.tr('sim_unavailable'),
-        description: error ?? context.tr('sim_no_data'),
-        action: FilledButton(
-          onPressed: () =>
-              Navigator.pushReplacementNamed(context, AppRoutes.carePlans),
-          child: Text(context.tr('sim_open_care_plans')),
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: AppCard(
+            padding: const EdgeInsets.all(24),
+            color: const Color(0xFFFFFBEB),
+            borderColor: const Color(0xFFFDE68A),
+            child: Column(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: AppColors.warningSoft,
+                    borderRadius: BorderRadius.circular(AppRadii.xl),
+                  ),
+                  child: const Icon(
+                    Icons.route_outlined,
+                    size: 26,
+                    color: AppColors.warningForeground,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  context.tr('sim_unavailable'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  error ?? context.tr('sim_no_data'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.muted,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () => Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.carePlans,
+                  ),
+                  icon: const Icon(Icons.checklist_outlined, size: 17),
+                  label: Text(context.tr('sim_open_care_plans')),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
+
     final value = data!;
+    final needsAttention =
+        value.blocked > 0 ||
+        value.atRisk > 0 ||
+        value.unclear > 0 ||
+        value.unanswered > 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -248,10 +296,21 @@ class _SimulationViewState extends State<SimulationView> {
           ),
         ],
         if (!widget.compact) ...[
-          PageHeader(
-            title: context.tr('care_simulation'),
-            subtitle: context.tr('sim_header_subtitle'),
+          FadeSlideIn(
+            child: _SimulationPremiumHero(
+              title: context.tr('care_simulation'),
+              subtitle: context.tr('sim_header_subtitle'),
+              readiness: value.readiness,
+              needsAttention: needsAttention,
+              ready: value.ready,
+              atRisk: value.atRisk,
+              blocked: value.blocked,
+              statusLabel: needsAttention
+                  ? context.tr('sim_status_needs_attention')
+                  : context.tr('sim_status_on_track'),
+            ),
           ),
+          const SizedBox(height: 14),
         ],
         if (widget.planId != null) ...[
           Align(
@@ -293,8 +352,11 @@ class _SimulationViewState extends State<SimulationView> {
           ),
           const SizedBox(height: 16),
         ],
-        AppCard(
-          padding: const EdgeInsets.all(24),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 70),
+          child: AppCard(
+            padding: const EdgeInsets.all(24),
+            borderColor: AppColors.primary.withValues(alpha: .14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -440,6 +502,7 @@ class _SimulationViewState extends State<SimulationView> {
               SafetyNote(text: context.tr('sim_score_disclaimer')),
             ],
           ),
+        ),
         ),
         if (value.unanswered > 0) ...[
           const SizedBox(height: 16),
@@ -602,9 +665,10 @@ class _SimulationViewState extends State<SimulationView> {
         ...value.tasks.map(
           (task) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: AppCard(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+            child: HoverLift(
+              child: AppCard(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                 children: [
                   Icon(task.icon, color: AppColors.primary),
                   const SizedBox(width: 12),
@@ -629,6 +693,7 @@ class _SimulationViewState extends State<SimulationView> {
                   StatusBadge(status: task.status),
                 ],
               ),
+            ),
             ),
           ),
         ),
@@ -2132,3 +2197,279 @@ class _AdaptMyPlanSheetState extends State<_AdaptMyPlanSheet> {
     );
   }
 }
+
+
+class _SimulationPremiumHero extends StatelessWidget {
+  const _SimulationPremiumHero({
+    required this.title,
+    required this.subtitle,
+    required this.readiness,
+    required this.needsAttention,
+    required this.ready,
+    required this.atRisk,
+    required this.blocked,
+    required this.statusLabel,
+  });
+
+  final String title;
+  final String subtitle;
+  final int readiness;
+  final bool needsAttention;
+  final int ready;
+  final int atRisk;
+  final int blocked;
+  final String statusLabel;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F766E),
+              Color(0xFF0D9488),
+              Color(0xFF14B8A6),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x240F766E),
+              blurRadius: 30,
+              spreadRadius: -12,
+              offset: Offset(0, 16),
+            ),
+          ],
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 560;
+            final copy = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0x20FFFFFF),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.route_outlined,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Care readiness simulation',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 27,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -.35,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Color(0xE6FFFFFF),
+                    fontSize: 12,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 13),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _SimulationHeroChip(
+                      icon: Icons.check_circle_outline_rounded,
+                      label: '$ready ready',
+                    ),
+                    _SimulationHeroChip(
+                      icon: Icons.warning_amber_rounded,
+                      label: '$atRisk at risk',
+                    ),
+                    _SimulationHeroChip(
+                      icon: Icons.block_outlined,
+                      label: '$blocked blocked',
+                    ),
+                  ],
+                ),
+              ],
+            );
+
+            final score = Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0x18FFFFFF),
+                borderRadius: BorderRadius.circular(AppRadii.xxl),
+                border: Border.all(
+                  color: const Color(0x2AFFFFFF),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Readiness',
+                    style: TextStyle(
+                      color: Color(0xDFFFFFFF),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$readiness',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 34,
+                      height: 1,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    statusLabel,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            );
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  copy,
+                  const SizedBox(height: 14),
+                  score,
+                ],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(child: copy),
+                const SizedBox(width: 18),
+                SizedBox(width: 150, child: score),
+              ],
+            );
+          },
+        ),
+      );
+}
+
+class _SimulationHeroChip extends StatelessWidget {
+  const _SimulationHeroChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 9,
+          vertical: 6,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0x1FFFFFFF),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: Colors.white),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _SimulationPremiumLoading extends StatelessWidget {
+  const _SimulationPremiumLoading();
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Container(
+            height: 180,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFFE4F4F1),
+                  Color(0xFFF4F8F7),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(28),
+            ),
+          ),
+          const SizedBox(height: 14),
+          AppCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Container(
+                  width: 170,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8EEF2),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8EEF2),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const CircularProgressIndicator(),
+              ],
+            ),
+          ),
+        ],
+      );
+}
+

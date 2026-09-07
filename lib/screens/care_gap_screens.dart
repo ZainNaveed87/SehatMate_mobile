@@ -309,20 +309,28 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
     }
 
     final openCount = gaps.where((gap) => !gap.isResolved).length;
-
     final blockingCount = gaps
         .where((gap) => gap.blocking && !gap.isResolved)
         .length;
+    final attentionCount = gaps
+        .where(
+          (gap) =>
+              !gap.isResolved &&
+              gap.severity == 'attention' &&
+              !gap.isInProgress,
+        )
+        .length;
+    final inProgressCount = gaps.where((gap) => gap.isInProgress).length;
 
     return AppShell(
       currentRoute: AppRoutes.careGaps,
       title: context.tr('care_gaps'),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (widget.guidedSetup && widget.planId != null)
+          if (widget.guidedSetup && widget.planId != null) ...[
             Align(
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               child: TextButton.icon(
                 onPressed: () {
                   if (widget.returnToPrevious && Navigator.canPop(context)) {
@@ -339,7 +347,7 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.arrow_back, size: 17),
+                icon: const Icon(Icons.arrow_back_rounded, size: 17),
                 label: Text(
                   widget.returnToPrevious
                       ? context.tr('back')
@@ -347,82 +355,552 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 6),
+          ],
 
-          PageHeader(
-            title: context.tr('care_gaps'),
-            subtitle: loading
-                ? context.tr('care_gaps_checking')
-                : context.tr(
-                    'care_gaps_counts',
-                    values: {'open': openCount, 'blocking': blockingCount},
-                  ),
-            action: OutlinedButton.icon(
-              onPressed: loading ? null : () => _load(forceRefresh: true),
-              icon: const Icon(Icons.refresh, size: 17),
-              label: Text(context.tr('refresh')),
+          FadeSlideIn(
+            child: _careGapsHero(
+              openCount: openCount,
+              blockingCount: blockingCount,
             ),
           ),
 
           if (widget.guidedSetup && widget.planId != null) ...[
-            GuidedCareSetupProgress(
-              currentStep: 6,
-              planId: widget.planId!,
-              saveState: loading ? context.tr('saving') : context.tr('saved'),
+            const SizedBox(height: 18),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 40),
+              child: GuidedCareSetupProgress(
+                currentStep: 6,
+                planId: widget.planId!,
+                saveState: loading ? context.tr('saving') : context.tr('saved'),
+              ),
             ),
-            const SizedBox(height: 16),
           ],
 
           if (error != null) ...[
-            SafetyNote(text: error!),
             const SizedBox(height: 16),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 60),
+              child: SafetyNote(text: error!),
+            ),
           ],
 
-          _filterBar(),
+          const SizedBox(height: 18),
 
-          if (!loading && visibleGaps.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _groupedSummaryCard(),
-          ],
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 70),
+            child: _summaryMetrics(
+              openCount: openCount,
+              blockingCount: blockingCount,
+              attentionCount: attentionCount,
+              inProgressCount: inProgressCount,
+            ),
+          ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          if (loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 48),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (visibleGaps.isEmpty)
-            EmptyState(
-              icon: Icons.shield_outlined,
-              title: context.tr('care_gaps_ready_title'),
-              description: context.tr('care_gaps_empty_filter'),
-            )
-          else
-            ..._groupedGapSections(),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 90),
+            child: _filterBar(),
+          ),
+
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 240),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: loading
+                ? Padding(
+                    key: const ValueKey('care-gaps-loading'),
+                    padding: const EdgeInsets.only(top: 20),
+                    child: _loadingSkeleton(),
+                  )
+                : Column(
+                    key: ValueKey('care-gaps-$filter-${visibleGaps.length}'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (visibleGaps.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        FadeSlideIn(
+                          delay: const Duration(milliseconds: 110),
+                          child: _groupedSummaryCard(),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      if (visibleGaps.isEmpty)
+                        FadeSlideIn(
+                          delay: const Duration(milliseconds: 120),
+                          child: _polishedEmptyState(),
+                        )
+                      else
+                        ..._groupedGapSections(),
+                    ],
+                  ),
+          ),
 
           if (widget.guidedSetup &&
               !widget.returnToPrevious &&
               widget.planId != null) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: blockingCount > 0
-                    ? null
-                    : _continueToFinalSimulation,
-                icon: const Icon(Icons.refresh, size: 17),
-                label: Text(
-                  blockingCount > 0
-                      ? context.tr('resolve_blockers_first')
-                      : context.tr('run_final_simulation'),
+            const SizedBox(height: 10),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 150),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: blockingCount > 0
+                      ? AppColors.criticalSoft
+                      : AppColors.successSoft,
+                  borderRadius: BorderRadius.circular(AppRadii.xxl),
+                  border: Border.all(
+                    color: blockingCount > 0
+                        ? AppColors.critical.withValues(alpha: .20)
+                        : AppColors.success.withValues(alpha: .20),
+                  ),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: blockingCount > 0
+                        ? null
+                        : _continueToFinalSimulation,
+                    icon: Icon(
+                      blockingCount > 0
+                          ? Icons.lock_outline_rounded
+                          : Icons.play_arrow_rounded,
+                      size: 18,
+                    ),
+                    label: Text(
+                      blockingCount > 0
+                          ? context.tr('resolve_blockers_first')
+                          : context.tr('run_final_simulation'),
+                    ),
+                  ),
                 ),
               ),
             ),
           ],
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
-          SafetyNote(text: context.tr('care_gaps_safety_note')),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 170),
+            child: SafetyNote(text: context.tr('care_gaps_safety_note')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _careGapsHero({required int openCount, required int blockingCount}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 620;
+
+        return Container(
+          padding: EdgeInsets.all(compact ? 20 : 24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0F766E), Color(0xFF0D9488), Color(0xFF0F6B72)],
+            ),
+            borderRadius: BorderRadius.circular(AppRadii.xxxl),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x260F766E),
+                blurRadius: 30,
+                spreadRadius: -12,
+                offset: Offset(0, 15),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              PositionedDirectional(
+                top: -58,
+                end: -45,
+                child: Container(
+                  width: 170,
+                  height: 170,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0x14FFFFFF),
+                  ),
+                ),
+              ),
+              PositionedDirectional(
+                bottom: -68,
+                start: -45,
+                child: Container(
+                  width: 160,
+                  height: 160,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0x0FFFFFFF),
+                  ),
+                ),
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: const Color(0x22FFFFFF),
+                            borderRadius: BorderRadius.circular(AppRadii.xl),
+                            border: Border.all(color: const Color(0x30FFFFFF)),
+                          ),
+                          child: const Icon(
+                            Icons.health_and_safety_outlined,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          context.tr('care_gaps'),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: compact ? 26 : 31,
+                            height: 1.08,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -.45,
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Text(
+                          loading
+                              ? context.tr('care_gaps_checking')
+                              : context.tr(
+                                  'care_gaps_counts',
+                                  values: {
+                                    'open': openCount,
+                                    'blocking': blockingCount,
+                                  },
+                                ),
+                          style: const TextStyle(
+                            color: Color(0xE6FFFFFF),
+                            fontSize: 14,
+                            height: 1.45,
+                          ),
+                        ),
+                        if (!loading) ...[
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _heroCountChip(
+                                icon: Icons.inbox_outlined,
+                                label:
+                                    '${context.tr('care_gap_all')} · $openCount',
+                              ),
+                              _heroCountChip(
+                                icon: Icons.report_problem_outlined,
+                                label:
+                                    '${context.tr('care_gap_blocking')} · $blockingCount',
+                                critical: blockingCount > 0,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Material(
+                    color: const Color(0x24FFFFFF),
+                    borderRadius: BorderRadius.circular(AppRadii.xl),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppRadii.xl),
+                      onTap: loading ? null : () => _load(forceRefresh: true),
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: loading
+                            ? const Padding(
+                                padding: EdgeInsets.all(14),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.refresh_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _heroCountChip({
+    required IconData icon,
+    required String label,
+    bool critical = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: critical ? const Color(0x38FEE2E2) : const Color(0x1FFFFFFF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: critical ? const Color(0x55FECACA) : const Color(0x26FFFFFF),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryMetrics({
+    required int openCount,
+    required int blockingCount,
+    required int attentionCount,
+    required int inProgressCount,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 760 ? 4 : 2;
+        const gap = 10.0;
+        final width = (constraints.maxWidth - ((columns - 1) * gap)) / columns;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            _summaryMetric(
+              width: width,
+              value: openCount,
+              label: context.tr('care_gap_all'),
+              icon: Icons.inbox_outlined,
+              background: AppColors.infoSoft,
+              foreground: AppColors.infoForeground,
+              onTap: () => _selectFilter('All'),
+            ),
+            _summaryMetric(
+              width: width,
+              value: blockingCount,
+              label: context.tr('care_gap_blocking'),
+              icon: Icons.report_problem_outlined,
+              background: AppColors.criticalSoft,
+              foreground: AppColors.criticalForeground,
+              onTap: () => _selectFilter('Blocking'),
+            ),
+            _summaryMetric(
+              width: width,
+              value: attentionCount,
+              label: context.tr('care_gap_needs_attention'),
+              icon: Icons.notifications_active_outlined,
+              background: AppColors.warningSoft,
+              foreground: AppColors.warningForeground,
+              onTap: () => _selectFilter('Needs attention'),
+            ),
+            _summaryMetric(
+              width: width,
+              value: inProgressCount,
+              label: context.tr('care_gap_in_progress'),
+              icon: Icons.timelapse_rounded,
+              background: AppColors.primaryLight,
+              foreground: AppColors.accentForeground,
+              onTap: () => _selectFilter('In Progress'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _summaryMetric({
+    required double width,
+    required int value,
+    required String label,
+    required IconData icon,
+    required Color background,
+    required Color foreground,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: width,
+      child: HoverLift(
+        cursor: SystemMouseCursors.click,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadii.xxl),
+          child: AppCard(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: background,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                  ),
+                  child: Icon(icon, size: 18, color: foreground),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        child: Text(
+                          '$value',
+                          key: ValueKey('$label-$value'),
+                          style: const TextStyle(
+                            fontSize: 20,
+                            height: 1,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _selectFilter(String value) {
+    if (filter == value) return;
+    setState(() => filter = value);
+  }
+
+  Widget _loadingSkeleton() {
+    return Column(
+      children: [
+        for (var index = 0; index < 3; index++) ...[
+          AppCard(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _skeletonBlock(width: 44, height: 44, radius: 14),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _skeletonBlock(width: 180, height: 16),
+                      const SizedBox(height: 9),
+                      _skeletonBlock(width: 125, height: 11),
+                      const SizedBox(height: 14),
+                      _skeletonBlock(width: double.infinity, height: 11),
+                      const SizedBox(height: 7),
+                      _skeletonBlock(width: 220, height: 11),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (index != 2) const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+
+  Widget _skeletonBlock({
+    required double width,
+    required double height,
+    double radius = 999,
+  }) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8EEF2),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  Widget _polishedEmptyState() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 36),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF0FDFA), Color(0xFFF8FAFC)],
+        ),
+        borderRadius: BorderRadius.circular(AppRadii.xxxl),
+        border: Border.all(color: const Color(0xFFCCFBF1)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: AppColors.successSoft,
+              borderRadius: BorderRadius.circular(AppRadii.xl),
+            ),
+            child: const Icon(
+              Icons.verified_user_outlined,
+              color: AppColors.success,
+              size: 27,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            context.tr('care_gaps_ready_title'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            context.tr('care_gaps_empty_filter'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.muted,
+              height: 1.45,
+            ),
+          ),
         ],
       ),
     );
@@ -485,134 +963,242 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
     final groups = _visibleGroups;
 
     return AppCard(
+      color: const Color(0xFFFAFCFD),
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            context.tr('current_issues_by_type'),
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+            ),
+            child: const Icon(
+              Icons.view_quilt_outlined,
+              color: AppColors.primary,
+              size: 20,
+            ),
           ),
-
-          const SizedBox(height: 4),
-
-          Text(
-            context.tr('care_gap_group_help'),
-            style: const TextStyle(fontSize: 13, color: AppColors.muted),
-          ),
-
-          const SizedBox(height: 12),
-
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: groups.entries.map((entry) {
-              final blocking = entry.value.where((gap) => gap.blocking).length;
-
-              final groupLabel = context.tr(entry.key);
-
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: blocking > 0
-                      ? AppColors.criticalSoft
-                      : AppColors.warningSoft,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-                child: Text(
-                  blocking > 0
-                      ? context.tr(
-                          'care_gap_group_chip_blocking',
-                          values: {
-                            'count': entry.value.length,
-                            'type': groupLabel,
-                            'blocking': blocking,
-                          },
-                        )
-                      : context.tr(
-                          'care_gap_group_chip',
-                          values: {
-                            'count': entry.value.length,
-                            'type': groupLabel,
-                          },
-                        ),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: blocking > 0
-                        ? AppColors.criticalForeground
-                        : AppColors.warningForeground,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  context.tr('current_issues_by_type'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              );
-            }).toList(),
+                const SizedBox(height: 3),
+                Text(
+                  context.tr('care_gap_group_help'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.muted,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: groups.entries.map((entry) {
+                    final blocking = entry.value
+                        .where((gap) => gap.blocking)
+                        .length;
+                    final groupLabel = context.tr(entry.key);
+                    final critical = blocking > 0;
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: critical
+                            ? AppColors.criticalSoft
+                            : AppColors.warningSoft,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color:
+                              (critical
+                                      ? AppColors.critical
+                                      : AppColors.warning)
+                                  .withValues(alpha: .14),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _groupIcon(entry.key),
+                            size: 14,
+                            color: critical
+                                ? AppColors.criticalForeground
+                                : AppColors.warningForeground,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              critical
+                                  ? context.tr(
+                                      'care_gap_group_chip_blocking',
+                                      values: {
+                                        'count': entry.value.length,
+                                        'type': groupLabel,
+                                        'blocking': blocking,
+                                      },
+                                    )
+                                  : context.tr(
+                                      'care_gap_group_chip',
+                                      values: {
+                                        'count': entry.value.length,
+                                        'type': groupLabel,
+                                      },
+                                    ),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: critical
+                                    ? AppColors.criticalForeground
+                                    : AppColors.warningForeground,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
+  IconData _groupIcon(String key) {
+    return switch (key) {
+      'schedule_issues' => Icons.schedule_outlined,
+      'missing_information' => Icons.help_outline_rounded,
+      'document_issues' => Icons.description_outlined,
+      'verification' => Icons.verified_outlined,
+      'overdue' => Icons.timer_off_outlined,
+      'care_coordination' => Icons.groups_outlined,
+      _ => Icons.health_and_safety_outlined,
+    };
+  }
+
   List<Widget> _groupedGapSections() {
     final groups = _visibleGroups;
-
     final widgets = <Widget>[];
+    var sectionIndex = 0;
 
     for (final entry in groups.entries) {
+      final delay = Duration(milliseconds: 35 * sectionIndex.clamp(0, 5));
+      sectionIndex += 1;
+
       if (entry.value.length == 1) {
-        widgets.add(_gapCard(entry.value.first));
+        widgets.add(
+          FadeSlideIn(delay: delay, child: _gapCard(entry.value.first)),
+        );
         continue;
       }
 
       final blocking = entry.value.where((gap) => gap.blocking).length;
+      final critical = blocking > 0;
 
       widgets.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: AppCard(
-            padding: EdgeInsets.zero,
-            child: ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 5,
-              ),
-              childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-              leading: CircleAvatar(
-                radius: 18,
-                backgroundColor: blocking > 0
-                    ? AppColors.criticalSoft
-                    : AppColors.warningSoft,
-                child: Text(
-                  '${entry.value.length}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: blocking > 0
-                        ? AppColors.criticalForeground
-                        : AppColors.warningForeground,
+          child: FadeSlideIn(
+            delay: delay,
+            child: HoverLift(
+              child: AppCard(
+                padding: EdgeInsets.zero,
+                child: ExpansionTile(
+                  shape: const Border(),
+                  collapsedShape: const Border(),
+                  tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 7,
                   ),
+                  childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: critical
+                          ? AppColors.criticalSoft
+                          : AppColors.warningSoft,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                    ),
+                    child: Icon(
+                      _groupIcon(entry.key),
+                      size: 19,
+                      color: critical
+                          ? AppColors.criticalForeground
+                          : AppColors.warningForeground,
+                    ),
+                  ),
+                  title: Text(
+                    context.tr(entry.key),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      critical
+                          ? context.tr(
+                              'care_gap_group_blocking_attention',
+                              values: {
+                                'blocking': blocking,
+                                'attention': entry.value.length - blocking,
+                              },
+                            )
+                          : context.tr(
+                              'care_gap_current_issues_count',
+                              values: {'count': entry.value.length},
+                            ),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: critical
+                          ? AppColors.criticalSoft
+                          : AppColors.warningSoft,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${entry.value.length}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: critical
+                            ? AppColors.criticalForeground
+                            : AppColors.warningForeground,
+                      ),
+                    ),
+                  ),
+                  children: entry.value.map(_gapCard).toList(),
                 ),
               ),
-              title: Text(
-                context.tr(entry.key),
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: Text(
-                blocking > 0
-                    ? context.tr(
-                        'care_gap_group_blocking_attention',
-                        values: {
-                          'blocking': blocking,
-                          'attention': entry.value.length - blocking,
-                        },
-                      )
-                    : context.tr(
-                        'care_gap_current_issues_count',
-                        values: {'count': entry.value.length},
-                      ),
-              ),
-              children: entry.value.map(_gapCard).toList(),
             ),
           ),
         ),
@@ -637,162 +1223,357 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
   }
 
   Widget _filterBar() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: filters.map((value) {
-        final active = value == filter;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F5F4),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        border: Border.all(color: const Color(0xFFE2ECEA)),
+      ),
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: filters.map((value) {
+          final active = value == filter;
 
-        return InkWell(
-          onTap: () {
-            setState(() {
-              filter = value;
-            });
-          },
-          borderRadius: BorderRadius.circular(99),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: active ? AppColors.primaryLight : AppColors.card,
-              border: Border.all(
-                color: active ? AppColors.primary : AppColors.border,
+          return InkWell(
+            onTap: () => _selectFilter(value),
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: active ? AppColors.card : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                boxShadow: active
+                    ? const [
+                        BoxShadow(
+                          color: Color(0x140F172A),
+                          blurRadius: 12,
+                          spreadRadius: -6,
+                          offset: Offset(0, 5),
+                        ),
+                      ]
+                    : const [],
               ),
-              borderRadius: BorderRadius.circular(99),
-            ),
-            child: Text(
-              _filterLabel(context, value),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: active ? AppColors.accentForeground : AppColors.muted,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: active ? _filterColor(value) : AppColors.subtle,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    _filterLabel(context, value),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                      color: active ? AppColors.foreground : AppColors.muted,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
+  }
+
+  Color _filterColor(String value) {
+    return switch (value) {
+      'Blocking' => AppColors.critical,
+      'Needs attention' => AppColors.warning,
+      'In Progress' => AppColors.primary,
+      _ => AppColors.info,
+    };
   }
 
   Widget _gapCard(CareGapItemData gap) {
     final planTitle = planTitles[gap.carePlanId] ?? context.tr('care_plan');
+    final critical = gap.blocking && !gap.isResolved;
+    final inProgress = gap.isInProgress;
+    final accent = critical
+        ? AppColors.critical
+        : inProgress
+        ? AppColors.primary
+        : AppColors.warning;
+    final soft = critical
+        ? AppColors.criticalSoft
+        : inProgress
+        ? AppColors.primaryLight
+        : AppColors.warningSoft;
+    final foreground = critical
+        ? AppColors.criticalForeground
+        : inProgress
+        ? AppColors.accentForeground
+        : AppColors.warningForeground;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: FadeSlideIn(
+      child: HoverLift(
+        cursor: SystemMouseCursors.click,
         child: AppCard(
+          padding: EdgeInsets.zero,
+          borderColor: accent.withValues(alpha: .18),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  StatusBadge(status: gap.badgeStatus),
-                  _smallBadge(
-                    _localizedSeverityLabel(context, gap.severityLabel),
-                    gap.severityWasBlocking
-                        ? AppColors.criticalSoft
-                        : AppColors.warningSoft,
-                    gap.severityWasBlocking
-                        ? AppColors.criticalForeground
-                        : AppColors.warningForeground,
+              Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppRadii.xxl),
                   ),
-                  if (!gap.isResolved)
-                    _smallBadge(
-                      _localizedLifecycleLabel(context, gap.lifecycleLabel),
-                      AppColors.infoSoft,
-                      AppColors.infoForeground,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(17),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: soft,
+                            borderRadius: BorderRadius.circular(AppRadii.xl),
+                          ),
+                          child: Icon(
+                            _groupIcon(_groupKey(gap)),
+                            color: foreground,
+                            size: 21,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                gap.title,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  height: 1.25,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                '${_localizedTypeLabel(context, gap.typeLabel)} · $planTitle',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                              if (gap.whenText.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.schedule_outlined,
+                                      size: 13,
+                                      color: AppColors.subtle,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Expanded(
+                                      child: Text(
+                                        gap.whenText,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.muted,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                ],
-              ),
 
-              const SizedBox(height: 10),
+                    const SizedBox(height: 13),
 
-              Text(
-                gap.title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 3),
-
-              Text(
-                '${_localizedTypeLabel(context, gap.typeLabel)} · $planTitle',
-                style: const TextStyle(fontSize: 13, color: AppColors.muted),
-              ),
-
-              if (gap.whenText.isNotEmpty) ...[
-                const SizedBox(height: 3),
-                Text(
-                  gap.whenText,
-                  style: const TextStyle(fontSize: 13, color: AppColors.muted),
-                ),
-              ],
-
-              const SizedBox(height: 9),
-
-              Text(
-                gap.summary,
-                style: const TextStyle(fontSize: 14, color: AppColors.muted),
-              ),
-
-              if (gap.reason.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  '${context.tr('why')}: ${gap.reason}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-
-              if (!gap.isResolved && gap.nextStep.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '${context.tr('care_gap_next_step_label')}: ${gap.nextStep}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.accentForeground,
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 15),
-
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton(
-                    onPressed: () async {
-                      await Navigator.pushNamed(
-                        context,
-                        AppRoutes.careGap(gap.id),
-                      );
-
-                      if (mounted) {
-                        await _load();
-                      }
-                    },
-                    child: Text(context.tr('open')),
-                  ),
-
-                  if (!gap.isResolved)
-                    OutlinedButton.icon(
-                      onPressed: () => _openAction(gap),
-                      icon: const Icon(Icons.arrow_forward, size: 17),
-                      label: Text(_localizedActionLabel(context, gap)),
-                    )
-                  else if (gap.actionLabel.isNotEmpty)
-                    OutlinedButton.icon(
-                      onPressed: () => _openAction(gap),
-                      icon: const Icon(Icons.open_in_new, size: 17),
-                      label: Text(_localizedActionLabel(context, gap)),
+                    Wrap(
+                      spacing: 7,
+                      runSpacing: 7,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        StatusBadge(status: gap.badgeStatus),
+                        _smallBadge(
+                          _localizedSeverityLabel(context, gap.severityLabel),
+                          gap.severityWasBlocking
+                              ? AppColors.criticalSoft
+                              : AppColors.warningSoft,
+                          gap.severityWasBlocking
+                              ? AppColors.criticalForeground
+                              : AppColors.warningForeground,
+                        ),
+                        if (!gap.isResolved)
+                          _smallBadge(
+                            _localizedLifecycleLabel(
+                              context,
+                              gap.lifecycleLabel,
+                            ),
+                            AppColors.infoSoft,
+                            AppColors.infoForeground,
+                          ),
+                      ],
                     ),
-                ],
+
+                    const SizedBox(height: 13),
+
+                    Text(
+                      gap.summary,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.muted,
+                        height: 1.45,
+                      ),
+                    ),
+
+                    if (gap.reason.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(11),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(AppRadii.lg),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              size: 16,
+                              color: AppColors.muted,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${context.tr('why')}: ${gap.reason}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    if (!gap.isResolved && gap.nextStep.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(11),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(AppRadii.lg),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.arrow_circle_right_outlined,
+                              size: 17,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${context.tr('care_gap_next_step_label')}: ${gap.nextStep}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.accentForeground,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 15),
+
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final narrow = constraints.maxWidth < 430;
+
+                        final openButton = FilledButton.icon(
+                          onPressed: () async {
+                            await Navigator.pushNamed(
+                              context,
+                              AppRoutes.careGap(gap.id),
+                            );
+
+                            if (mounted) {
+                              await _load();
+                            }
+                          },
+                          icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                          label: Text(context.tr('open')),
+                        );
+
+                        final actionButton =
+                            gap.isResolved && gap.actionLabel.isEmpty
+                            ? null
+                            : OutlinedButton.icon(
+                                onPressed: () => _openAction(gap),
+                                icon: Icon(
+                                  gap.isResolved
+                                      ? Icons.open_in_new_rounded
+                                      : Icons.arrow_forward_rounded,
+                                  size: 17,
+                                ),
+                                label: Text(
+                                  _localizedActionLabel(context, gap),
+                                ),
+                              );
+
+                        if (narrow) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              openButton,
+                              if (actionButton != null) ...[
+                                const SizedBox(height: 8),
+                                actionButton,
+                              ],
+                            ],
+                          );
+                        }
+
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            openButton,
+                            if (actionButton != null) actionButton,
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -857,80 +1638,161 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
                   )
                   .toList();
 
+        final openCount = state.gaps
+            .where((gap) => gap.status != TaskStatus.resolved)
+            .length;
+
         return AppShell(
           currentRoute: AppRoutes.careGaps,
-
           title: context.tr('care_gaps'),
-
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              PageHeader(
-                title: context.tr('care_gaps'),
-                subtitle: context.tr('demo_care_gaps'),
-                action: OutlinedButton(
+              FadeSlideIn(
+                child: Container(
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF0F766E), Color(0xFF0D9488)],
+                    ),
+                    borderRadius: BorderRadius.circular(AppRadii.xxxl),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x220F766E),
+                        blurRadius: 26,
+                        spreadRadius: -11,
+                        offset: Offset(0, 13),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: const Color(0x22FFFFFF),
+                          borderRadius: BorderRadius.circular(AppRadii.xl),
+                        ),
+                        child: const Icon(
+                          Icons.health_and_safety_outlined,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 13),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr('care_gaps'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              context.tr('demo_care_gaps'),
+                              style: const TextStyle(
+                                color: Color(0xE6FFFFFF),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0x1FFFFFFF),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '$openCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
                   onPressed: () => Navigator.pushReplacementNamed(
                     context,
                     AppRoutes.simulation,
                   ),
-                  child: Text(context.tr('back_to_simulation')),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 17),
+                  label: Text(context.tr('back_to_simulation')),
                 ),
               ),
-
+              const SizedBox(height: 16),
               if (visible.isEmpty)
-                EmptyState(
-                  icon: Icons.shield_outlined,
-                  title: context.tr('care_gaps_ready_title'),
-                  description: context.tr('care_gaps_empty_filter'),
-                )
+                _polishedEmptyState()
               else
-                ...visible.map(
-                  (gap) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          StatusBadge(status: gap.status),
-
-                          const SizedBox(height: 9),
-
-                          Text(
-                            gap.title,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                            ),
+                ...visible.asMap().entries.map(
+                  (entry) => FadeSlideIn(
+                    delay: Duration(milliseconds: 35 * entry.key.clamp(0, 5)),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: HoverLift(
+                        child: AppCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              StatusBadge(status: entry.value.status),
+                              const SizedBox(height: 10),
+                              Text(
+                                entry.value.title,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${entry.value.category} · ${entry.value.when}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                              const SizedBox(height: 9),
+                              Text(
+                                entry.value.summary,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.muted,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              FilledButton.icon(
+                                onPressed: () => Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.careGap(entry.value.id),
+                                ),
+                                icon: const Icon(
+                                  Icons.open_in_new_rounded,
+                                  size: 16,
+                                ),
+                                label: Text(context.tr('open')),
+                              ),
+                            ],
                           ),
-
-                          Text(
-                            '${gap.category} · ${gap.when}',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.muted,
-                            ),
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          Text(
-                            gap.summary,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppColors.muted,
-                            ),
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          FilledButton(
-                            onPressed: () => Navigator.pushNamed(
-                              context,
-                              AppRoutes.careGap(gap.id),
-                            ),
-                            child: Text(context.tr('open')),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),

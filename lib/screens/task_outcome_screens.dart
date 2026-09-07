@@ -7,7 +7,6 @@ import '../services/auth_service.dart';
 import '../services/care_plan_service.dart';
 import '../services/care_reliability_service.dart';
 import '../widgets/app_shell.dart';
-import '../widgets/page_header.dart';
 import '../widgets/ui.dart';
 
 class CalendarRouteArgs {
@@ -234,51 +233,98 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
 
   @override
   Widget build(BuildContext context) {
+    final summary = data?.summary;
+
     return AppShell(
       currentRoute: AppRoutes.calendar,
       title: context.tr('calendar'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PageHeader(
-            title: context.tr('calendar'),
-            subtitle: context.tr('calendar_subtitle'),
-            action: OutlinedButton.icon(
-              onPressed: () {
-                setState(() => selectedDate = _today);
-                _load();
-              },
-              icon: const Icon(Icons.today_outlined, size: 17),
-              label: Text(context.tr('today')),
+          FadeSlideIn(
+            child: _TaskCareHero(
+              title: context.tr('calendar'),
+              subtitle: context.tr('calendar_subtitle'),
+              icon: Icons.calendar_month_outlined,
+              chips: [
+                (Icons.today_outlined, _displayDate(context, selectedDate)),
+                if (summary != null)
+                  (
+                    Icons.task_alt_outlined,
+                    '${summary.completed}/${summary.total}',
+                  ),
+                if (summary != null)
+                  (
+                    Icons.health_and_safety_outlined,
+                    '${summary.activePlans} ${context.tr('care_plans')}',
+                  ),
+              ],
+              action: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primary,
+                ),
+                onPressed: () {
+                  setState(() => selectedDate = _today);
+                  _load();
+                },
+                icon: const Icon(Icons.today_outlined, size: 17),
+                label: Text(context.tr('today')),
+              ),
             ),
           ),
+          const SizedBox(height: 14),
           _syncBanner(),
-          _weekPicker(),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 60),
+            child: _weekPicker(),
+          ),
           const SizedBox(height: 18),
           if (loading)
-            const AppCard(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            )
+            const _TaskCareLoadingCard()
           else if (error != null)
             AppCard(
+              padding: const EdgeInsets.all(22),
+              color: const Color(0xFFFFFBEB),
+              borderColor: const Color(0xFFFDE68A),
               child: Column(
                 children: [
-                  const Icon(Icons.cloud_off_outlined, size: 30),
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: AppColors.warningSoft,
+                      borderRadius: BorderRadius.circular(AppRadii.xl),
+                    ),
+                    child: const Icon(
+                      Icons.cloud_off_outlined,
+                      size: 24,
+                      color: AppColors.warningForeground,
+                    ),
+                  ),
                   const SizedBox(height: 10),
-                  Text(_localizedError(context), textAlign: TextAlign.center),
+                  Text(
+                    _localizedError(context),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  OutlinedButton(
+                  FilledButton.icon(
                     onPressed: _load,
-                    child: Text(context.tr('retry')),
+                    icon: const Icon(Icons.refresh_rounded, size: 17),
+                    label: Text(context.tr('retry')),
                   ),
                 ],
               ),
             )
           else
-            _dayContent(),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 90),
+              child: _dayContent(),
+            ),
         ],
       ),
     );
@@ -289,9 +335,11 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
       animation: CareReliabilityService.instance,
       builder: (context, _) {
         final sync = CareReliabilityService.instance;
+
         if (sync.online && sync.pendingCount == 0 && !sync.syncing) {
           return const SizedBox.shrink();
         }
+
         final text = !sync.online
             ? sync.pendingCount > 0
                   ? context.tr(
@@ -305,21 +353,58 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
                 'calendar_outcomes_waiting',
                 values: {'count': sync.pendingCount},
               );
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: AppCard(
-            padding: const EdgeInsets.all(12),
+          child: Container(
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: sync.online
+                  ? const Color(0xFFF0FDFA)
+                  : const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(AppRadii.xl),
+              border: Border.all(
+                color: sync.online
+                    ? AppColors.primary.withValues(alpha: .16)
+                    : const Color(0xFFFDE68A),
+              ),
+            ),
             child: Row(
               children: [
-                Icon(
-                  sync.online ? Icons.sync_outlined : Icons.cloud_off_outlined,
-                  size: 18,
-                  color: AppColors.primary,
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: sync.online
+                        ? AppColors.primaryLight
+                        : AppColors.warningSoft,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                  ),
+                  child: Icon(
+                    sync.online ? Icons.sync_rounded : Icons.cloud_off_outlined,
+                    size: 17,
+                    color: sync.online
+                        ? AppColors.primary
+                        : AppColors.warningForeground,
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 9),
                 Expanded(
-                  child: Text(text, style: const TextStyle(fontSize: 13)),
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.muted,
+                      height: 1.4,
+                    ),
+                  ),
                 ),
+                if (sync.syncing)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
               ],
             ),
           ),
@@ -351,13 +436,31 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
                   );
                   _load();
                 },
-                icon: const Icon(Icons.chevron_left),
+                icon: const Icon(Icons.chevron_left_rounded),
               ),
               Expanded(
-                child: Text(
-                  _weekLabel(context, start),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                child: Column(
+                  children: [
+                    Text(
+                      _weekLabel(context, start),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _selectedIsToday
+                          ? context.tr('today')
+                          : _displayDate(context, selectedDate),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               IconButton(
@@ -370,7 +473,7 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
                   );
                   _load();
                 },
-                icon: const Icon(Icons.chevron_right),
+                icon: const Icon(Icons.chevron_right_rounded),
               ),
             ],
           ),
@@ -398,6 +501,8 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
 
   Widget _dayButton(DateTime day, bool compact) {
     final selected = DateUtils.isSameDay(day, selectedDate);
+    final isToday = DateUtils.isSameDay(day, _today);
+
     return InkWell(
       key: ValueKey(
         'calendar_day_${calendarLocalDateKey(day)}_${selected ? 'selected' : 'idle'}',
@@ -406,28 +511,41 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
         setState(() => selectedDate = day);
         _load();
       },
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(AppRadii.lg),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
+        duration: const Duration(milliseconds: 170),
         padding: EdgeInsets.symmetric(
-          vertical: compact ? 9 : 11,
+          vertical: compact ? 8 : 10,
           horizontal: 2,
         ),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primaryLight : Colors.transparent,
+          gradient: selected
+              ? const LinearGradient(
+                  colors: [Color(0xFF0F766E), Color(0xFF0D9488)],
+                )
+              : null,
+          color: selected
+              ? null
+              : isToday
+              ? const Color(0xFFF0FDFA)
+              : const Color(0xFFF8FAFC),
           border: Border.all(
-            color: selected ? AppColors.primary : Colors.transparent,
+            color: selected
+                ? AppColors.primary
+                : isToday
+                ? AppColors.primary.withValues(alpha: .18)
+                : Colors.transparent,
           ),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadii.lg),
         ),
         child: Column(
           children: [
             Text(
               _weekday(context, day.weekday),
               style: TextStyle(
-                fontSize: compact ? 10 : 12,
-                color: selected ? AppColors.primary : AppColors.muted,
-                fontWeight: FontWeight.w600,
+                fontSize: compact ? 9 : 10,
+                color: selected ? const Color(0xDFFFFFFF) : AppColors.muted,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 2),
@@ -435,7 +553,21 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
               '${day.day}',
               style: TextStyle(
                 fontSize: compact ? 14 : 16,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
+                color: selected ? Colors.white : AppColors.foreground,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected
+                    ? Colors.white
+                    : isToday
+                    ? AppColors.primary
+                    : Colors.transparent,
               ),
             ),
           ],
@@ -446,24 +578,39 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
 
   Widget _dayContent() {
     final value = data;
+
     if (value == null || value.occurrences.isEmpty) {
       return AppCard(
+        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const Icon(Icons.event_available_outlined, size: 34),
-            const SizedBox(height: 10),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.successSoft,
+                borderRadius: BorderRadius.circular(AppRadii.xl),
+              ),
+              child: const Icon(
+                Icons.event_available_outlined,
+                size: 27,
+                color: AppColors.successForeground,
+              ),
+            ),
+            const SizedBox(height: 12),
             Text(
               context.tr(
                 'no_care_tasks_on_date',
                 values: {'date': _displayDate(context, selectedDate)},
               ),
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
             Text(
               context.tr('nothing_due_on_date'),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.muted),
+              style: const TextStyle(fontSize: 11, color: AppColors.muted),
             ),
           ],
         ),
@@ -475,37 +622,102 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
       children: [
         AppCard(
           padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _displayDate(context, selectedDate),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final copy = Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                    ),
+                    child: const Icon(
+                      Icons.event_note_outlined,
+                      size: 19,
+                      color: AppColors.primary,
+                    ),
                   ),
-                ),
-              ),
-              Text(
-                context.tr(
-                  'calendar_completed_summary',
-                  values: {
-                    'completed': value.summary.completed,
-                    'total': value.summary.total,
-                  },
-                ),
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _displayDate(context, selectedDate),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          context.tr(
+                            'calendar_completed_summary',
+                            values: {
+                              'completed': value.summary.completed,
+                              'total': value.summary.total,
+                            },
+                          ),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+
+              final stats = Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _TaskSummaryPill(
+                    label: context.tr('completed'),
+                    value: value.summary.completed,
+                    background: AppColors.successSoft,
+                    foreground: AppColors.successForeground,
+                  ),
+                  _TaskSummaryPill(
+                    label: context.tr('pending'),
+                    value: value.summary.pending,
+                    background: AppColors.primaryLight,
+                    foreground: AppColors.primary,
+                  ),
+                  if (value.summary.missed > 0)
+                    _TaskSummaryPill(
+                      label: context.tr('missed'),
+                      value: value.summary.missed,
+                      background: AppColors.criticalSoft,
+                      foreground: AppColors.criticalForeground,
+                    ),
+                ],
+              );
+
+              if (constraints.maxWidth < 560) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [copy, const SizedBox(height: 12), stats],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: copy),
+                  const SizedBox(width: 12),
+                  stats,
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 12),
         ...value.occurrences.map(
           (occurrence) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 10),
             child: _taskCard(occurrence),
           ),
         ),
@@ -524,88 +736,141 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
       _ => Icons.medication_outlined,
     };
 
-    return AppCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: AppColors.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      occurrence.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (occurrence.planTitle.isNotEmpty)
-                      Text(
-                        occurrence.planTitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.muted,
+    final attention = occurrence.missed || occurrence.overdue;
+
+    return HoverLift(
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        borderColor: attention
+            ? AppColors.critical.withValues(alpha: .20)
+            : AppColors.border,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (attention) Container(height: 4, color: AppColors.critical),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: attention
+                              ? AppColors.criticalSoft
+                              : AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(AppRadii.lg),
+                        ),
+                        child: Icon(
+                          icon,
+                          color: attention
+                              ? AppColors.criticalForeground
+                              : AppColors.primary,
+                          size: 20,
                         ),
                       ),
-                    const SizedBox(height: 5),
-                    Text(
-                      '${_clock(occurrence.scheduledTime)}'
-                      '${occurrence.period.isEmpty ? '' : ' · ${_localizedPeriod(context, occurrence.period)}'}',
-                      style: const TextStyle(color: AppColors.muted),
-                    ),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              occurrence.title,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (occurrence.planTitle.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                occurrence.planTitle,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 5),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.schedule_rounded,
+                                  size: 13,
+                                  color: AppColors.subtle,
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    '${_clock(occurrence.scheduledTime)}'
+                                    '${occurrence.period.isEmpty ? '' : ' · ${_localizedPeriod(context, occurrence.period)}'}',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.muted,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _statusChip(
+                        context,
+                        occurrence.overdue ? 'overdue' : occurrence.status,
+                      ),
+                    ],
+                  ),
+                  if (canEdit) ...[
+                    const SizedBox(height: 12),
+                    if (saving)
+                      const LinearProgressIndicator(minHeight: 3)
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (!occurrence.completed)
+                            FilledButton.icon(
+                              onPressed: () =>
+                                  _setOutcome(occurrence, 'completed'),
+                              icon: const Icon(
+                                Icons.check_circle_outline,
+                                size: 17,
+                              ),
+                              label: Text(context.tr('complete')),
+                            ),
+                          if (occurrence.pending)
+                            OutlinedButton.icon(
+                              onPressed: () =>
+                                  _setOutcome(occurrence, 'skipped'),
+                              icon: const Icon(
+                                Icons.skip_next_outlined,
+                                size: 17,
+                              ),
+                              label: Text(context.tr('record_skipped')),
+                            ),
+                          if (occurrence.completed || occurrence.skipped)
+                            TextButton.icon(
+                              onPressed: () =>
+                                  _setOutcome(occurrence, 'pending'),
+                              icon: const Icon(Icons.undo_rounded, size: 17),
+                              label: Text(context.tr('undo')),
+                            ),
+                        ],
+                      ),
                   ],
-                ),
-              ),
-              _statusChip(
-                context,
-                occurrence.overdue ? 'overdue' : occurrence.status,
-              ),
-            ],
-          ),
-          if (canEdit) ...[
-            const SizedBox(height: 14),
-            if (saving)
-              const LinearProgressIndicator(minHeight: 3)
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (!occurrence.completed)
-                    FilledButton.icon(
-                      onPressed: () => _setOutcome(occurrence, 'completed'),
-                      icon: const Icon(Icons.check_circle_outline, size: 18),
-                      label: Text(context.tr('complete')),
-                    ),
-                  if (occurrence.pending)
-                    OutlinedButton(
-                      onPressed: () => _setOutcome(occurrence, 'skipped'),
-                      child: Text(context.tr('record_skipped')),
-                    ),
-                  if (occurrence.completed || occurrence.skipped)
-                    TextButton.icon(
-                      onPressed: () => _setOutcome(occurrence, 'pending'),
-                      icon: const Icon(Icons.undo, size: 17),
-                      label: Text(context.tr('undo')),
-                    ),
                 ],
               ),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -804,68 +1069,122 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
 
   @override
   Widget build(BuildContext context) {
+    final value = data;
+
     return AppShell(
       currentRoute: AppRoutes.progress,
       title: context.tr('progress'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PageHeader(
-            title: context.tr('progress'),
-            subtitle: context.tr('progress_subtitle'),
-            action: PopupMenuButton<int>(
-              tooltip: context.tr('time_range'),
-              initialValue: days,
-              onSelected: (value) {
-                setState(() => days = value);
-                _load();
-              },
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  value: 7,
-                  child: Text(context.tr('last_days', values: {'count': 7})),
+          FadeSlideIn(
+            child: _TaskCareHero(
+              title: context.tr('progress'),
+              subtitle: context.tr('progress_subtitle'),
+              icon: Icons.insights_outlined,
+              chips: [
+                (
+                  Icons.date_range_outlined,
+                  context.tr('last_days', values: {'count': days}),
                 ),
-                PopupMenuItem(
-                  value: 14,
-                  child: Text(context.tr('last_days', values: {'count': 14})),
-                ),
-                PopupMenuItem(
-                  value: 30,
-                  child: Text(context.tr('last_days', values: {'count': 30})),
-                ),
+                if (value != null)
+                  (Icons.task_alt_outlined, '${value.completionRate}%'),
+                if (value != null)
+                  (
+                    Icons.check_circle_outline_rounded,
+                    '${value.completed} ${context.tr('completed')}',
+                  ),
               ],
-              child: OutlinedButton.icon(
-                onPressed: null,
-                icon: const Icon(Icons.date_range_outlined, size: 17),
-                label: Text(context.tr('last_days', values: {'count': days})),
+              action: PopupMenuButton<int>(
+                tooltip: context.tr('time_range'),
+                initialValue: days,
+                onSelected: (range) {
+                  setState(() => days = range);
+                  _load();
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 7,
+                    child: Text(context.tr('last_days', values: {'count': 7})),
+                  ),
+                  PopupMenuItem(
+                    value: 14,
+                    child: Text(context.tr('last_days', values: {'count': 14})),
+                  ),
+                  PopupMenuItem(
+                    value: 30,
+                    child: Text(context.tr('last_days', values: {'count': 30})),
+                  ),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.date_range_outlined,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$days',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
+          const SizedBox(height: 18),
           if (loading)
-            const AppCard(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            )
+            const _TaskCareLoadingCard()
           else if (error != null)
             AppCard(
+              padding: const EdgeInsets.all(22),
+              color: const Color(0xFFFFFBEB),
+              borderColor: const Color(0xFFFDE68A),
               child: Column(
                 children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 28,
+                    color: AppColors.warningForeground,
+                  ),
+                  const SizedBox(height: 10),
                   Text(
                     _localizedProgressError(context),
                     textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  OutlinedButton(
+                  FilledButton.icon(
                     onPressed: _load,
-                    child: Text(context.tr('retry')),
+                    icon: const Icon(Icons.refresh_rounded, size: 17),
+                    label: Text(context.tr('retry')),
                   ),
                 ],
               ),
             )
           else
-            _content(),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 70),
+              child: _content(),
+            ),
         ],
       ),
     );
@@ -881,9 +1200,10 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = constraints.maxWidth >= 720 ? 4 : 2;
-            const gap = 12.0;
+            const gap = 10.0;
             final width =
                 (constraints.maxWidth - ((columns - 1) * gap)) / columns;
+
             return Wrap(
               spacing: gap,
               runSpacing: gap,
@@ -919,23 +1239,52 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
             );
           },
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         AppCard(
           padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                context.tr('task_completion_by_day'),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                context.tr('progress_safety_explanation'),
-                style: const TextStyle(color: AppColors.muted, height: 1.4),
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                    ),
+                    child: const Icon(
+                      Icons.bar_chart_rounded,
+                      size: 19,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr('task_completion_by_day'),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          context.tr('progress_safety_explanation'),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.muted,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 18),
               if (value.daily.every((day) => day.scheduled == 0))
@@ -952,12 +1301,12 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         AppCard(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           child: Wrap(
-            spacing: 24,
-            runSpacing: 12,
+            spacing: 10,
+            runSpacing: 10,
             children: [
               _plainStat(context.tr('scheduled'), value.scheduled),
               _plainStat(context.tr('completed'), value.completed),
@@ -973,25 +1322,69 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
   }
 
   Widget _metric(double width, String label, String value, String hint) {
+    final isCompletion = label == context.tr('task_completion');
+
     return SizedBox(
       width: width,
-      child: AppCard(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(color: AppColors.muted)),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              hint,
-              style: const TextStyle(fontSize: 12, color: AppColors.muted),
-            ),
-          ],
+      child: HoverLift(
+        child: AppCard(
+          padding: const EdgeInsets.all(14),
+          color: isCompletion ? const Color(0xFFF0FDFA) : AppColors.card,
+          borderColor: isCompletion
+              ? AppColors.primary.withValues(alpha: .18)
+              : AppColors.border,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: isCompletion
+                      ? AppColors.primaryLight
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                ),
+                child: Icon(
+                  isCompletion
+                      ? Icons.insights_outlined
+                      : Icons.analytics_outlined,
+                  size: 17,
+                  color: isCompletion ? AppColors.primary : AppColors.muted,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 24,
+                  height: 1,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                hint,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 9,
+                  color: AppColors.muted,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1012,8 +1405,13 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
             },
           );
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+      ),
       child: Column(
         children: [
           Row(
@@ -1022,32 +1420,39 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
                 width: 82,
                 child: Text(
                   label,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(99),
                   child: LinearProgressIndicator(
-                    minHeight: 9,
+                    minHeight: 8,
                     value: progress,
-                    backgroundColor: AppColors.secondary,
+                    backgroundColor: const Color(0xFFE8EFEE),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               SizedBox(
-                width: 48,
+                width: 46,
                 child: Text(
                   decided == 0 ? '—' : '${day.completionRate}%',
                   textAlign: TextAlign.end,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
           ),
           if (day.scheduled > 0) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 5),
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: Text(
@@ -1062,7 +1467,7 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
                     'pending': day.pending,
                   },
                 ),
-                style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                style: const TextStyle(fontSize: 9, color: AppColors.muted),
               ),
             ),
           ],
@@ -1071,18 +1476,35 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
     );
   }
 
-  Widget _plainStat(String label, int value) => SizedBox(
-    width: 100,
+  Widget _plainStat(String label, int value) => Container(
+    width: 112,
+    padding: const EdgeInsets.all(11),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(AppRadii.lg),
+      border: Border.all(color: AppColors.border),
+    ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '$value',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            fontSize: 20,
+            height: 1,
+            fontWeight: FontWeight.w800,
+          ),
         ),
+        const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.muted),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 9,
+            color: AppColors.muted,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     ),
@@ -1122,5 +1544,209 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
       'nov_short',
       'dec_short',
     ][value - 1],
+  );
+}
+
+class _TaskCareHero extends StatelessWidget {
+  const _TaskCareHero({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.chips = const [],
+    this.action,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<(IconData, String)> chips;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(22),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF0F766E), Color(0xFF0D9488), Color(0xFF14B8A6)],
+      ),
+      borderRadius: BorderRadius.circular(28),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x240F766E),
+          blurRadius: 30,
+          spreadRadius: -12,
+          offset: Offset(0, 16),
+        ),
+      ],
+    ),
+    child: Stack(
+      children: [
+        PositionedDirectional(
+          top: -72,
+          end: -54,
+          child: Container(
+            width: 180,
+            height: 180,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0x14FFFFFF),
+            ),
+          ),
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: const Color(0x20FFFFFF),
+                    borderRadius: BorderRadius.circular(AppRadii.xl),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 25,
+                          height: 1.12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -.35,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Color(0xE6FFFFFF),
+                          fontSize: 11,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (action != null) ...[const SizedBox(width: 10), action!],
+              ],
+            ),
+            if (chips.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: chips
+                    .map(
+                      (chip) => Container(
+                        constraints: const BoxConstraints(maxWidth: 220),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0x1FFFFFFF),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(chip.$1, size: 13, color: Colors.white),
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Text(
+                                chip.$2,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+class _TaskCareLoadingCard extends StatelessWidget {
+  const _TaskCareLoadingCard();
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      children: [
+        Container(
+          width: 170,
+          height: 14,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8EEF2),
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          height: 10,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8EEF2),
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(height: 18),
+        const CircularProgressIndicator(),
+      ],
+    ),
+  );
+}
+
+class _TaskSummaryPill extends StatelessWidget {
+  const _TaskSummaryPill({
+    required this.label,
+    required this.value,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String label;
+  final int value;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    decoration: BoxDecoration(
+      color: background,
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text(
+      '$label · $value',
+      style: TextStyle(
+        color: foreground,
+        fontSize: 9,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
   );
 }

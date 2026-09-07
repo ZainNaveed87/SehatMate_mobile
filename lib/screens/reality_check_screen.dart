@@ -217,83 +217,170 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
           : _trOrFallback(context, 'life_reality_check', 'Reality Check'),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620),
-          child: loading
-              ? const Padding(
-                  padding: EdgeInsets.all(48),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : error != null
-              ? _errorState()
-              : questions.isEmpty
-              ? _emptyState()
-              : _questionView(),
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: loading
+                ? const _RealityLoadingState(key: ValueKey('reality-loading'))
+                : error != null
+                ? KeyedSubtree(
+                    key: const ValueKey('reality-error'),
+                    child: _errorState(),
+                  )
+                : questions.isEmpty
+                ? KeyedSubtree(
+                    key: const ValueKey('reality-empty'),
+                    child: _emptyState(),
+                  )
+                : KeyedSubtree(
+                    key: ValueKey(
+                      'reality-${_isFocusedReview ? 'focused' : index}',
+                    ),
+                    child: _questionView(),
+                  ),
+          ),
         ),
       ),
     );
   }
 
   Widget _errorState() {
-    return EmptyState(
-      icon: Icons.info_outline,
-      title: _trOrFallback(
-        context,
-        'reality_check_unavailable',
-        'Reality Check unavailable',
-      ),
-      description: _localizedError(context, error!),
-      action: FilledButton(
-        onPressed: () {
-          if (_isFocusedReview && Navigator.canPop(context)) {
-            Navigator.pop(context);
-            return;
-          }
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      color: const Color(0xFFFFFBEB),
+      borderColor: const Color(0xFFFDE68A),
+      child: Column(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: AppColors.warningSoft,
+              borderRadius: BorderRadius.circular(AppRadii.xl),
+            ),
+            child: const Icon(
+              Icons.info_outline_rounded,
+              color: AppColors.warningForeground,
+              size: 26,
+            ),
+          ),
+          const SizedBox(height: 13),
+          Text(
+            _trOrFallback(
+              context,
+              'reality_check_unavailable',
+              'Reality Check unavailable',
+            ),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _localizedError(context, error!),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.muted,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () {
+              if (_isFocusedReview && Navigator.canPop(context)) {
+                Navigator.pop(context);
+                return;
+              }
 
-          Navigator.pushReplacementNamed(context, AppRoutes.carePlans);
-        },
-        child: Text(
-          _isFocusedReview
-              ? 'Back to Care Gap'
-              : _trOrFallback(context, 'open_care_plans', 'Open Care Plans'),
-        ),
+              Navigator.pushReplacementNamed(context, AppRoutes.carePlans);
+            },
+            icon: const Icon(Icons.arrow_back_rounded, size: 17),
+            label: Text(
+              _isFocusedReview
+                  ? 'Back to Care Gap'
+                  : _trOrFallback(
+                      context,
+                      'open_care_plans',
+                      'Open Care Plans',
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _emptyState() {
-    return EmptyState(
-      icon: Icons.check_circle_outline,
-      title: _trOrFallback(
-        context,
-        'no_routine_questions_needed',
-        'No routine questions needed',
-      ),
-      description: _trOrFallback(
-        context,
-        'no_additional_practical_questions',
-        'No additional practical questions are needed for this care plan.',
-      ),
-      action: FilledButton(
-        onPressed: () {
-          if (widget.returnToPrevious && Navigator.canPop(context)) {
-            Navigator.pop(context);
-            return;
-          }
-
-          Navigator.pushReplacementNamed(
-            context,
-            AppRoutes.simulation,
-            arguments: CareFlowArgs(
-              planId: widget.planId!,
-              guidedSetup: widget.guidedSetup,
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: AppColors.successSoft,
+              borderRadius: BorderRadius.circular(AppRadii.xl),
             ),
-          );
-        },
-        child: Text(
-          widget.returnToPrevious
-              ? _trOrFallback(context, 'done', 'Done')
-              : _trOrFallback(context, 'view_simulation', 'View Simulation'),
-        ),
+            child: const Icon(
+              Icons.check_circle_outline_rounded,
+              color: AppColors.successForeground,
+              size: 28,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            _trOrFallback(
+              context,
+              'no_routine_questions_needed',
+              'No routine questions needed',
+            ),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _trOrFallback(
+              context,
+              'no_additional_practical_questions',
+              'No additional practical questions are needed for this care plan.',
+            ),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.muted,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: () {
+              if (widget.returnToPrevious && Navigator.canPop(context)) {
+                Navigator.pop(context);
+                return;
+              }
+
+              Navigator.pushReplacementNamed(
+                context,
+                AppRoutes.simulation,
+                arguments: CareFlowArgs(
+                  planId: widget.planId!,
+                  guidedSetup: widget.guidedSetup,
+                ),
+              );
+            },
+            icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+            label: Text(
+              widget.returnToPrevious
+                  ? _trOrFallback(context, 'done', 'Done')
+                  : _trOrFallback(
+                      context,
+                      'view_simulation',
+                      'View Simulation',
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -305,13 +392,166 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   Widget _questionView() {
     final question = questions[index];
     final selected = answers[question.key];
+    final progress = _isFocusedReview ? 1.0 : (index + 1) / questions.length;
+
+    final saveTone = _saveState == 'Saved'
+        ? AppColors.successForeground
+        : _saveState == 'Retry needed'
+        ? AppColors.critical
+        : AppColors.warningForeground;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        FadeSlideIn(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0F766E),
+                  Color(0xFF0D9488),
+                  Color(0xFF14B8A6),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x240F766E),
+                  blurRadius: 30,
+                  spreadRadius: -12,
+                  offset: Offset(0, 16),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                PositionedDirectional(
+                  top: -68,
+                  end: -50,
+                  child: Container(
+                    width: 175,
+                    height: 175,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0x14FFFFFF),
+                    ),
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: const Color(0x20FFFFFF),
+                            borderRadius: BorderRadius.circular(AppRadii.xl),
+                          ),
+                          child: Icon(
+                            _isFocusedReview
+                                ? Icons.fact_check_outlined
+                                : Icons.route_outlined,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _isFocusedReview
+                                    ? 'Focused Reality Check'
+                                    : _trOrFallback(
+                                        context,
+                                        'life_reality_check',
+                                        'Reality Check',
+                                      ),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 23,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _isFocusedReview
+                                    ? 'Review only the answer connected to this care gap.'
+                                    : 'Tell SehatMate what your real routine can support.',
+                                style: const TextStyle(
+                                  color: Color(0xE6FFFFFF),
+                                  fontSize: 12,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _isFocusedReview
+                                ? 'Focused review'
+                                : _questionCounterText(),
+                            style: const TextStyle(
+                              color: Color(0xE6FFFFFF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0x20FFFFFF),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            _categoryText(context, question),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 6,
+                        color: Colors.white,
+                        backgroundColor: const Color(0x30FFFFFF),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
         if (widget.planId != null) ...[
+          const SizedBox(height: 14),
           Align(
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: OutlinedButton.icon(
               onPressed: () => openAgent(
                 context,
@@ -327,357 +567,408 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
               label: Text(context.tr('ask_agent')),
             ),
           ),
-          const SizedBox(height: 12),
         ],
 
-        // ---------------------------------------------------------------------
-        // Focused Care Gap review information
-        // ---------------------------------------------------------------------
         if (_isFocusedReview) ...[
+          const SizedBox(height: 14),
           AppCard(
             padding: const EdgeInsets.all(16),
-            child: Column(
+            color: const Color(0xFFFFFBEB),
+            borderColor: const Color(0xFFFDE68A),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Icon(
-                        Icons.fact_check_outlined,
-                        size: 20,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Review the answer linked to this care gap',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  widget.reviewContextLabel.trim().isEmpty
-                      ? 'Only the Reality Check question related to this care gap is shown.'
-                      : 'Related to: ${widget.reviewContextLabel.trim()}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.muted,
-                    height: 1.4,
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.warningSoft,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                  ),
+                  child: const Icon(
+                    Icons.fact_check_outlined,
+                    size: 19,
+                    color: AppColors.warningForeground,
                   ),
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Your saved answer is already selected. Change it only if your real routine has changed.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.muted,
-                    height: 1.4,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Review the answer linked to this care gap',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        widget.reviewContextLabel.trim().isEmpty
+                            ? 'Only the Reality Check question related to this care gap is shown.'
+                            : 'Related to: ${widget.reviewContextLabel.trim()}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.muted,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Your saved answer is already selected. Change it only if your real routine has changed.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.muted,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 18),
         ],
 
-        // ---------------------------------------------------------------------
-        // Guided setup progress
-        // ---------------------------------------------------------------------
         if (widget.guidedSetup &&
             widget.planId != null &&
             !_isFocusedReview) ...[
+          const SizedBox(height: 14),
           GuidedCareSetupProgress(
             currentStep: 4,
             planId: widget.planId!,
             saveState: _saveState,
           ),
-          const SizedBox(height: 18),
         ],
 
-        // ---------------------------------------------------------------------
-        // Question header
-        // ---------------------------------------------------------------------
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                _isFocusedReview ? 'Focused review' : _questionCounterText(),
-                style: const TextStyle(fontSize: 14, color: AppColors.muted),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Text(
-                _categoryText(context, question),
-                textAlign: TextAlign.end,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
+        const SizedBox(height: 16),
 
-        if (!_isFocusedReview) ...[
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: (index + 1) / questions.length,
-              minHeight: 8,
-              color: AppColors.primary,
-              backgroundColor: AppColors.secondary,
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 24),
-
-        // ---------------------------------------------------------------------
-        // Main question card
-        // ---------------------------------------------------------------------
-        AppCard(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                _questionText(context, question),
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  height: 1.35,
-                ),
-              ),
-
-              // -----------------------------------------------------------------
-              // Why this question
-              // -----------------------------------------------------------------
-              if (question.reasonForAsking.trim().isNotEmpty) ...[
-                const SizedBox(height: 14),
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  childrenPadding: const EdgeInsets.only(bottom: 10),
-                  leading: const Icon(
-                    Icons.info_outline,
-                    color: AppColors.primary,
-                  ),
-                  title: Text(
-                    _trOrFallback(
-                      context,
-                      'why_this_question',
-                      'Why this question',
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 70),
+          child: AppCard(
+            padding: EdgeInsets.zero,
+            borderColor: AppColors.primary.withValues(alpha: .14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
                     ),
-                    style: const TextStyle(color: AppColors.primary),
                   ),
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary,
-                        borderRadius: BorderRadius.circular(AppRadii.xl),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _questionText(context, question),
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                height: 1.32,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: saveTone.withValues(alpha: .10),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              _saveState,
+                              style: TextStyle(
+                                color: saveTone,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        question.reasonForAsking,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.muted,
-                          height: 1.45,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
 
-              const SizedBox(height: 20),
-
-              // -----------------------------------------------------------------
-              // Options
-              // -----------------------------------------------------------------
-              ...question.options.map(
-                (option) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: OptionCard(
-                    label: _optionText(context, option),
-                    selected: selected == option,
-                    onTap: () => _selectAnswer(question.key, option),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // -----------------------------------------------------------------
-              // Optional note
-              // -----------------------------------------------------------------
-              TextField(
-                controller: note,
-                maxLines: 3,
-                onChanged: (_) {
-                  setState(() {
-                    if (_isFocusedReview) {
-                      _saveState = 'Unsaved changes';
-                    }
-                  });
-
-                  if (!_isFocusedReview) {
-                    _scheduleAutosave();
-                  }
-                },
-                decoration: InputDecoration(
-                  hintText:
-                      selected != null &&
-                          question.options.isNotEmpty &&
-                          selected != question.options.first
-                      ? _trOrFallback(
-                          context,
-                          'reality_add_more_detail_hint',
-                          'Add more detail (optional)',
-                        )
-                      : _trOrFallback(
-                          context,
-                          'reality_write_own_answer_hint',
-                          'Add a note (optional)',
-                        ),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              Text(
-                _trOrFallback(
-                  context,
-                  'reality_answer_signal_note',
-                  'Your answer helps SehatMate understand how well this care-plan step fits your real routine.',
-                ),
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.muted,
-                  height: 1.4,
-                ),
-              ),
-
-              if (selected != null &&
-                  question.options.isNotEmpty &&
-                  selected != question.options.first) ...[
-                const SizedBox(height: 10),
-                Text(
-                  _trOrFallback(
-                    context,
-                    'reality_honest_answer_note',
-                    'Keep your answer honest so the plan reflects your real routine.',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.muted,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 20),
-
-              // -----------------------------------------------------------------
-              // Responsive buttons
-              // -----------------------------------------------------------------
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final backButton = TextButton.icon(
-                    onPressed: _isFocusedReview
-                        ? Navigator.canPop(context)
-                              ? () => Navigator.pop(context)
-                              : null
-                        : index > 0
-                        ? _back
-                        : widget.guidedSetup && widget.planId != null
-                        ? _backToSchedule
-                        : null,
-                    icon: const Icon(Icons.arrow_back, size: 17),
-                    label: Text(
-                      _isFocusedReview
-                          ? 'Back to Care Gap'
-                          : index == 0 && widget.guidedSetup
-                          ? _trOrFallback(
-                              context,
-                              'back_to_schedule',
-                              'Back to Schedule',
-                            )
-                          : _trOrFallback(context, 'back', 'Back'),
-                    ),
-                  );
-
-                  final saveButton = FilledButton(
-                    onPressed:
-                        (selected == null && note.text.trim().isEmpty) || saving
-                        ? null
-                        : _next,
-                    child: Text(
-                      saving
-                          ? _trOrFallback(context, 'saving', 'Saving…')
-                          : _isFocusedReview
-                          ? 'Save & return'
-                          : index == questions.length - 1
-                          ? widget.returnToPrevious
-                                ? _trOrFallback(
-                                    context,
-                                    'save_changes',
-                                    'Save changes',
-                                  )
-                                : _trOrFallback(
-                                    context,
-                                    'build_simulation',
-                                    'Build Simulation',
-                                  )
-                          : _trOrFallback(context, 'continue', 'Continue'),
-                    ),
-                  );
-
-                  // Small/mobile width:
-                  //
-                  // [ Save & return ]
-                  //
-                  // ← Back to Care Gap
-                  //
-                  // This prevents the RenderFlex overflow visible
-                  // on narrow phones.
-                  if (constraints.maxWidth < 420) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(width: double.infinity, child: saveButton),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: backButton,
+                      if (question.reasonForAsking.trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(AppRadii.lg),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: ExpansionTile(
+                            tilePadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
+                            childrenPadding: const EdgeInsets.fromLTRB(
+                              12,
+                              0,
+                              12,
+                              12,
+                            ),
+                            shape: const Border(),
+                            collapsedShape: const Border(),
+                            leading: const Icon(
+                              Icons.info_outline_rounded,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                            title: Text(
+                              _trOrFallback(
+                                context,
+                                'why_this_question',
+                                'Why this question',
+                              ),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            children: [
+                              Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: Text(
+                                  question.reasonForAsking,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.muted,
+                                    height: 1.45,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
-                    );
-                  }
 
-                  return Row(
-                    children: [backButton, const Spacer(), saveButton],
-                  );
-                },
-              ),
-            ],
+                      const SizedBox(height: 16),
+
+                      ...question.options.map(
+                        (option) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: OptionCard(
+                            label: _optionText(context, option),
+                            selected: selected == option,
+                            onTap: () => _selectAnswer(question.key, option),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      TextField(
+                        controller: note,
+                        maxLines: 3,
+                        onChanged: (_) {
+                          setState(() {
+                            if (_isFocusedReview) {
+                              _saveState = 'Unsaved changes';
+                            }
+                          });
+
+                          if (!_isFocusedReview) {
+                            _scheduleAutosave();
+                          }
+                        },
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.notes_rounded),
+                          hintText:
+                              selected != null &&
+                                  question.options.isNotEmpty &&
+                                  selected != question.options.first
+                              ? _trOrFallback(
+                                  context,
+                                  'reality_add_more_detail_hint',
+                                  'Add more detail (optional)',
+                                )
+                              : _trOrFallback(
+                                  context,
+                                  'reality_write_own_answer_hint',
+                                  'Add a note (optional)',
+                                ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(AppRadii.lg),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.tips_and_updates_outlined,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                _trOrFallback(
+                                  context,
+                                  'reality_answer_signal_note',
+                                  'Your answer helps SehatMate understand how well this care-plan step fits your real routine.',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.muted,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      if (selected != null &&
+                          question.options.isNotEmpty &&
+                          selected != question.options.first) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _trOrFallback(
+                            context,
+                            'reality_honest_answer_note',
+                            'Keep your answer honest so the plan reflects your real routine.',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.muted,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 18),
+
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final backButton = TextButton.icon(
+                            onPressed: _isFocusedReview
+                                ? Navigator.canPop(context)
+                                      ? () => Navigator.pop(context)
+                                      : null
+                                : index > 0
+                                ? _back
+                                : widget.guidedSetup && widget.planId != null
+                                ? _backToSchedule
+                                : null,
+                            icon: const Icon(
+                              Icons.arrow_back_rounded,
+                              size: 17,
+                            ),
+                            label: Text(
+                              _isFocusedReview
+                                  ? 'Back to Care Gap'
+                                  : index == 0 && widget.guidedSetup
+                                  ? _trOrFallback(
+                                      context,
+                                      'back_to_schedule',
+                                      'Back to Schedule',
+                                    )
+                                  : _trOrFallback(context, 'back', 'Back'),
+                            ),
+                          );
+
+                          final saveButton = FilledButton.icon(
+                            onPressed:
+                                (selected == null &&
+                                        note.text.trim().isEmpty) ||
+                                    saving
+                                ? null
+                                : _next,
+                            iconAlignment: IconAlignment.end,
+                            icon: saving
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 17,
+                                  ),
+                            label: Text(
+                              saving
+                                  ? _trOrFallback(context, 'saving', 'Saving…')
+                                  : _isFocusedReview
+                                  ? 'Save & return'
+                                  : index == questions.length - 1
+                                  ? widget.returnToPrevious
+                                        ? _trOrFallback(
+                                            context,
+                                            'save_changes',
+                                            'Save changes',
+                                          )
+                                        : _trOrFallback(
+                                            context,
+                                            'build_simulation',
+                                            'Build Simulation',
+                                          )
+                                  : _trOrFallback(
+                                      context,
+                                      'continue',
+                                      'Continue',
+                                    ),
+                            ),
+                          );
+
+                          if (constraints.maxWidth < 420) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: saveButton,
+                                ),
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: backButton,
+                                ),
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [backButton, const Spacer(), saveButton],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
 
-        const SizedBox(height: 20),
-
-
+        const SizedBox(height: 16),
+        SafetyNote(
+          text: _trOrFallback(
+            context,
+            'reality_check_safety_note',
+            'Reality Check helps SehatMate adapt care logistics to your routine. It does not change verified treatment instructions.',
+          ),
+        ),
       ],
     );
   }
@@ -1138,5 +1429,54 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         });
       }
     }
+  }
+}
+
+class _RealityLoadingState extends StatelessWidget {
+  const _RealityLoadingState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          height: 170,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFE4F4F1), Color(0xFFF4F8F7)],
+            ),
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
+        const SizedBox(height: 14),
+        AppCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 180,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EEF2),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                height: 11,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EEF2),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Center(child: CircularProgressIndicator()),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

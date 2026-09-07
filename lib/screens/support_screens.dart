@@ -13,7 +13,6 @@ import '../services/settings_service.dart';
 import '../services/simple_care_service.dart';
 import '../services/teach_back_service.dart';
 import '../widgets/app_shell.dart';
-import '../widgets/page_header.dart';
 import '../widgets/ui.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -83,116 +82,163 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([_settings, AuthSession.instance]),
+      animation: Listenable.merge([
+        _settings,
+        AuthSession.instance,
+      ]),
       builder: (context, _) => AppShell(
         currentRoute: AppRoutes.settings,
         title: context.tr('settings'),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
+            constraints: const BoxConstraints(maxWidth: 900),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                PageHeader(
-                  title: context.tr('settings'),
-                  subtitle: context.tr('settings_subtitle'),
+                FadeSlideIn(
+                  child: _PremiumSettingsHero(
+                    title: context.tr('settings'),
+                    subtitle: context.tr('settings_subtitle'),
+                    icon: Icons.settings_outlined,
+                  ),
                 ),
-                _SettingsSection(
-                  title: context.tr('settings_care_experience_section'),
-                  icon: Icons.volunteer_activism_outlined,
-                  children: [
-                    _SettingsToggleRow(
-                      switchKey: const Key('settings_simple_care_toggle'),
-                      title: context.tr('simple_care_mode'),
-                      description: context.tr('settings_simple_care_hint'),
-                      value: _settings.simpleCareModeEnabled,
-                      busy: _settings.savingSimpleCareMode,
-                      onChanged: _setSimpleCareMode,
-                    ),
-                    if (_settings.simpleCareModeEnabled)
+                const SizedBox(height: 18),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 50),
+                  child: _SettingsSection(
+                    title: context.tr('settings_language_section'),
+                    icon: Icons.language_outlined,
+                    children: [
                       _SettingsActionRow(
-                        icon: Icons.check_circle_outline,
-                        title: context.tr('simple_care_mode_enabled'),
+                        icon: Icons.translate_outlined,
+                        title: context.tr('choose_language'),
                         description: context.tr(
-                          'simple_care_mode_enabled_description',
+                          'settings_current_language',
+                          values: {
+                            'language':
+                                context.appLanguage.displayName,
+                          },
+                        ),
+                        action: ConstrainedBox(
+                          constraints:
+                              const BoxConstraints(maxWidth: 320),
+                          child:
+                              DropdownButtonFormField<AppLanguage>(
+                            key: const Key(
+                              'settings_language_dropdown',
+                            ),
+                            initialValue: context.appLanguage,
+                            isExpanded: true,
+                            items: AppLanguage.values
+                                .map(
+                                  (language) =>
+                                      DropdownMenuItem(
+                                    value: language,
+                                    child: Text(
+                                      language.displayName,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                _setLanguage(value);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 80),
+                  child: _SettingsSection(
+                    title: context.tr(
+                      'settings_care_experience_section',
+                    ),
+                    icon: Icons.volunteer_activism_outlined,
+                    children: [
+                      _SettingsToggleRow(
+                        switchKey:
+                            const Key('settings_simple_care_toggle'),
+                        title: context.tr('simple_care_mode'),
+                        description:
+                            context.tr('settings_simple_care_hint'),
+                        value: _settings.simpleCareModeEnabled,
+                        busy: _settings.savingSimpleCareMode,
+                        onChanged: _setSimpleCareMode,
+                      ),
+                      if (_settings.simpleCareModeEnabled)
+                        _SettingsActionRow(
+                          icon: Icons.check_circle_outline,
+                          title: context.tr(
+                            'simple_care_mode_enabled',
+                          ),
+                          description: context.tr(
+                            'simple_care_mode_enabled_description',
+                          ),
+                          action: OutlinedButton.icon(
+                            onPressed: () => Navigator.pushNamed(
+                              context,
+                              AppRoutes.simpleCare,
+                            ),
+                            icon: const Icon(
+                              Icons.open_in_new_rounded,
+                              size: 17,
+                            ),
+                            label: Text(
+                              context.tr('open_simple_care_view'),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 110),
+                  child: _SettingsSection(
+                    title: context.tr('settings_reminders_section'),
+                    icon: Icons.notifications_active_outlined,
+                    children: [
+                      _SettingsActionRow(
+                        icon: Icons.alarm_on_outlined,
+                        title: context.tr(
+                          'settings_reminders_from_care_title',
+                        ),
+                        description: context.tr(
+                          'settings_reminders_from_care_description',
                         ),
                         action: OutlinedButton.icon(
                           onPressed: () => Navigator.pushNamed(
                             context,
-                            AppRoutes.simpleCare,
+                            AppRoutes.calendar,
                           ),
-                          icon: const Icon(Icons.open_in_new, size: 17),
-                          label: Text(context.tr('open_simple_care_view')),
+                          icon: const Icon(
+                            Icons.calendar_month_outlined,
+                            size: 17,
+                          ),
+                          label: Text(
+                            context.tr('open_calendar'),
+                          ),
                         ),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 18),
-                _SettingsSection(
-                  title: context.tr('settings_language_section'),
-                  icon: Icons.language_outlined,
-                  children: [
-                    _SettingsActionRow(
-                      icon: Icons.translate_outlined,
-                      title: context.tr('choose_language'),
-                      description: context.tr(
-                        'settings_current_language',
-                        values: {'language': context.appLanguage.displayName},
-                      ),
-                      action: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 320),
-                        child: DropdownButtonFormField<AppLanguage>(
-                          key: const Key('settings_language_dropdown'),
-                          initialValue: context.appLanguage,
-                          isExpanded: true,
-                          items: AppLanguage.values
-                              .map(
-                                (language) => DropdownMenuItem(
-                                  value: language,
-                                  child: Text(language.displayName),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value != null) _setLanguage(value);
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                _SettingsSection(
-                  title: context.tr('settings_reminders_section'),
-                  icon: Icons.notifications_active_outlined,
-                  children: [
-                    _SettingsActionRow(
-                      icon: Icons.alarm_on_outlined,
-                      title: context.tr('settings_reminders_from_care_title'),
-                      description: context.tr(
-                        'settings_reminders_from_care_description',
-                      ),
-                      action: OutlinedButton.icon(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, AppRoutes.calendar),
-                        icon: const Icon(
-                          Icons.calendar_month_outlined,
-                          size: 17,
-                        ),
-                        label: Text(context.tr('open_calendar')),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 _SettingsSection(
                   title: context.tr('settings_account_section'),
                   icon: Icons.account_circle_outlined,
                   children: [
-                    _AccountRow(onSignOut: _signingOut ? null : _signOut),
+                    _AccountRow(
+                      onSignOut: _signingOut ? null : _signOut,
+                    ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 _SettingsSection(
                   title: context.tr('settings_privacy_data_section'),
                   icon: Icons.privacy_tip_outlined,
@@ -200,49 +246,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _SettingsActionRow(
                       icon: Icons.description_outlined,
                       title: context.tr('documents'),
-                      description: context.tr('settings_documents_data_hint'),
-                      action: OutlinedButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, AppRoutes.documents),
-                        child: Text(context.tr('open')),
+                      description:
+                          context.tr('settings_documents_data_hint'),
+                      action: OutlinedButton.icon(
+                        onPressed: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.documents,
+                        ),
+                        icon: const Icon(
+                          Icons.open_in_new_rounded,
+                          size: 16,
+                        ),
+                        label: Text(context.tr('open')),
                       ),
                     ),
                     _SettingsActionRow(
                       icon: Icons.checklist_outlined,
                       title: context.tr('care_plans'),
-                      description: context.tr('settings_care_plans_data_hint'),
-                      action: OutlinedButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, AppRoutes.carePlans),
-                        child: Text(context.tr('open')),
+                      description:
+                          context.tr('settings_care_plans_data_hint'),
+                      action: OutlinedButton.icon(
+                        onPressed: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.carePlans,
+                        ),
+                        icon: const Icon(
+                          Icons.open_in_new_rounded,
+                          size: 16,
+                        ),
+                        label: Text(context.tr('open')),
                       ),
                     ),
                     _SettingsActionRow(
                       icon: Icons.handshake_outlined,
                       title: context.tr('family_care'),
-                      description: context.tr('settings_family_data_hint'),
-                      action: OutlinedButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, AppRoutes.family),
-                        child: Text(context.tr('open')),
+                      description:
+                          context.tr('settings_family_data_hint'),
+                      action: OutlinedButton.icon(
+                        onPressed: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.family,
+                        ),
+                        icon: const Icon(
+                          Icons.open_in_new_rounded,
+                          size: 16,
+                        ),
+                        label: Text(context.tr('open')),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 _SettingsSection(
                   title: context.tr('settings_about_section'),
-                  icon: Icons.info_outline,
+                  icon: Icons.info_outline_rounded,
                   children: [
                     _SettingsActionRow(
-                      icon: Icons.favorite_border,
+                      icon: Icons.favorite_border_rounded,
                       title: context.tr('app_name'),
-                      description: context.tr('settings_about_description'),
+                      description:
+                          context.tr('settings_about_description'),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                SafetyNote(text: context.tr('settings_safety_note')),
+                const SizedBox(height: 18),
+                SafetyNote(
+                  text: context.tr('settings_safety_note'),
+                ),
               ],
             ),
           ),
@@ -265,33 +335,68 @@ class _SettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 21, color: AppColors.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                  ),
+    return HoverLift(
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppRadii.xxl),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          for (var index = 0; index < children.length; index++) ...[
-            children[index],
-            if (index < children.length - 1)
-              const Divider(height: 24, color: AppColors.border),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius:
+                          BorderRadius.circular(AppRadii.lg),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 19,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                children: [
+                  for (var index = 0;
+                      index < children.length;
+                      index++) ...[
+                    children[index],
+                    if (index < children.length - 1)
+                      const Divider(
+                        height: 24,
+                        color: AppColors.border,
+                      ),
+                  ],
+                ],
+              ),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -316,41 +421,76 @@ class _SettingsToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.muted,
-                  height: 1.35,
-                ),
-              ),
-            ],
-          ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: value
+            ? const Color(0xFFF0FDFA)
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        border: Border.all(
+          color: value
+              ? AppColors.primary.withValues(alpha: .18)
+              : AppColors.border,
         ),
-        const SizedBox(width: 12),
-        busy
-            ? const SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Switch(key: switchKey, value: value, onChanged: onChanged),
-      ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: value
+                  ? AppColors.primaryLight
+                  : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+            ),
+            child: Icon(
+              value
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              size: 18,
+              color: value ? AppColors.primary : AppColors.muted,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.muted,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          busy
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Switch(
+                  key: switchKey,
+                  value: value,
+                  onChanged: onChanged,
+                ),
+        ],
+      ),
     );
   }
 }
@@ -380,9 +520,13 @@ class _SettingsActionRow extends StatelessWidget {
             color: AppColors.primaryLight,
             borderRadius: BorderRadius.circular(AppRadii.lg),
           ),
-          child: Icon(icon, size: 19, color: AppColors.primary),
+          child: Icon(
+            icon,
+            size: 18,
+            color: AppColors.primary,
+          ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 11),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,17 +534,17 @@ class _SettingsActionRow extends StatelessWidget {
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 description,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 10,
                   color: AppColors.muted,
-                  height: 1.35,
+                  height: 1.4,
                 ),
               ),
             ],
@@ -412,22 +556,25 @@ class _SettingsActionRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (action == null) return leading;
+
         if (constraints.maxWidth < 560) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               leading,
-              const SizedBox(height: 12),
-              Align(alignment: AlignmentDirectional.centerStart, child: action),
+              const SizedBox(height: 11),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: action,
+              ),
             ],
           );
         }
 
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(child: leading),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             action!,
           ],
         );
@@ -622,55 +769,97 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       title: context.tr('patient_profile'),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
+          constraints: const BoxConstraints(maxWidth: 900),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              PageHeader(
-                title: context.tr('patient_profile'),
-                subtitle: context.tr('patient_profile_subtitle'),
-                action: IconButton.filledTonal(
-                  key: const Key('profile_refresh_button'),
-                  onPressed: _loading ? null : _loadProfile,
-                  icon: const Icon(Icons.refresh, size: 19),
-                  tooltip: context.tr('refresh'),
+              FadeSlideIn(
+                child: _PremiumSettingsHero(
+                  title: context.tr('patient_profile'),
+                  subtitle: context.tr('patient_profile_subtitle'),
+                  icon: Icons.person_outline_rounded,
+                  action: IconButton.filled(
+                    key: const Key('profile_refresh_button'),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppColors.primary,
+                    ),
+                    onPressed: _loading ? null : _loadProfile,
+                    icon: const Icon(Icons.refresh_rounded, size: 19),
+                    tooltip: context.tr('refresh'),
+                  ),
                 ),
               ),
+              const SizedBox(height: 18),
               if (!_session.isAuthenticated || _session.isGuest)
                 EmptyState(
                   icon: Icons.lock_outline,
                   title: context.tr('patient_profile_sign_in_title'),
-                  description: context.tr('patient_profile_sign_in_message'),
-                  action: FilledButton(
+                  description:
+                      context.tr('patient_profile_sign_in_message'),
+                  action: FilledButton.icon(
                     onPressed: () =>
                         Navigator.pushNamed(context, AppRoutes.auth),
-                    child: Text(context.tr('sign_in')),
+                    icon: const Icon(Icons.login_rounded, size: 17),
+                    label: Text(context.tr('sign_in')),
                   ),
                 )
               else if (_loading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(48),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
+                const _PremiumSettingsLoading()
               else if (_error != null)
-                EmptyState(
-                  icon: Icons.error_outline,
-                  title: context.tr('profile_load_failed_title'),
-                  description: _error!,
-                  action: FilledButton(
-                    key: const Key('profile_retry_button'),
-                    onPressed: _loadProfile,
-                    child: Text(context.tr('retry')),
+                AppCard(
+                  padding: const EdgeInsets.all(22),
+                  color: const Color(0xFFFFFBEB),
+                  borderColor: const Color(0xFFFDE68A),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: 28,
+                        color: AppColors.warningForeground,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        context.tr('profile_load_failed_title'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      FilledButton.icon(
+                        key: const Key('profile_retry_button'),
+                        onPressed: _loadProfile,
+                        icon:
+                            const Icon(Icons.refresh_rounded, size: 17),
+                        label: Text(context.tr('retry')),
+                      ),
+                    ],
                   ),
                 )
               else ...[
-                _buildProfileForm(context),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 60),
+                  child: _buildProfileForm(context),
+                ),
+                const SizedBox(height: 14),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 90),
+                  child: _buildCareLinks(context),
+                ),
                 const SizedBox(height: 18),
-                _buildCareLinks(context),
-                const SizedBox(height: 20),
-                SafetyNote(text: context.tr('patient_profile_safety_note')),
+                SafetyNote(
+                  text: context.tr('patient_profile_safety_note'),
+                ),
               ],
             ],
           ),
@@ -689,6 +878,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           key: const Key('profile_name_field'),
           controller: name,
           textInputAction: TextInputAction.next,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.person_outline_rounded),
+          ),
         ),
       ),
       fieldLabel(
@@ -737,7 +929,10 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
         TextField(
           key: const Key('profile_city_field'),
           controller: city,
-          decoration: InputDecoration(hintText: context.tr('not_added')),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.location_city_outlined),
+            hintText: context.tr('not_added'),
+          ),
           textInputAction: TextInputAction.done,
         ),
       ),
@@ -1080,19 +1275,43 @@ class _SimpleCareScreenState extends State<SimpleCareScreen>
 
   Widget _simpleCareBody() {
     final today = _today;
+    final completed = today?.summary.completed ?? 0;
+    final total = today?.summary.total ?? 0;
+    final pending = today?.summary.pending ?? 0;
+    final activePlans =
+        _plans.where((plan) => plan.status == PlanStatus.active).length;
+
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
+        constraints: const BoxConstraints(maxWidth: 900),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            PageHeader(
-              title: context.tr('simple_care'),
-              subtitle: context.tr('simple_care_subtitle'),
-              action: _SimpleCareModeChip(
-                enabled: _settings.simpleCareModeEnabled,
+            FadeSlideIn(
+              child: _PremiumSettingsHero(
+                title: context.tr('simple_care'),
+                subtitle: context.tr('simple_care_subtitle'),
+                icon: Icons.favorite_outline_rounded,
+                action: _SimpleCareModeChip(
+                  enabled: _settings.simpleCareModeEnabled,
+                ),
+                chips: [
+                  (
+                    Icons.task_alt_outlined,
+                    '$completed / $total',
+                  ),
+                  (
+                    Icons.schedule_outlined,
+                    '$pending ${context.tr('pending')}',
+                  ),
+                  (
+                    Icons.health_and_safety_outlined,
+                    '$activePlans ${context.tr('care_plans')}',
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: 18),
             if (_loading)
               _LoadingState(text: context.tr('simple_care_loading'))
             else if (_error != null)
@@ -1101,7 +1320,8 @@ class _SimpleCareScreenState extends State<SimpleCareScreen>
               EmptyState(
                 icon: Icons.checklist_outlined,
                 title: context.tr('simple_care_empty_title'),
-                description: context.tr('simple_care_empty_description'),
+                description:
+                    context.tr('simple_care_empty_description'),
                 action: FilledButton.icon(
                   onPressed: () =>
                       Navigator.pushNamed(context, AppRoutes.carePlanNew),
@@ -1110,17 +1330,23 @@ class _SimpleCareScreenState extends State<SimpleCareScreen>
                 ),
               )
             else ...[
-              _todayCard(today),
-              const SizedBox(height: 18),
-              _restOfToday(today),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 50),
+                child: _todayCard(today),
+              ),
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 80),
+                child: _restOfToday(today),
+              ),
               if (_importantStatusItems(today).isNotEmpty) ...[
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 _importantStatus(today),
               ],
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               _yourCare(),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             SafetyNote(
               text: context.tr('medical_emergency_contact_professional'),
             ),
@@ -1165,42 +1391,103 @@ class _SimpleCareScreenState extends State<SimpleCareScreen>
             .firstOrNull ??
         ordered.firstOrNull;
 
-    return AppCard(
-      padding: const EdgeInsets.all(24),
-      color: AppColors.primaryLight,
-      borderColor: AppColors.primary,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            context.tr('simple_care_today_heading'),
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: AppColors.accentForeground,
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (next == null)
-            Text(
-              context.tr('nothing_left_today'),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-            )
-          else
-            _PrimarySimpleCareTask(
-              occurrence: next,
-              saving: _savingIds.contains(next.id),
-              statusLabel: _statusLabelFor(next),
-              onComplete: next.missed
-                  ? null
-                  : () => _setOutcome(next, 'completed'),
-              onSkip: next.pending ? () => _setOutcome(next, 'skipped') : null,
-              onOpenPlan: () => Navigator.pushNamed(
-                context,
-                AppRoutes.carePlan(next.carePlanId),
+    return Container(
+      padding: const EdgeInsets.all(1),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF99F6E4),
+            Color(0xFFE2E8F0),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        radius: 27,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF0F766E),
+                    Color(0xFF0D9488),
+                  ],
+                ),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(27),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.today_outlined,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      context.tr('simple_care_today_heading'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0x20FFFFFF),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${today.summary.completed}/${today.summary.total}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: next == null
+                  ? Text(
+                      context.tr('nothing_left_today'),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    )
+                  : _PrimarySimpleCareTask(
+                      occurrence: next,
+                      saving: _savingIds.contains(next.id),
+                      statusLabel: _statusLabelFor(next),
+                      onComplete: next.missed
+                          ? null
+                          : () => _setOutcome(next, 'completed'),
+                      onSkip: next.pending
+                          ? () => _setOutcome(next, 'skipped')
+                          : null,
+                      onOpenPlan: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.carePlan(next.carePlanId),
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2213,96 +2500,133 @@ class _TeachBackScreenState extends State<TeachBackScreen> {
   @override
   Widget build(BuildContext context) {
     final title = context.tr('teach_back');
+    final questionCount = session?.questions.length ?? 0;
+
     return AppShell(
       currentRoute: AppRoutes.teachBack,
       title: title,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: AnimatedBuilder(
-            animation: CareDemoState.instance,
-            builder: (context, _) {
-              if (loading) return _LoadingState(text: context.tr('loading'));
-              if (errorMessage.isNotEmpty) {
-                return _MessageState(
-                  icon: Icons.lock_outline,
-                  title: context.tr('teach_back_unavailable'),
-                  message: errorMessage,
-                  action: OutlinedButton.icon(
-                    onPressed: _loadTargets,
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: Text(context.tr('retry')),
-                  ),
-                );
-              }
-              if (targets.isEmpty) {
-                return _MessageState(
-                  icon: Icons.fact_check_outlined,
-                  title: context.tr('teach_back_empty'),
-                  message: context.tr('teach_back_empty_detail'),
-                  action: OutlinedButton.icon(
-                    onPressed: () => Navigator.pushReplacementNamed(
-                      context,
-                      AppRoutes.carePlans,
+          constraints: const BoxConstraints(maxWidth: 820),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FadeSlideIn(
+                child: _PremiumSettingsHero(
+                  title: title,
+                  subtitle: context.tr('teach_back_subtitle'),
+                  icon: Icons.record_voice_over_outlined,
+                  chips: [
+                    if (questionCount > 0)
+                      (
+                        Icons.quiz_outlined,
+                        '$questionCount questions',
+                      ),
+                    (
+                      Icons.mic_none_rounded,
+                      listening ? 'Voice active' : 'Voice ready',
                     ),
-                    icon: const Icon(Icons.checklist_outlined, size: 18),
-                    label: Text(context.tr('care_plans')),
-                  ),
-                );
-              }
-              if (showFinal && finalResult != null) {
-                return _FinalResultCard(
-                  result: finalResult!,
-                  statusLabel: _statusLabel(finalResult!.status),
-                  statusColor: _statusColor(finalResult!.status),
-                  onRetryWeak: _retryWeakQuestions,
-                  onDashboard: () => Navigator.pushReplacementNamed(
-                    context,
-                    AppRoutes.dashboard,
-                  ),
-                  onCarePlan: selectedTarget?.carePlanId.isEmpty ?? true
-                      ? null
-                      : () => Navigator.pushReplacementNamed(
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              AnimatedBuilder(
+                animation: CareDemoState.instance,
+                builder: (context, _) {
+                  if (loading) {
+                    return _LoadingState(text: context.tr('loading'));
+                  }
+                  if (errorMessage.isNotEmpty) {
+                    return _MessageState(
+                      icon: Icons.lock_outline,
+                      title: context.tr('teach_back_unavailable'),
+                      message: errorMessage,
+                      action: OutlinedButton.icon(
+                        onPressed: _loadTargets,
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: Text(context.tr('retry')),
+                      ),
+                    );
+                  }
+                  if (targets.isEmpty) {
+                    return _MessageState(
+                      icon: Icons.fact_check_outlined,
+                      title: context.tr('teach_back_empty'),
+                      message: context.tr('teach_back_empty_detail'),
+                      action: OutlinedButton.icon(
+                        onPressed: () => Navigator.pushReplacementNamed(
                           context,
-                          AppRoutes.carePlan(selectedTarget!.carePlanId),
+                          AppRoutes.carePlans,
                         ),
-                );
-              }
-              return _SessionBody(
-                targets: targets,
-                selectedTarget: selectedTarget,
-                session: session,
-                currentQuestion: currentQuestion,
-                currentAssessment: currentAssessment,
-                canSubmit:
-                    currentQuestion != null &&
-                    (answers[currentQuestion!.id] ?? '').trim().isNotEmpty &&
-                    !submitting,
-                controller: controller,
-                index: index,
-                loadingSession: loadingSession,
-                submitting: submitting,
-                listening: listening,
-                speechMessage: speechMessage,
-                onTargetChanged: (targetKey) {
-                  final target = targets
-                      .where((item) => item.key == targetKey)
-                      .firstOrNull;
-                  if (target != null) _loadSession(target);
+                        icon: const Icon(Icons.checklist_outlined, size: 18),
+                        label: Text(context.tr('care_plans')),
+                      ),
+                    );
+                  }
+                  if (showFinal && finalResult != null) {
+                    return FadeSlideIn(
+                      child: _FinalResultCard(
+                        result: finalResult!,
+                        statusLabel: _statusLabel(finalResult!.status),
+                        statusColor: _statusColor(finalResult!.status),
+                        onRetryWeak: _retryWeakQuestions,
+                        onDashboard: () =>
+                            Navigator.pushReplacementNamed(
+                          context,
+                          AppRoutes.dashboard,
+                        ),
+                        onCarePlan:
+                            selectedTarget?.carePlanId.isEmpty ?? true
+                                ? null
+                                : () => Navigator.pushReplacementNamed(
+                                    context,
+                                    AppRoutes.carePlan(
+                                      selectedTarget!.carePlanId,
+                                    ),
+                                  ),
+                      ),
+                    );
+                  }
+                  return FadeSlideIn(
+                    delay: const Duration(milliseconds: 60),
+                    child: _SessionBody(
+                      targets: targets,
+                      selectedTarget: selectedTarget,
+                      session: session,
+                      currentQuestion: currentQuestion,
+                      currentAssessment: currentAssessment,
+                      canSubmit:
+                          currentQuestion != null &&
+                          (answers[currentQuestion!.id] ?? '').trim().isNotEmpty &&
+                          !submitting,
+                      controller: controller,
+                      index: index,
+                      loadingSession: loadingSession,
+                      submitting: submitting,
+                      listening: listening,
+                      speechMessage: speechMessage,
+                      onTargetChanged: (targetKey) {
+                        final target = targets
+                            .where((item) => item.key == targetKey)
+                            .firstOrNull;
+                        if (target != null) _loadSession(target);
+                      },
+                      onSubmit: _submitAnswer,
+                      onToggleSpeech: _toggleSpeech,
+                      onAnswerChanged: _answerChanged,
+                      onRetry: _retryCurrent,
+                      onNext: _nextQuestion,
+                      statusLabel: currentAssessment == null
+                          ? ''
+                          : _statusLabel(currentAssessment!.status),
+                      statusColor: currentAssessment == null
+                          ? AppColors.muted
+                          : _statusColor(currentAssessment!.status),
+                    ),
+                  );
                 },
-                onSubmit: _submitAnswer,
-                onToggleSpeech: _toggleSpeech,
-                onAnswerChanged: _answerChanged,
-                onRetry: _retryCurrent,
-                onNext: _nextQuestion,
-                statusLabel: currentAssessment == null
-                    ? ''
-                    : _statusLabel(currentAssessment!.status),
-                statusColor: currentAssessment == null
-                    ? AppColors.muted
-                    : _statusColor(currentAssessment!.status),
-              );
-            },
+              ),
+            ],
           ),
         ),
       ),
@@ -2424,10 +2748,6 @@ class _SessionBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        PageHeader(
-          title: context.tr('teach_back_title'),
-          subtitle: context.tr('teach_back_subtitle'),
-        ),
         if (targets.length > 1) ...[
           fieldLabel(
             context.tr('teach_back_target_label'),
@@ -2871,3 +3191,200 @@ class _ResultChip extends StatelessWidget {
     );
   }
 }
+
+
+class _PremiumSettingsHero extends StatelessWidget {
+  const _PremiumSettingsHero({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.chips = const [],
+    this.action,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<(IconData, String)> chips;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F766E),
+              Color(0xFF0D9488),
+              Color(0xFF14B8A6),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x240F766E),
+              blurRadius: 30,
+              spreadRadius: -12,
+              offset: Offset(0, 16),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            PositionedDirectional(
+              top: -72,
+              end: -54,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0x14FFFFFF),
+                ),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: const Color(0x20FFFFFF),
+                        borderRadius: BorderRadius.circular(AppRadii.xl),
+                        border: Border.all(
+                          color: const Color(0x2AFFFFFF),
+                        ),
+                      ),
+                      child: Icon(
+                        icon,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 25,
+                              height: 1.12,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -.35,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            subtitle,
+                            style: const TextStyle(
+                              color: Color(0xE6FFFFFF),
+                              fontSize: 11,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (action != null) ...[
+                      const SizedBox(width: 10),
+                      action!,
+                    ],
+                  ],
+                ),
+                if (chips.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: chips
+                        .map(
+                          (chip) => Container(
+                            constraints:
+                                const BoxConstraints(maxWidth: 240),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0x1FFFFFFF),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: const Color(0x20FFFFFF),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  chip.$1,
+                                  size: 13,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 5),
+                                Flexible(
+                                  child: Text(
+                                    chip.$2,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+class _PremiumSettingsLoading extends StatelessWidget {
+  const _PremiumSettingsLoading();
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Container(
+              width: 170,
+              height: 14,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8EEF2),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              height: 10,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8EEF2),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const CircularProgressIndicator(),
+          ],
+        ),
+      );
+}
+

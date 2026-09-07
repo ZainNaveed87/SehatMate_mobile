@@ -171,7 +171,11 @@ class NotificationService {
       );
       scheduled++;
     }
-    return NotificationScheduleResult(permissionGranted: true, exactAlarmGranted: true, scheduledCount: scheduled);
+    return NotificationScheduleResult(
+      permissionGranted: true,
+      exactAlarmGranted: true,
+      scheduledCount: scheduled,
+    );
   }
 
   Future<void> cancelPlan(String planId) async {
@@ -199,8 +203,17 @@ class NotificationService {
     final date = DateTime.tryParse(rawDate);
     var next = date == null
         ? tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute)
-        : tz.TZDateTime(tz.local, date.year, date.month, date.day, hour, minute);
-    if (!next.isAfter(now) && date == null) next = next.add(const Duration(days: 1));
+        : tz.TZDateTime(
+            tz.local,
+            date.year,
+            date.month,
+            date.day,
+            hour,
+            minute,
+          );
+    if (!next.isAfter(now) && date == null) {
+      next = next.add(const Duration(days: 1));
+    }
     if (!next.isAfter(now)) return null;
     return next;
   }

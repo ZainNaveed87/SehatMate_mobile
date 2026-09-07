@@ -121,24 +121,45 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     setState(() => simpleCareMode = _settings.simpleCareModeEnabled);
   }
 
+  String _currentStepTitle() => 'Set up your care';
+
+  IconData _currentStepIcon() {
+    return switch (step) {
+      1 => Icons.person_search_outlined,
+      2 => Icons.badge_outlined,
+      3 => Icons.language_rounded,
+      4 => Icons.flag_outlined,
+      5 => Icons.description_outlined,
+      6 => Icons.notifications_active_outlined,
+      _ => Icons.accessibility_new_rounded,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_session.isAuthenticated || _session.isGuest) {
       return Scaffold(
+        backgroundColor: const Color(0xFFF4F8F7),
         body: SafeArea(
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: EmptyState(
-                  icon: Icons.lock_outline,
-                  title: context.tr('onboarding_sign_in_title'),
-                  description: context.tr('onboarding_sign_in_message'),
-                  action: FilledButton(
-                    onPressed: () =>
-                        Navigator.pushReplacementNamed(context, AppRoutes.auth),
-                    child: Text(context.tr('sign_in')),
+                child: AppCard(
+                  padding: const EdgeInsets.all(24),
+                  child: EmptyState(
+                    icon: Icons.lock_outline,
+                    title: context.tr('onboarding_sign_in_title'),
+                    description: context.tr('onboarding_sign_in_message'),
+                    action: FilledButton.icon(
+                      onPressed: () => Navigator.pushReplacementNamed(
+                        context,
+                        AppRoutes.auth,
+                      ),
+                      icon: const Icon(Icons.login_rounded, size: 18),
+                      label: Text(context.tr('sign_in')),
+                    ),
                   ),
                 ),
               ),
@@ -148,109 +169,409 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
     }
 
+    final width = MediaQuery.sizeOf(context).width;
+    final desktop = width >= 900;
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F8F7),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 64),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: 72,
-                      child: Row(
-                        children: [
-                          InkWell(
-                            onTap: () => Navigator.pushReplacementNamed(
-                              context,
-                              AppRoutes.landing,
-                            ),
-                            child: const BrandLogo(),
-                          ),
-                          const Spacer(),
-                          Text(
-                            context.tr(
-                              'onboarding_step_of_total',
-                              values: {'step': step, 'total': _totalSteps},
-                            ),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.muted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(99),
-                      child: LinearProgressIndicator(
-                        value: step / _totalSteps,
-                        minHeight: 8,
-                        color: AppColors.primary,
-                        backgroundColor: AppColors.secondary,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    AppCard(
-                      padding: const EdgeInsets.all(24),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Column(
-                          key: ValueKey(step),
-                          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
+          children: [
+            PositionedDirectional(
+              top: -120,
+              end: -100,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0x100D9488),
+                ),
+              ),
+            ),
+            PositionedDirectional(
+              bottom: -150,
+              start: -110,
+              child: Container(
+                width: 340,
+                height: 340,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0x0B14B8A6),
+                ),
+              ),
+            ),
+            SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                width >= 640 ? 24 : 16,
+                0,
+                width >= 640 ? 24 : 16,
+                48,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        height: 72,
+                        child: Row(
                           children: [
-                            _stepContent(),
-                            const SizedBox(height: 28),
-                            Row(
-                              children: [
-                                TextButton.icon(
-                                  onPressed: _submitting ? null : _back,
-                                  icon: const Icon(Icons.arrow_back, size: 17),
-                                  label: Text(context.tr('back')),
+                            InkWell(
+                              onTap: () => Navigator.pushReplacementNamed(
+                                context,
+                                AppRoutes.landing,
+                              ),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadii.lg),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: BrandLogo(),
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.card,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: Text(
+                                context.tr(
+                                  'onboarding_step_of_total',
+                                  values: {
+                                    'step': step,
+                                    'total': _totalSteps,
+                                  },
                                 ),
-                                const Spacer(),
-                                FilledButton.icon(
-                                  key: const Key('onboarding_next_button'),
-                                  onPressed: _submitting ? null : _next,
-                                  iconAlignment: IconAlignment.end,
-                                  icon: step < _totalSteps
-                                      ? const Icon(
-                                          Icons.arrow_forward,
-                                          size: 17,
-                                        )
-                                      : _submitting
-                                      ? const SizedBox(
-                                          width: 17,
-                                          height: 17,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(Icons.check, size: 17),
-                                  label: Text(
-                                    step < _totalSteps
-                                        ? context.tr('continue')
-                                        : context.tr('finish_setup'),
-                                  ),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.muted,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              ],
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                      if (desktop)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 310,
+                              child: _onboardingHero(),
+                            ),
+                            const SizedBox(width: 18),
+                            Expanded(child: _onboardingCard()),
+                          ],
+                        )
+                      else ...[
+                        _onboardingHero(compact: true),
+                        const SizedBox(height: 14),
+                        _onboardingCard(),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _onboardingHero({bool compact = false}) {
+    final progress = step / _totalSteps;
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 18 : 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F766E),
+            Color(0xFF0D9488),
+            Color(0xFF14B8A6),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x240F766E),
+            blurRadius: 30,
+            spreadRadius: -12,
+            offset: Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          PositionedDirectional(
+            top: -68,
+            end: -50,
+            child: Container(
+              width: 175,
+              height: 175,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0x14FFFFFF),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0x20FFFFFF),
+                  borderRadius: BorderRadius.circular(AppRadii.xl),
+                  border: Border.all(color: const Color(0x2FFFFFFF)),
+                ),
+                child: Icon(
+                  _currentStepIcon(),
+                  color: Colors.white,
+                  size: 23,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Set up SehatMate',
+                style: TextStyle(
+                  color: Color(0xDFFFFFFF),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                _currentStepTitle(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: compact ? 23 : 27,
+                  height: 1.12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -.35,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Text(
+                    '$step / $_totalSteps',
+                    style: const TextStyle(
+                      color: Color(0xE6FFFFFF),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${(progress * 100).round()}%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  color: Colors.white,
+                  backgroundColor: const Color(0x30FFFFFF),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: List.generate(
+                  _totalSteps,
+                  (index) {
+                    final number = index + 1;
+                    final active = number == step;
+                    final complete = number < step;
+
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: active ? 34 : 26,
+                      height: 26,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: complete || active
+                            ? Colors.white
+                            : const Color(0x16FFFFFF),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: complete || active
+                              ? Colors.white
+                              : const Color(0x38FFFFFF),
+                        ),
+                      ),
+                      child: complete
+                          ? const Icon(
+                              Icons.check_rounded,
+                              size: 14,
+                              color: AppColors.primary,
+                            )
+                          : Text(
+                              '$number',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: active
+                                    ? AppColors.primary
+                                    : const Color(0xC8FFFFFF),
+                              ),
+                            ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _onboardingCard() {
+    return AppCard(
+      padding: EdgeInsets.zero,
+      radius: 28,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF0F766E),
+                  Color(0xFF14B8A6),
+                ],
+              ),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(22),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final slide = Tween<Offset>(
+                  begin: const Offset(.025, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: slide,
+                    child: child,
+                  ),
+                );
+              },
+              child: Column(
+                key: ValueKey(step),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _stepContent(),
+                  const SizedBox(height: 28),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final backButton = TextButton.icon(
+                        onPressed: _submitting ? null : _back,
+                        icon: const Icon(
+                          Icons.arrow_back_rounded,
+                          size: 17,
+                        ),
+                        label: Text(context.tr('back')),
+                      );
+
+                      final nextButton = FilledButton.icon(
+                        key: const Key('onboarding_next_button'),
+                        onPressed: _submitting ? null : _next,
+                        iconAlignment: IconAlignment.end,
+                        icon: step < _totalSteps
+                            ? const Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 17,
+                              )
+                            : _submitting
+                                ? const SizedBox(
+                                    width: 17,
+                                    height: 17,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.check_rounded,
+                                    size: 17,
+                                  ),
+                        label: Text(
+                          step < _totalSteps
+                              ? context.tr('continue')
+                              : context.tr('finish_setup'),
+                        ),
+                      );
+
+                      if (constraints.maxWidth < 420) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: nextButton,
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment:
+                                  AlignmentDirectional.centerStart,
+                              child: backButton,
+                            ),
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          backButton,
+                          const Spacer(),
+                          nextButton,
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _stepContent() {
     switch (step) {
@@ -632,23 +953,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 class _StepHeading extends StatelessWidget {
-  const _StepHeading({required this.title, required this.subtitle});
+  const _StepHeading({
+    required this.title,
+    required this.subtitle,
+  });
+
   final String title;
   final String subtitle;
 
   @override
   Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        title,
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-      ),
-      const SizedBox(height: 4),
-      Text(subtitle, style: const TextStyle(color: AppColors.muted)),
-    ],
-  );
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 22,
+              height: 1.2,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 13,
+              height: 1.45,
+            ),
+          ),
+        ],
+      );
 }
+
 
 class _GoalOption {
   const _GoalOption(this.key, this.labelKey, this.descriptionKey);
@@ -674,51 +1021,87 @@ class _CheckboxOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => onChanged(!selected),
-      borderRadius: BorderRadius.circular(AppRadii.xl),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primaryLight : AppColors.card,
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+    return HoverLift(
+      child: InkWell(
+        onTap: () => onChanged(!selected),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: double.infinity,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFFF0FDFA)
+                : AppColors.card,
+            border: Border.all(
+              color: selected
+                  ? AppColors.primary.withValues(alpha: .38)
+                  : AppColors.border,
+            ),
+            borderRadius: BorderRadius.circular(AppRadii.xl),
+            boxShadow: selected
+                ? const [
+                    BoxShadow(
+                      color: Color(0x120F766E),
+                      blurRadius: 14,
+                      spreadRadius: -8,
+                      offset: Offset(0, 7),
+                    ),
+                  ]
+                : const [],
           ),
-          borderRadius: BorderRadius.circular(AppRadii.xl),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: selected,
-              onChanged: (value) => onChanged(value ?? false),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ],
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.primary
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                ),
+                child: Icon(
+                  selected
+                      ? Icons.check_rounded
+                      : Icons.add_rounded,
+                  size: 18,
+                  color:
+                      selected ? Colors.white : AppColors.muted,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Checkbox(
+                value: selected,
+                onChanged: (value) => onChanged(value ?? false),
+              ),
+            ],
+          ),
         ),
       ),
     );
