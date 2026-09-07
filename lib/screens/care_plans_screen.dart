@@ -9,7 +9,6 @@ import '../services/auth_service.dart';
 import '../services/care_plan_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/app_shell.dart';
-import '../widgets/page_header.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ui.dart';
 
@@ -1390,58 +1389,198 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
   bool get _canContinue => !_creating && _planNameErrorKey == null;
 
   @override
-  Widget build(BuildContext context) => AppShell(
-    currentRoute: AppRoutes.carePlanNew,
-    title: context.tr('new_care_plan'),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: TextButton.icon(
-            onPressed: () =>
-                Navigator.pushReplacementNamed(context, AppRoutes.carePlans),
-            icon: const Icon(Icons.arrow_back, size: 17),
-            label: Text(context.tr('care_plans')),
+  Widget build(BuildContext context) {
+    return AppShell(
+      currentRoute: AppRoutes.carePlanNew,
+      title: context.tr('new_care_plan'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () =>
+                  Navigator.pushReplacementNamed(context, AppRoutes.carePlans),
+              icon: const Icon(Icons.arrow_back_rounded, size: 17),
+              label: Text(context.tr('care_plans')),
+            ),
           ),
-        ),
-        PageHeader(
-          title: context.tr('new_care_plan'),
-          subtitle: context.tr('plan_name_helper'),
-        ),
-        TextField(
-          key: const ValueKey('new_care_plan_name_field'),
-          controller: _planNameController,
-          textInputAction: TextInputAction.done,
-          decoration: InputDecoration(
-            labelText: '${context.tr('plan_name')} *',
-            hintText: context.tr('plan_name_hint'),
-            helperText: context.tr('plan_name_helper'),
-            errorText: _nameTouched && _planNameErrorKey != null
-                ? context.tr(_planNameErrorKey!)
-                : null,
+          const SizedBox(height: 6),
+          FadeSlideIn(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF0F766E),
+                    Color(0xFF0D9488),
+                    Color(0xFF14B8A6),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(AppRadii.xxxl),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x260F766E),
+                    blurRadius: 30,
+                    spreadRadius: -12,
+                    offset: Offset(0, 15),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  PositionedDirectional(
+                    top: -62,
+                    end: -42,
+                    child: Container(
+                      width: 150,
+                      height: 150,
+                      decoration: const BoxDecoration(
+                        color: Color(0x16FFFFFF),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0x24FFFFFF),
+                          borderRadius: BorderRadius.circular(AppRadii.xl),
+                          border: Border.all(color: const Color(0x32FFFFFF)),
+                        ),
+                        child: const Icon(
+                          Icons.health_and_safety_outlined,
+                          color: Colors.white,
+                          size: 23,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr('new_care_plan'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                height: 1.08,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -.4,
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              context.tr('plan_name_helper'),
+                              style: const TextStyle(
+                                color: Color(0xE6FFFFFF),
+                                fontSize: 13,
+                                height: 1.45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          onChanged: (_) => setState(() => _nameTouched = true),
-          onSubmitted: (_) {
-            if (_canContinue) _continue();
-          },
-        ),
-        const SizedBox(height: 24),
-        SafetyNote(text: context.tr('new_plan_safety_note')),
-        const SizedBox(height: 24),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: FilledButton.icon(
-            key: const ValueKey('new_care_plan_continue_button'),
-            onPressed: _canContinue ? _continue : null,
-            iconAlignment: IconAlignment.end,
-            icon: const Icon(Icons.arrow_forward, size: 17),
-            label: Text(context.tr('continue')),
+          const SizedBox(height: 18),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 60),
+            child: AppCard(
+              radius: AppRadii.xxl,
+              padding: const EdgeInsets.all(18),
+              borderColor: const Color(0xFFDCE8E6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(AppRadii.lg),
+                        ),
+                        child: const Icon(
+                          Icons.edit_note_rounded,
+                          color: AppColors.primary,
+                          size: 19,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          context.tr('plan_name'),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 15),
+                  TextField(
+                    key: const ValueKey('new_care_plan_name_field'),
+                    controller: _planNameController,
+                    textInputAction: TextInputAction.done,
+                    decoration: InputDecoration(
+                      labelText: '${context.tr('plan_name')} *',
+                      hintText: context.tr('plan_name_hint'),
+                      helperText: context.tr('plan_name_helper'),
+                      prefixIcon: const Icon(Icons.folder_open_outlined),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FBFA),
+                      errorText: _nameTouched && _planNameErrorKey != null
+                          ? context.tr(_planNameErrorKey!)
+                          : null,
+                    ),
+                    onChanged: (_) => setState(() => _nameTouched = true),
+                    onSubmitted: (_) {
+                      if (_canContinue) _continue();
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  SafetyNote(text: context.tr('new_plan_safety_note')),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    height: 50,
+                    child: FilledButton.icon(
+                      key: const ValueKey('new_care_plan_continue_button'),
+                      onPressed: _canContinue ? _continue : null,
+                      iconAlignment: IconAlignment.end,
+                      icon: _creating
+                          ? const SizedBox(
+                              width: 17,
+                              height: 17,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.arrow_forward_rounded, size: 18),
+                      label: Text(context.tr('continue')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
   Future<void> _continue() async {
     setState(() => _nameTouched = true);
