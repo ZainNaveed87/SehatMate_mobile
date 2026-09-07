@@ -53,6 +53,8 @@ class FamilyInvitation {
     required this.id,
     required this.relationshipLabel,
     required this.status,
+    this.direction = '',
+    this.canRespond = false,
     required this.inviter,
     required this.caregiver,
     required this.careRecipient,
@@ -63,7 +65,12 @@ class FamilyInvitation {
   final String id;
   final String relationshipLabel;
   final String status;
+  final String direction;
+  final bool canRespond;
   final FamilyInvitePerson? inviter;
+
+  bool get isIncoming => direction == 'incoming' || canRespond;
+  bool get isOutgoing => direction == 'outgoing';
   final FamilyInvitePerson? caregiver;
   final FamilyInvitePerson? careRecipient;
   final Map<String, bool> requestedScopes;
@@ -368,6 +375,8 @@ class FamilyCareService {
       id: _text(json['id']),
       relationshipLabel: _text(json['relationshipLabel']),
       status: _text(json['status']),
+      direction: _text(json['direction']),
+      canRespond: json['canRespond'] == true || json['canRespond'] == 1,
       inviter: _personFromJson(json['inviter']),
       caregiver: _personFromJson(json['caregiver']),
       careRecipient: _personFromJson(json['careRecipient']),

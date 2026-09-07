@@ -101,6 +101,7 @@ class _InvitationPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (invitations.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -112,64 +113,139 @@ class _InvitationPanel extends StatelessWidget {
         ...invitations.map(
           (invitation) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: AppCard(
-              radius: AppRadii.lg,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const TaskIcon(icon: Icons.mail_outline, size: 42),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          invitation.careRecipient?.patientName.isNotEmpty ==
-                                  true
-                              ? invitation.careRecipient!.patientName
-                              : invitation.inviter?.name ?? 'Family member',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${invitation.relationshipLabel} invitation from ${invitation.inviter?.name ?? 'SehatMate user'}',
-                          style: const TextStyle(color: AppColors.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton(
-                        onPressed: () => _handleInvitation(
-                          context,
-                          invitation.id,
-                          accept: true,
-                        ),
-                        child: const Text('Accept'),
-                      ),
-                      OutlinedButton(
-                        onPressed: () => _handleInvitation(
-                          context,
-                          invitation.id,
-                          accept: false,
-                        ),
-                        child: const Text('Decline'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            child: _InvitationCard(
+              invitation: invitation,
+              onChanged: onChanged,
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _InvitationCard extends StatelessWidget {
+  const _InvitationCard({required this.invitation, required this.onChanged});
+
+  final FamilyInvitation invitation;
+  final VoidCallback onChanged;
+
+  String get _personName {
+    if (invitation.isIncoming) {
+      final patientName = invitation.careRecipient?.patientName.trim() ?? '';
+      if (patientName.isNotEmpty) return patientName;
+
+      final inviterName = invitation.inviter?.name.trim() ?? '';
+      return inviterName.isEmpty ? 'Family member' : inviterName;
+    }
+
+    final caregiverName = invitation.caregiver?.name.trim() ?? '';
+    return caregiverName.isEmpty ? 'Family member' : caregiverName;
+  }
+
+  String get _description {
+    final label = invitation.relationshipLabel.trim().isEmpty
+        ? 'Family caregiver'
+        : invitation.relationshipLabel.trim();
+
+    if (invitation.isIncoming) {
+      final inviterName = invitation.inviter?.name.trim() ?? '';
+      return inviterName.isEmpty
+          ? '$label invitation'
+          : '$label invitation from $inviterName';
+    }
+
+    final caregiverName = invitation.caregiver?.name.trim() ?? '';
+    return caregiverName.isEmpty
+        ? '$label invitation sent'
+        : '$label invitation sent to $caregiverName';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      radius: AppRadii.lg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const TaskIcon(icon: Icons.mail_outline, size: 42),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _personName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _description,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+              if (!invitation.canRespond) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'Pending',
+                    style: TextStyle(
+                      color: AppColors.accentForeground,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (invitation.canRespond) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () =>
+                        _handleInvitation(context, invitation.id, accept: true),
+                    child: const Text('Accept'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _handleInvitation(
+                      context,
+                      invitation.id,
+                      accept: false,
+                    ),
+                    child: const Text('Decline'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -184,6 +260,7 @@ class _InvitationPanel extends StatelessWidget {
       } else {
         await FamilyCareService.instance.declineInvitation(invitationId);
       }
+
       if (!context.mounted) return;
       showDemoMessage(
         context,
