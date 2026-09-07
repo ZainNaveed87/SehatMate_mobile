@@ -33,5 +33,6 @@ void main() {
     expect(AppRoutes.carePlan('p1'), '/care-plan/p1');
     expect(AppRoutes.careGap('g1'), '/care-gaps/g1');
     expect(AppRoutes.caregiver('c1'), '/family/c1');
+    expect(AppRoutes.familyPlan('r1', 'p1'), '/family/r1/plans/p1');
   });
 }

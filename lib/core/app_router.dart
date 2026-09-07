@@ -174,6 +174,9 @@ abstract final class AppRouter {
       );
     } else if (RegExp(r'^/care-gaps/[^/]+$').hasMatch(name)) {
       page = CareGapDetailScreen(gapId: name.split('/').last);
+    } else if (RegExp(r'^/family/[^/]+/plans/[^/]+$').hasMatch(name)) {
+      final parts = name.split('/');
+      page = FamilyCarePlanScreen(relationshipId: parts[2], planId: parts[4]);
     } else if (RegExp(r'^/family/[^/]+$').hasMatch(name)) {
       page = CaregiverDetailScreen(caregiverId: name.split('/').last);
     } else {

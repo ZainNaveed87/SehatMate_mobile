@@ -646,17 +646,34 @@ class ScheduleTaskMeta {
     required this.taskId,
     required this.instructionId,
     required this.taskKind,
+    required this.scheduleDate,
     required this.durationDays,
     required this.durationSource,
+    required this.recurrenceMode,
+    required this.recurrenceWeekdays,
+    required this.recurrenceIntervalDays,
+    required this.recurrenceMonthDays,
+    required this.recurrenceSource,
   });
 
   final String taskId;
   final String instructionId;
   final String taskKind;
+  final String scheduleDate;
   final int? durationDays;
   final String durationSource;
+  final String recurrenceMode;
+  final List<int> recurrenceWeekdays;
+  final int? recurrenceIntervalDays;
+  final List<int> recurrenceMonthDays;
+  final String recurrenceSource;
 
-  bool get isMedicine => taskKind.trim().toLowerCase() == 'medicine';
+  bool get isMedicine {
+    final normalized = taskKind.trim().toLowerCase();
+    return normalized == 'medicine' ||
+        normalized == 'medication' ||
+        normalized.contains('medicine');
+  }
 
   bool get verifiedDuration =>
       isMedicine && durationSource == 'verified' && durationDays != null;
@@ -668,6 +685,28 @@ class ScheduleTaskMeta {
 
   bool get durationResolved =>
       !isMedicine || verifiedDuration || userDuration || followsPlanEnd;
+
+  bool get verifiedRecurrence =>
+      isMedicine && recurrenceResolved && recurrenceSource == 'verified';
+
+  bool get userRecurrence =>
+      isMedicine && recurrenceResolved && recurrenceSource == 'user';
+
+  bool get oneOffRecurrence =>
+      recurrenceMode == 'one_off' && scheduleDate.trim().isNotEmpty;
+
+  bool get recurrenceResolved {
+    if (!isMedicine) return true;
+    return switch (recurrenceMode) {
+      'daily' => true,
+      'weekdays' => recurrenceWeekdays.isNotEmpty,
+      'interval_days' =>
+        recurrenceIntervalDays != null && recurrenceIntervalDays! > 0,
+      'month_days' => recurrenceMonthDays.isNotEmpty,
+      'one_off' => oneOffRecurrence,
+      _ => false,
+    };
+  }
 
   String get medicineGroupKey =>
       instructionId.trim().isNotEmpty ? instructionId : taskId;
@@ -1149,6 +1188,28 @@ class CarePlanService {
       body: <String, dynamic>{
         'mode': mode,
         if (durationDays != null) 'durationDays': durationDays,
+        'today': _dateKey(_now()),
+      },
+    );
+  }
+
+  Future<void> saveMedicineRecurrence(
+    String itemId, {
+    required String mode,
+    List<int> weekdays = const <int>[],
+    int? intervalDays,
+    List<int> monthDays = const <int>[],
+    String? scheduleDate,
+  }) async {
+    await _request(
+      'PATCH',
+      '/schedule-items/$itemId/recurrence',
+      body: <String, dynamic>{
+        'mode': mode,
+        if (weekdays.isNotEmpty) 'weekdays': weekdays,
+        if (intervalDays != null) 'intervalDays': intervalDays,
+        if (monthDays.isNotEmpty) 'monthDays': monthDays,
+        if (scheduleDate != null) 'scheduleDate': scheduleDate,
         'today': _dateKey(_now()),
       },
     );
@@ -2078,6 +2139,27 @@ class CarePlanService {
 
   bool _boolean(dynamic value) => value == true || value == 1 || value == '1';
 
+  List<int> _intList(dynamic value, int minimum, int maximum) {
+    Object? raw = value;
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        raw = jsonDecode(raw);
+      } catch (_) {
+        return const <int>[];
+      }
+    }
+    if (raw is! List) return const <int>[];
+
+    final output = <int>[];
+    for (final item in raw) {
+      final number = item is num ? item.toInt() : int.tryParse('$item');
+      if (number == null || number < minimum || number > maximum) continue;
+      if (!output.contains(number)) output.add(number);
+    }
+    output.sort();
+    return output;
+  }
+
   String _displayText(dynamic value) =>
       value
           ?.toString()
@@ -2250,15 +2332,28 @@ class CarePlanService {
     final durationDays = parsedDurationDays != null && parsedDurationDays > 0
         ? parsedDurationDays
         : null;
+    final rawIntervalDays = json['recurrence_interval_days'];
+    final parsedIntervalDays = rawIntervalDays == null
+        ? null
+        : int.tryParse(rawIntervalDays.toString());
+    final intervalDays = parsedIntervalDays != null && parsedIntervalDays > 0
+        ? parsedIntervalDays
+        : null;
 
     return ScheduleTaskMeta(
       taskId: _displayText(json['id']),
       instructionId: _displayText(json['instruction_id']),
       taskKind: _displayText(json['task_kind']),
+      scheduleDate: _displayText(json['schedule_date'] ?? json['task_date']),
       durationDays: durationDays,
       durationSource: _displayText(
         json['instruction_duration_source'],
       ).toLowerCase(),
+      recurrenceMode: _displayText(json['recurrence_mode']).toLowerCase(),
+      recurrenceWeekdays: _intList(json['recurrence_weekdays_json'], 1, 7),
+      recurrenceIntervalDays: intervalDays,
+      recurrenceMonthDays: _intList(json['recurrence_month_days_json'], 1, 31),
+      recurrenceSource: _displayText(json['recurrence_source']).toLowerCase(),
     );
   }
 

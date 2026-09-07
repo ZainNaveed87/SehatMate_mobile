@@ -384,7 +384,7 @@ class _AddCaregiverScreenState extends State<AddCaregiverScreen> {
             const PageHeader(
               title: 'Invite a SehatMate user',
               subtitle:
-                  'The invitation stays inside the app. Access starts only after the other user accepts.',
+                  'The invitation is created in the app and SehatMate will also try to notify them by email. Access starts only after they accept.',
             ),
             AppCard(
               radius: AppRadii.lg,
@@ -471,13 +471,18 @@ class _AddCaregiverScreenState extends State<AddCaregiverScreen> {
     if (!(formKey.currentState?.validate() ?? false)) return;
     setState(() => saving = true);
     try {
-      await FamilyCareService.instance.createInvitation(
+      final result = await FamilyCareService.instance.createInvitation(
         email: email.text,
         relationshipLabel: relationship.text,
         scopes: scopes,
       );
       if (!mounted) return;
-      showDemoMessage(context, 'Family invitation sent.');
+      showDemoMessage(
+        context,
+        result.emailDelivery.sent
+            ? 'Invitation sent by email and added to SehatMate.'
+            : 'Invitation added to SehatMate. Email delivery did not complete.',
+      );
       Navigator.pushReplacementNamed(context, AppRoutes.family);
     } on FamilyCareException catch (error) {
       if (mounted) showDemoMessage(context, error.message);
@@ -557,7 +562,10 @@ class _CaregiverDetailScreenState extends State<CaregiverDetailScreen> {
                 label: const Text('Revoke'),
               ),
             ),
-            _FamilyDetailSections(summary: data.summary),
+            _FamilyDetailSections(
+              summary: data.summary,
+              relationshipId: data.relationship.id,
+            ),
             if (data.relationship.isCareRecipient) ...[
               const SizedBox(height: 18),
               AppCard(
@@ -624,10 +632,174 @@ class _CaregiverDetailScreenState extends State<CaregiverDetailScreen> {
   }
 }
 
+class FamilyCarePlanScreen extends StatefulWidget {
+  const FamilyCarePlanScreen({
+    required this.relationshipId,
+    required this.planId,
+    super.key,
+  });
+
+  final String relationshipId;
+  final String planId;
+
+  @override
+  State<FamilyCarePlanScreen> createState() => _FamilyCarePlanScreenState();
+}
+
+class _FamilyCarePlanScreenState extends State<FamilyCarePlanScreen> {
+  late Future<FamilyCarePlanDetailData> _future = FamilyCareService.instance
+      .fetchFamilyCarePlan(
+        relationshipId: widget.relationshipId,
+        planId: widget.planId,
+      );
+
+  void _refresh() {
+    setState(() {
+      _future = FamilyCareService.instance.fetchFamilyCarePlan(
+        relationshipId: widget.relationshipId,
+        planId: widget.planId,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => AppShell(
+    currentRoute: AppRoutes.familyPlan(widget.relationshipId, widget.planId),
+    title: 'Family care plan',
+    child: FutureBuilder<FamilyCarePlanDetailData>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(36),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        if (snapshot.hasError) {
+          return EmptyState(
+            icon: Icons.lock_outline,
+            title: 'Care plan unavailable',
+            description: snapshot.error.toString(),
+            action: FilledButton.icon(
+              onPressed: _refresh,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Try again'),
+            ),
+          );
+        }
+
+        final data = snapshot.data!;
+        final instructions = data.instructions;
+        final tasks = data.tasks;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextButton.icon(
+              onPressed: () => Navigator.pushReplacementNamed(
+                context,
+                AppRoutes.caregiver(widget.relationshipId),
+              ),
+              icon: const Icon(Icons.arrow_back, size: 18),
+              label: const Text('Family member'),
+            ),
+            PageHeader(
+              title: data.planTitle,
+              subtitle:
+                  '${data.relationship.memberName} · Read-only Family Care view',
+              action: _StatusPill(label: data.planStatus),
+            ),
+            AppCard(
+              radius: AppRadii.lg,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Verified instructions',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  if (instructions.isEmpty)
+                    const Text(
+                      'No verified instructions are visible for this plan.',
+                      style: TextStyle(color: AppColors.muted),
+                    )
+                  else
+                    ...instructions.map((item) {
+                      final timing = _text(item['timing']);
+                      return _SimpleRow(
+                        title: _text(item['title']),
+                        detail: [
+                          _text(item['instruction']),
+                          if (timing.isNotEmpty) timing,
+                        ].where((value) => value.isNotEmpty).join(' · '),
+                      );
+                    }),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            AppCard(
+              radius: AppRadii.lg,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Schedule',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  if (!data.scheduleAllowed)
+                    Text(
+                      'Permission required: ${data.scheduleRequiredScope}',
+                      style: const TextStyle(color: AppColors.muted),
+                    )
+                  else if (tasks.isEmpty)
+                    const Text(
+                      'No schedule rows are visible for this plan.',
+                      style: TextStyle(color: AppColors.muted),
+                    )
+                  else
+                    ...tasks.map((item) {
+                      final time = _text(item['task_time']).isEmpty
+                          ? _text(item['display_time'])
+                          : _text(item['task_time']);
+                      final note = _text(item['note']);
+                      final status = _text(item['status']);
+                      return _SimpleRow(
+                        title: _text(item['title']),
+                        detail: [
+                          if (time.isNotEmpty) time,
+                          if (note.isNotEmpty) note,
+                          if (status.isNotEmpty) status,
+                        ].join(' · '),
+                      );
+                    }),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            const SafetyNote(
+              text:
+                  'This Family Care plan view is read-only. It does not allow reminder, dose, prescription or verified-instruction changes.',
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
 class _FamilyDetailSections extends StatelessWidget {
-  const _FamilyDetailSections({required this.summary});
+  const _FamilyDetailSections({
+    required this.summary,
+    required this.relationshipId,
+  });
 
   final FamilySummary summary;
+  final String relationshipId;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -650,6 +822,15 @@ class _FamilyDetailSections extends StatelessWidget {
                     (item) => _SimpleRow(
                       title: _text(item['title']),
                       detail: _text(item['status']),
+                      onTap: _text(item['id']).isEmpty
+                          ? null
+                          : () => Navigator.pushNamed(
+                              context,
+                              AppRoutes.familyPlan(
+                                relationshipId,
+                                _text(item['id']),
+                              ),
+                            ),
                     ),
                   ),
             ],
@@ -919,42 +1100,68 @@ class _MetricLine extends StatelessWidget {
 }
 
 class _SimpleRow extends StatelessWidget {
-  const _SimpleRow({required this.title, required this.detail});
+  const _SimpleRow({required this.title, required this.detail, this.onTap});
 
   final String title;
   final String detail;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.chevron_right, size: 18, color: AppColors.muted),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title.isEmpty ? 'Care item' : title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              if (detail.isNotEmpty)
-                Text(
-                  detail,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.muted, fontSize: 13),
-                ),
-            ],
+  Widget build(BuildContext context) {
+    final child = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            onTap == null ? Icons.chevron_right : Icons.open_in_new,
+            size: 18,
+            color: AppColors.muted,
           ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title.isEmpty ? 'Care item' : title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                if (detail.isNotEmpty)
+                  Text(
+                    detail,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 13,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (onTap == null) {
+      return Padding(padding: const EdgeInsets.only(top: 2), child: child);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadii.md),
+          child: child,
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 Map<String, dynamic> _map(dynamic value) {

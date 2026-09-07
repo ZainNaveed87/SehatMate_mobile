@@ -28,12 +28,27 @@ String _localizedPeriod(BuildContext context, String value) {
   };
 }
 
+class _MedicineRecurrenceSelection {
+  const _MedicineRecurrenceSelection({
+    required this.mode,
+    this.weekdays = const <int>[],
+    this.intervalDays,
+    this.monthDays = const <int>[],
+  });
+
+  final String mode;
+  final List<int> weekdays;
+  final int? intervalDays;
+  final List<int> monthDays;
+}
+
 class CarePlanDetailScreen extends StatefulWidget {
   const CarePlanDetailScreen({
     required this.planId,
     this.initialTab = 0,
     this.guidedSetup = false,
     this.returnToPrevious = false,
+    this.carePlanService,
     super.key,
   });
 
@@ -41,6 +56,7 @@ class CarePlanDetailScreen extends StatefulWidget {
   final int initialTab;
   final bool guidedSetup;
   final bool returnToPrevious;
+  final CarePlanService? carePlanService;
 
   @override
   State<CarePlanDetailScreen> createState() => _CarePlanDetailScreenState();
@@ -63,6 +79,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   DateTime? _planEndDate;
   bool _savingPlanDuration = false;
   final Set<String> _medicineDurationSavingKeys = <String>{};
+  final Set<String> _medicineRecurrenceSavingKeys = <String>{};
+
+  CarePlanService get _carePlanService =>
+      widget.carePlanService ?? CarePlanService.instance;
   @override
   void initState() {
     super.initState();
@@ -94,15 +114,13 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     }
 
     try {
-      final detail = await CarePlanService.instance.fetchPlanDetail(
-        widget.planId,
-      );
+      final detail = await _carePlanService.fetchPlanDetail(widget.planId);
       var occurrences = const <CareTaskOccurrence>[];
       CareTaskDaySummary? daySummary;
       if (detail.plan.status == PlanStatus.active ||
           detail.plan.status == PlanStatus.completed) {
         try {
-          final day = await CarePlanService.instance.fetchTaskOccurrences(
+          final day = await _carePlanService.fetchTaskOccurrences(
             widget.planId,
           );
           occurrences = day.occurrences;
@@ -409,7 +427,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
     setState(() => _lifecycleSaving = true);
     try {
-      await CarePlanService.instance.completePlan(plan.id);
+      await _carePlanService.completePlan(plan.id);
 
       try {
         await NotificationService.instance.cancelPlan(plan.id);
@@ -463,9 +481,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
     setState(() => _lifecycleSaving = true);
     try {
-      final reactivated = await CarePlanService.instance.reactivatePlan(
-        plan.id,
-      );
+      final reactivated = await _carePlanService.reactivatePlan(plan.id);
 
       final notificationResult = await NotificationService.instance
           .scheduleNextOccurrences(planId: plan.id, tasks: reactivated.tasks);
@@ -558,7 +574,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     });
 
     try {
-      await CarePlanService.instance.savePlanDuration(
+      await _carePlanService.savePlanDuration(
         widget.planId,
         mode: 'custom',
         endDate: _dateKey(_planEndDate!),
@@ -623,7 +639,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                     SizedBox(height: 4),
                     Text(
                       'Choose how long this care plan should remain active. '
-                      'Medicine durations are set separately below.',
+                      'Medicine repeat patterns and course durations are set separately below.',
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.4,
@@ -738,7 +754,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
       fallback ??= meta;
 
-      if (meta.verifiedDuration) {
+      if (meta.verifiedDuration || meta.verifiedRecurrence) {
         return meta;
       }
     }
@@ -748,7 +764,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
       if (meta == null) continue;
 
-      if (meta.userDuration || meta.followsPlanEnd) {
+      if (meta.userDuration || meta.followsPlanEnd || meta.userRecurrence) {
         return meta;
       }
     }
@@ -777,6 +793,30 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     });
   }
 
+  bool _medicineGroupRecurrenceResolved(
+    CarePlanDetailData detail,
+    List<DemoTask> tasks,
+  ) {
+    if (tasks.isEmpty) return true;
+
+    return tasks.every((task) {
+      final meta = detail.metaForTask(task.id);
+      return meta != null && meta.recurrenceResolved;
+    });
+  }
+
+  bool _hasUnresolvedMedicineRecurrences(CarePlanDetailData detail) {
+    if (AuthSession.instance.isGuest) {
+      return false;
+    }
+
+    final groups = _medicineScheduleGroups(detail);
+
+    return groups.values.any(
+      (tasks) => !_medicineGroupRecurrenceResolved(detail, tasks),
+    );
+  }
+
   bool _hasUnresolvedMedicineDurations(CarePlanDetailData detail) {
     if (AuthSession.instance.isGuest) {
       return false;
@@ -795,7 +835,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
   String _medicineDurationLabel(ScheduleTaskMeta? meta, bool resolved) {
     if (!resolved || meta == null) {
-      return 'Duration not set';
+      return 'Course duration not set';
     }
 
     if (meta.verifiedDuration) {
@@ -814,57 +854,406 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       return 'Until care-plan end date · User provided';
     }
 
-    return 'Duration not set';
+    return 'Course duration not set';
   }
 
-  Future<void> _setMedicineCustomDuration(
+  static const List<String> _weekdayNames = [
+    '',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+
+  String _weekdaySummary(List<int> days) {
+    final labels = days
+        .where((day) => day >= 1 && day <= 7)
+        .map((day) => _weekdayNames[day])
+        .toList();
+    return labels.isEmpty ? 'Selected weekdays' : labels.join(', ');
+  }
+
+  String _monthDayLabel(int day) {
+    final modHundred = day % 100;
+    final suffix = modHundred >= 11 && modHundred <= 13
+        ? 'th'
+        : switch (day % 10) {
+            1 => 'st',
+            2 => 'nd',
+            3 => 'rd',
+            _ => 'th',
+          };
+    return '$day$suffix';
+  }
+
+  String _monthDaySummary(List<int> days) {
+    final labels = days
+        .where((day) => day >= 1 && day <= 31)
+        .map(_monthDayLabel)
+        .toList();
+    if (labels.isEmpty) return 'Selected month days';
+    if (labels.length == 1) return labels.single;
+    return '${labels.take(labels.length - 1).join(', ')} and ${labels.last}';
+  }
+
+  String _medicineRecurrenceLabel(ScheduleTaskMeta? meta, bool resolved) {
+    if (!resolved || meta == null) {
+      return 'Repeat pattern not set';
+    }
+
+    final label = switch (meta.recurrenceMode) {
+      'daily' => 'Every day',
+      'weekdays' => _weekdaySummary(meta.recurrenceWeekdays),
+      'interval_days' =>
+        meta.recurrenceIntervalDays == 1
+            ? 'Every day'
+            : 'Every ${meta.recurrenceIntervalDays} days',
+      'month_days' => _monthDaySummary(meta.recurrenceMonthDays),
+      'one_off' => 'Once on ${meta.scheduleDate}',
+      _ => 'Repeat pattern not set',
+    };
+
+    if (meta.verifiedRecurrence) {
+      return '$label · Verified instruction';
+    }
+    if (meta.userRecurrence) {
+      return '$label · User provided';
+    }
+    return label;
+  }
+
+  Future<_MedicineRecurrenceSelection?> _showMedicineRepeatPatternDialog(
     DemoTask task,
     ScheduleTaskMeta? meta,
   ) async {
-    final controller = TextEditingController(
-      text: meta?.userDuration == true ? meta!.durationDays.toString() : '',
-    );
+    const modes = <String>{'daily', 'weekdays', 'interval_days', 'month_days'};
 
+    var mode = modes.contains(meta?.recurrenceMode)
+        ? meta!.recurrenceMode
+        : 'daily';
+
+    final weekdays = <int>{
+      if (meta != null && meta.recurrenceWeekdays.isNotEmpty)
+        ...meta.recurrenceWeekdays
+      else
+        DateTime.now().weekday,
+    };
+
+    final monthDays = <int>{
+      if (meta != null && meta.recurrenceMonthDays.isNotEmpty)
+        ...meta.recurrenceMonthDays
+      else
+        DateTime.now().day.clamp(1, 31).toInt(),
+    };
+
+    var intervalText = (meta?.recurrenceIntervalDays ?? 2).toString();
+    String? validationMessage;
+
+    return showDialog<_MedicineRecurrenceSelection>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (innerContext, setDialogState) {
+          Widget repeatOption(String value, String label) {
+            final selected = mode == value;
+
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              minLeadingWidth: 28,
+              leading: Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? AppColors.primary : AppColors.muted,
+              ),
+              title: Text(label),
+              onTap: () {
+                setDialogState(() {
+                  mode = value;
+                  validationMessage = null;
+                });
+              },
+            );
+          }
+
+          return AlertDialog(
+            title: Text('Repeat pattern for ${task.title}'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Enter only the repeat pattern stated in the healthcare professional instructions.',
+                  ),
+                  const SizedBox(height: 12),
+                  repeatOption('daily', 'Daily'),
+                  repeatOption('weekdays', 'Selected weekdays'),
+                  if (mode == 'weekdays') ...[
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List<Widget>.generate(7, (index) {
+                        final day = index + 1;
+
+                        return FilterChip(
+                          selected: weekdays.contains(day),
+                          label: Text(_weekdayNames[day].substring(0, 3)),
+                          onSelected: (selected) {
+                            setDialogState(() {
+                              if (selected) {
+                                weekdays.add(day);
+                              } else {
+                                weekdays.remove(day);
+                              }
+                              validationMessage = null;
+                            });
+                          },
+                        );
+                      }),
+                    ),
+                  ],
+                  repeatOption('interval_days', 'Every N days'),
+                  if (mode == 'interval_days') ...[
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      initialValue: intervalText,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Interval in days',
+                        hintText: 'Example: 3',
+                        errorText: validationMessage,
+                      ),
+                      onChanged: (value) {
+                        intervalText = value;
+
+                        if (validationMessage != null) {
+                          setDialogState(() {
+                            validationMessage = null;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                  repeatOption('month_days', 'Selected days of the month'),
+                  if (mode == 'month_days') ...[
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: List<Widget>.generate(31, (index) {
+                        final day = index + 1;
+
+                        return FilterChip(
+                          selected: monthDays.contains(day),
+                          label: Text('$day'),
+                          onSelected: (selected) {
+                            setDialogState(() {
+                              if (selected) {
+                                monthDays.add(day);
+                              } else {
+                                monthDays.remove(day);
+                              }
+                              validationMessage = null;
+                            });
+                          },
+                        );
+                      }),
+                    ),
+                  ],
+                  if (validationMessage != null && mode != 'interval_days') ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      validationMessage!,
+                      style: const TextStyle(
+                        color: AppColors.criticalForeground,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(context.tr('cancel')),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final selectedWeekdays = weekdays.toList()..sort();
+                  final selectedMonthDays = monthDays.toList()..sort();
+                  final intervalDays = int.tryParse(intervalText.trim());
+
+                  if (mode == 'weekdays' && selectedWeekdays.isEmpty) {
+                    setDialogState(() {
+                      validationMessage = 'Choose at least one weekday.';
+                    });
+                    return;
+                  }
+
+                  if (mode == 'interval_days' &&
+                      (intervalDays == null ||
+                          intervalDays < 1 ||
+                          intervalDays > 3650)) {
+                    setDialogState(() {
+                      validationMessage =
+                          'Enter an interval from 1 to 3650 days.';
+                    });
+                    return;
+                  }
+
+                  if (mode == 'month_days' && selectedMonthDays.isEmpty) {
+                    setDialogState(() {
+                      validationMessage = 'Choose at least one day.';
+                    });
+                    return;
+                  }
+
+                  Navigator.of(dialogContext).pop(
+                    _MedicineRecurrenceSelection(
+                      mode: mode,
+                      weekdays: mode == 'weekdays'
+                          ? selectedWeekdays
+                          : const <int>[],
+                      intervalDays: mode == 'interval_days'
+                          ? intervalDays
+                          : null,
+                      monthDays: mode == 'month_days'
+                          ? selectedMonthDays
+                          : const <int>[],
+                    ),
+                  );
+                },
+                child: const Text('Save repeat pattern'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _setMedicineRepeatPattern(
+    DemoTask task,
+    ScheduleTaskMeta? meta,
+  ) async {
+    final selection = await _showMedicineRepeatPatternDialog(task, meta);
+
+    if (selection == null || !mounted) {
+      return;
+    }
+
+    final key = _medicineDurationKey(task, meta);
+
+    if (_medicineRecurrenceSavingKeys.contains(key)) {
+      return;
+    }
+
+    setState(() {
+      _medicineRecurrenceSavingKeys.add(key);
+      _scheduleSaveState = 'Saving...';
+    });
+
+    try {
+      await _carePlanService.saveMedicineRecurrence(
+        task.id,
+        mode: selection.mode,
+        weekdays: selection.weekdays,
+        intervalDays: selection.intervalDays,
+        monthDays: selection.monthDays,
+      );
+
+      await _loadPlan();
+
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleSaveState = 'Saved';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Repeat pattern saved for ${task.title}.')),
+      );
+    } on CarePlanException catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleSaveState = 'Retry needed';
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _medicineRecurrenceSavingKeys.remove(key);
+        });
+      }
+    }
+  }
+
+  Future<void> _setMedicineDuration(
+    DemoTask task,
+    ScheduleTaskMeta? meta,
+  ) async {
+    var durationText = meta?.userDuration == true
+        ? meta!.durationDays.toString()
+        : '';
     String? validationMessage;
 
     final selectedDays = await showDialog<int>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('Set duration for ${task.title}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Enter the number of days you were told to use this medicine.',
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Number of days',
-                  hintText: 'Example: 5',
-                  errorText: validationMessage,
+        builder: (innerContext, setDialogState) => AlertDialog(
+          title: Text('Set course duration for ${task.title}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Enter the number of days you were told to use this medicine.',
                 ),
-              ),
-              const SizedBox(height: 12),
-              const SafetyNote(
-                text:
-                    'This is recorded as user-provided information. It does not change the verified prescription.',
-              ),
-            ],
+                const SizedBox(height: 14),
+                TextFormField(
+                  initialValue: durationText,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Course duration',
+                    hintText: 'Example: 5',
+                    errorText: validationMessage,
+                  ),
+                  onChanged: (value) {
+                    durationText = value;
+
+                    if (validationMessage != null) {
+                      setDialogState(() {
+                        validationMessage = null;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                const SafetyNote(
+                  text:
+                      'This is recorded as user-provided information. It does not change the verified prescription.',
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () {
-                final days = int.tryParse(controller.text.trim());
+                final days = int.tryParse(durationText.trim());
 
                 if (days == null || days < 1 || days > 3650) {
                   setDialogState(() {
@@ -873,7 +1262,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   return;
                 }
 
-                Navigator.pop(dialogContext, days);
+                Navigator.of(dialogContext).pop(days);
               },
               child: const Text('Save duration'),
             ),
@@ -881,8 +1270,6 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         ),
       ),
     );
-
-    controller.dispose();
 
     if (selectedDays == null || !mounted) {
       return;
@@ -900,7 +1287,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     });
 
     try {
-      await CarePlanService.instance.saveMedicineDuration(
+      await _carePlanService.saveMedicineDuration(
         task.id,
         mode: 'days',
         durationDays: selectedDays,
@@ -915,7 +1302,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Duration saved for ${task.title}.')),
+        SnackBar(content: Text('Course duration saved for ${task.title}.')),
       );
     } on CarePlanException catch (error) {
       if (!mounted) return;
@@ -961,10 +1348,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     });
 
     try {
-      await CarePlanService.instance.saveMedicineDuration(
-        task.id,
-        mode: 'plan_end',
-      );
+      await _carePlanService.saveMedicineDuration(task.id, mode: 'plan_end');
 
       await _loadPlan();
 
@@ -998,6 +1382,98 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     }
   }
 
+  Widget _medicineStatusPanel({
+    required String title,
+    required String label,
+    required bool resolved,
+    required bool verified,
+    required bool saving,
+    required Widget? action,
+    String? note,
+  }) {
+    final background = verified
+        ? AppColors.successSoft
+        : resolved
+        ? AppColors.infoSoft
+        : AppColors.warningSoft;
+    final foreground = verified
+        ? AppColors.successForeground
+        : resolved
+        ? AppColors.infoForeground
+        : AppColors.warningForeground;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(AppRadii.md),
+            ),
+            child: Row(
+              children: [
+                if (saving)
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: foreground,
+                    ),
+                  )
+                else
+                  Icon(
+                    verified
+                        ? Icons.lock_outline
+                        : resolved
+                        ? Icons.check_circle_outline
+                        : Icons.warning_amber_rounded,
+                    size: 18,
+                    color: foreground,
+                  ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: foreground,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (note != null && note.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              note,
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: AppColors.muted,
+              ),
+            ),
+          ],
+          if (action != null) ...[const SizedBox(height: 10), action],
+        ],
+      ),
+    );
+  }
+
   Widget _medicineDurationCard(
     CarePlanDetailData detail,
     List<DemoTask> tasks,
@@ -1006,17 +1482,26 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
     final meta = _medicineMetaForGroup(detail, tasks);
 
-    final resolved = _medicineGroupDurationResolved(detail, tasks);
+    final durationResolved = _medicineGroupDurationResolved(detail, tasks);
 
-    final verified = resolved && meta?.verifiedDuration == true;
+    final durationVerified = durationResolved && meta?.verifiedDuration == true;
+
+    final recurrenceResolved = _medicineGroupRecurrenceResolved(detail, tasks);
+
+    final recurrenceVerified =
+        recurrenceResolved && meta?.verifiedRecurrence == true;
 
     final key = _medicineDurationKey(task, meta);
 
-    final saving = _medicineDurationSavingKeys.contains(key);
+    final durationSaving = _medicineDurationSavingKeys.contains(key);
+
+    final recurrenceSaving = _medicineRecurrenceSavingKeys.contains(key);
 
     final planEndAvailable = detail.plan.plannedEndDate.trim().isNotEmpty;
 
-    final durationLabel = _medicineDurationLabel(meta, resolved);
+    final durationLabel = _medicineDurationLabel(meta, durationResolved);
+
+    final recurrenceLabel = _medicineRecurrenceLabel(meta, recurrenceResolved);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1070,90 +1555,75 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: verified
-                  ? AppColors.successSoft
-                  : resolved
-                  ? AppColors.infoSoft
-                  : AppColors.warningSoft,
-              borderRadius: BorderRadius.circular(AppRadii.lg),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  verified
-                      ? Icons.lock_outline
-                      : resolved
-                      ? Icons.check_circle_outline
-                      : Icons.warning_amber_rounded,
-                  size: 18,
-                  color: verified
-                      ? AppColors.successForeground
-                      : resolved
-                      ? AppColors.infoForeground
-                      : AppColors.warningForeground,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    durationLabel,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: verified
-                          ? AppColors.successForeground
-                          : resolved
-                          ? AppColors.infoForeground
-                          : AppColors.warningForeground,
+          _medicineStatusPanel(
+            title: 'Repeat pattern',
+            label: recurrenceLabel,
+            resolved: recurrenceResolved,
+            verified: recurrenceVerified,
+            saving: recurrenceSaving,
+            note: recurrenceVerified
+                ? 'This repeat pattern comes from the verified instruction and cannot be changed here.'
+                : null,
+            action: recurrenceVerified
+                ? null
+                : Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: OutlinedButton.icon(
+                      onPressed: recurrenceSaving
+                          ? null
+                          : () => _setMedicineRepeatPattern(task, meta),
+                      icon: const Icon(Icons.repeat_outlined, size: 17),
+                      label: Text(
+                        meta?.userRecurrence == true
+                            ? 'Change repeat pattern'
+                            : 'Set repeat pattern',
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
           ),
-          if (verified) ...[
-            const SizedBox(height: 10),
-            const Text(
-              'This duration comes from the verified instruction and cannot be extended here.',
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.4,
-                color: AppColors.muted,
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: saving
-                      ? null
-                      : () => _setMedicineCustomDuration(task, meta),
-                  icon: saving
-                      ? const SizedBox(
-                          width: 15,
-                          height: 15,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.edit_calendar_outlined, size: 17),
-                  label: Text(
-                    meta?.userDuration == true ? 'Change days' : 'Custom days',
+          const SizedBox(height: 10),
+          _medicineStatusPanel(
+            title: 'Course duration',
+            label: durationLabel,
+            resolved: durationResolved,
+            verified: durationVerified,
+            saving: durationSaving,
+            note: durationVerified
+                ? 'This course duration comes from the verified instruction and cannot be extended here.'
+                : null,
+            action: durationVerified
+                ? null
+                : Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: durationSaving
+                            ? null
+                            : () => _setMedicineDuration(task, meta),
+                        icon: const Icon(
+                          Icons.edit_calendar_outlined,
+                          size: 17,
+                        ),
+                        label: Text(
+                          meta?.userDuration == true
+                              ? 'Change duration'
+                              : 'Set duration',
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: durationSaving || !planEndAvailable
+                            ? null
+                            : () => _setMedicineUntilPlanEnd(task, meta),
+                        icon: const Icon(
+                          Icons.event_available_outlined,
+                          size: 17,
+                        ),
+                        label: const Text('Until plan end'),
+                      ),
+                    ],
                   ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: saving || !planEndAvailable
-                      ? null
-                      : () => _setMedicineUntilPlanEnd(task, meta),
-                  icon: const Icon(Icons.event_available_outlined, size: 17),
-                  label: const Text('Until plan end'),
-                ),
-              ],
-            ),
-          ],
+          ),
         ],
       ),
     );
@@ -1181,7 +1651,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Medicine durations',
+                      'Medicine repeat patterns and course durations',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -1189,8 +1659,8 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Set the duration once for each medicine. '
-                      'It applies to all reminder times for that medicine.',
+                      'Set the repeat pattern and course duration once for each medicine. '
+                      'Both apply to all reminder times for that medicine.',
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.4,
@@ -1212,7 +1682,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           const SizedBox(height: 2),
           const SafetyNote(
             text:
-                'Choosing a duration does not create a new dosing frequency. Reminder recurrence still follows the verified instruction.',
+                'Enter only the repeat pattern stated in the healthcare professional instructions. SehatMate does not recommend or invent medicine frequency.',
           ),
         ],
       ),
@@ -1290,6 +1760,8 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         final hasUnresolvedMedicineDurations = _hasUnresolvedMedicineDurations(
           detail,
         );
+        final hasUnresolvedMedicineRecurrences =
+            _hasUnresolvedMedicineRecurrences(detail);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1343,6 +1815,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                         (task) => task.status == TaskStatus.atRisk,
                       ) ||
                       _unsavedPeriodChanges.isNotEmpty ||
+                      hasUnresolvedMedicineRecurrences ||
                       hasUnresolvedMedicineDurations
                   ? null
                   : _continueFromSchedule,
@@ -1351,8 +1824,10 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                 size: 18,
               ),
               label: Text(
-                hasUnresolvedMedicineDurations
-                    ? 'Set medicine durations first'
+                hasUnresolvedMedicineRecurrences
+                    ? 'Set medicine repeat patterns first'
+                    : hasUnresolvedMedicineDurations
+                    ? 'Set medicine course durations first'
                     : detail.tasks.any(
                             (task) => task.status == TaskStatus.atRisk,
                           ) ||
@@ -1875,7 +2350,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   Future<void> _deleteDocument(String documentId) async {
     if (AuthSession.instance.isGuest) return;
     try {
-      await CarePlanService.instance.deleteDocument(documentId);
+      await _carePlanService.deleteDocument(documentId);
       await _loadPlan();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1922,16 +2397,14 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await CarePlanService.instance.deleteInstruction(task.id);
+      await _carePlanService.deleteInstruction(task.id);
 
       // Rebuild local notifications from backend truth. Cancelling the whole
       // plan first guarantees the removed medicine cannot leave an orphaned
       // Android notification behind.
       await NotificationService.instance.cancelPlan(widget.planId);
 
-      final updated = await CarePlanService.instance.fetchPlanDetail(
-        widget.planId,
-      );
+      final updated = await _carePlanService.fetchPlanDetail(widget.planId);
       if (updated.plan.status == PlanStatus.active &&
           updated.tasks.isNotEmpty) {
         await NotificationService.instance.scheduleNextOccurrences(
@@ -1978,7 +2451,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     }
     setState(() => _generatingSchedule = true);
     try {
-      await CarePlanService.instance.generateSchedule(widget.planId);
+      await _carePlanService.generateSchedule(widget.planId);
       await _loadPlan();
       if (mounted) {
         showDemoMessage(context, context.tr('cpd_schedule_generated'));
@@ -2002,7 +2475,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     if (widget.guidedSetup) {
       setState(() => _scheduleSaveState = 'Saving…');
       try {
-        await CarePlanService.instance.updateSetupStep(
+        await _carePlanService.updateSetupStep(
           widget.planId,
           CareSetupStep.realityCheck,
         );
@@ -2078,7 +2551,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
     try {
       setState(() => _scheduleSaveState = 'Saving…');
-      await CarePlanService.instance.confirmScheduleItem(
+      await _carePlanService.confirmScheduleItem(
         task.id,
         scheduleTime: scheduleTime,
         displayTime:

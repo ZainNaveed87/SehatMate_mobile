@@ -29,4 +29,6 @@ abstract final class AppRoutes {
   static String carePlan(String id) => '/care-plan/$id';
   static String careGap(String id) => '/care-gaps/$id';
   static String caregiver(String id) => '/family/$id';
+  static String familyPlan(String relationshipId, String planId) =>
+      '/family/$relationshipId/plans/$planId';
 }

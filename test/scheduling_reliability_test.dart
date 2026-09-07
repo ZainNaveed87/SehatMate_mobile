@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:sehatmate_ai/data/demo_data.dart';
 import 'package:sehatmate_ai/localization/language_controller.dart';
 import 'package:sehatmate_ai/localization/language_scope.dart';
+import 'package:sehatmate_ai/screens/care_plan_detail_screen.dart';
 import 'package:sehatmate_ai/screens/task_outcome_screens.dart';
 import 'package:sehatmate_ai/screens/simulation_screen.dart';
 import 'package:sehatmate_ai/services/auth_service.dart';
@@ -46,6 +47,35 @@ void main() {
       'today': '2026-09-07',
     });
   });
+
+  test(
+    'saveMedicineRecurrence sends structured repeat pattern and local today',
+    () async {
+      late Map<String, dynamic> body;
+      final service = CarePlanService(
+        tokenProvider: () => 'session-token',
+        now: () => DateTime(2026, 9, 7, 0, 15),
+        client: MockClient((request) async {
+          expect(request.method, 'PATCH');
+          expect(request.url.path, '/api/schedule-items/701/recurrence');
+          body = jsonDecode(request.body) as Map<String, dynamic>;
+          return _jsonResponse({'data': <String, dynamic>{}});
+        }),
+      );
+
+      await service.saveMedicineRecurrence(
+        '701',
+        mode: 'weekdays',
+        weekdays: const [1, 3, 5],
+      );
+
+      expect(body, {
+        'mode': 'weekdays',
+        'weekdays': [1, 3, 5],
+        'today': '2026-09-07',
+      });
+    },
+  );
 
   test(
     'calendar occurrence fetch sends selected date and local today',
@@ -191,6 +221,78 @@ void main() {
       );
     },
   );
+
+  testWidgets('medicine course duration dialog cancel does not save', (
+    tester,
+  ) async {
+    var patchCount = 0;
+    await _pumpCarePlanDetail(
+      tester,
+      onRequest: (request) async {
+        if (request.method == 'GET' &&
+            request.url.path == '/api/care-plans/10') {
+          return _jsonResponse(_carePlanDetailBody());
+        }
+        if (request.method == 'PATCH' &&
+            request.url.path == '/api/schedule-items/701/duration') {
+          patchCount += 1;
+          return _jsonResponse({'data': <String, dynamic>{}});
+        }
+        return http.Response('Not found', 404);
+      },
+    );
+
+    final setDurationButton = find.text('Set duration');
+
+    await tester.ensureVisible(setDurationButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(setDurationButton);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Set course duration'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(patchCount, 0);
+    expect(find.text('Set duration'), findsOneWidget);
+  });
+
+  testWidgets('medicine repeat pattern dialog cancel does not save', (
+    tester,
+  ) async {
+    var patchCount = 0;
+    await _pumpCarePlanDetail(
+      tester,
+      onRequest: (request) async {
+        if (request.method == 'GET' &&
+            request.url.path == '/api/care-plans/10') {
+          return _jsonResponse(_carePlanDetailBody());
+        }
+        if (request.method == 'PATCH' &&
+            request.url.path == '/api/schedule-items/701/recurrence') {
+          patchCount += 1;
+          return _jsonResponse({'data': <String, dynamic>{}});
+        }
+        return http.Response('Not found', 404);
+      },
+    );
+
+    final setRepeatPatternButton = find.text('Set repeat pattern');
+
+    await tester.ensureVisible(setRepeatPatternButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(setRepeatPatternButton);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Repeat pattern for'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(patchCount, 0);
+    expect(find.text('Set repeat pattern'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpCalendar(
@@ -212,6 +314,87 @@ Future<void> _pumpCalendar(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+Future<void> _pumpCarePlanDetail(
+  WidgetTester tester, {
+  required Future<http.Response> Function(http.Request request) onRequest,
+}) async {
+  final service = CarePlanService(
+    tokenProvider: () => 'session-token',
+    now: () => DateTime(2026, 9, 7, 9),
+    client: MockClient(onRequest),
+  );
+
+  await tester.pumpWidget(
+    LanguageScope(
+      controller: LanguageController.forTesting(),
+      child: MaterialApp(
+        home: CarePlanDetailScreen(
+          planId: '10',
+          initialTab: 1,
+          carePlanService: service,
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Map<String, dynamic> _carePlanDetailBody() {
+  return {
+    'data': {
+      'plan': {
+        'id': '10',
+        'title': 'Recovery Plan',
+        'status': 'reality_check',
+        'startDate': '2026-09-07',
+        'readinessScore': 70,
+        'understandingScore': 0,
+        'durationMode': 'prescription',
+        'suggestedEndDate': null,
+        'plannedEndDate': null,
+        'createdAt': '2026-09-07',
+      },
+      'verifiedInstructions': [
+        {
+          'id': '91',
+          'category': 'medicine',
+          'title': 'DemoMed',
+          'instruction': 'Take DemoMed with breakfast.',
+          'timing': 'Morning',
+          'review_status': 'verified',
+        },
+      ],
+      'tasks': [
+        {
+          'id': '701',
+          'instruction_id': '91',
+          'task_date': '2026-09-07',
+          'schedule_date': '2026-09-07',
+          'task_time': 'Morning',
+          'schedule_time': null,
+          'title': 'DemoMed',
+          'note': 'Morning',
+          'task_kind': 'medicine',
+          'display_time': 'Morning',
+          'recurrence_text': '',
+          'recurrence_mode': null,
+          'recurrence_weekdays_json': null,
+          'recurrence_interval_days': null,
+          'recurrence_month_days_json': null,
+          'recurrence_source': null,
+          'grounding': 'suggested',
+          'time_locked': 0,
+          'instruction_duration_days': null,
+          'instruction_duration_source': null,
+          'status': 'ready',
+        },
+      ],
+      'gaps': <Map<String, dynamic>>[],
+      'documents': <Map<String, dynamic>>[],
+    },
+  };
 }
 
 http.Response _jsonResponse(Map<String, dynamic> body) => http.Response(

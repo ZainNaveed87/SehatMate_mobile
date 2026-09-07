@@ -70,6 +70,22 @@ class FamilyInvitation {
   final DateTime? createdAt;
 }
 
+class FamilyInvitationDeliveryResult {
+  const FamilyInvitationDeliveryResult({required this.sent});
+
+  final bool sent;
+}
+
+class FamilyInvitationCreateResult {
+  const FamilyInvitationCreateResult({
+    required this.invitation,
+    required this.emailDelivery,
+  });
+
+  final FamilyInvitation invitation;
+  final FamilyInvitationDeliveryResult emailDelivery;
+}
+
 class FamilyRelationship {
   const FamilyRelationship({
     required this.id,
@@ -128,13 +144,46 @@ class FamilyMemberDetailData {
   final FamilySummary summary;
 }
 
-class FamilyCareService {
-  FamilyCareService._();
+class FamilyCarePlanDetailData {
+  const FamilyCarePlanDetailData({
+    required this.relationship,
+    required this.plan,
+    required this.instructions,
+    required this.tasks,
+    required this.scheduleAllowed,
+    required this.scheduleRequiredScope,
+    required this.readOnly,
+  });
 
-  static final instance = FamilyCareService._();
+  final FamilyRelationship relationship;
+  final Map<String, dynamic> plan;
+  final List<Map<String, dynamic>> instructions;
+  final List<Map<String, dynamic>> tasks;
+  final bool scheduleAllowed;
+  final String scheduleRequiredScope;
+  final bool readOnly;
+
+  String get planTitle {
+    final title = plan['title']?.toString().trim() ?? '';
+    return title.isEmpty ? 'Care plan' : title;
+  }
+
+  String get planStatus {
+    final status = plan['status']?.toString().trim() ?? '';
+    return status.isEmpty ? 'active' : status;
+  }
+}
+
+class FamilyCareService {
+  FamilyCareService({http.Client? client, String? Function()? tokenProvider})
+    : _client = client ?? http.Client(),
+      _tokenProvider = tokenProvider ?? (() => AuthSession.instance.token);
+
+  static final instance = FamilyCareService();
   static const _timeout = Duration(seconds: 20);
 
-  final http.Client _client = http.Client();
+  final http.Client _client;
+  final String? Function() _tokenProvider;
 
   Future<FamilyHomeData> fetchHome() async {
     final data = await _request('GET', '/family');
@@ -148,12 +197,12 @@ class FamilyCareService {
     );
   }
 
-  Future<void> createInvitation({
+  Future<FamilyInvitationCreateResult> createInvitation({
     required String email,
     required String relationshipLabel,
     required Map<String, bool> scopes,
   }) async {
-    await _request(
+    final data = await _request(
       'POST',
       '/family/invitations',
       body: {
@@ -161,6 +210,10 @@ class FamilyCareService {
         'relationshipLabel': relationshipLabel.trim(),
         'scopes': scopes,
       },
+    );
+    return FamilyInvitationCreateResult(
+      invitation: _invitationFromJson(_map(data['invitation'])),
+      emailDelivery: _deliveryFromJson(_map(data['emailDelivery'])),
     );
   }
 
@@ -179,6 +232,25 @@ class FamilyCareService {
     return FamilyMemberDetailData(
       relationship: _relationshipFromJson(_map(data['relationship'])),
       summary: _summaryFromJson(_map(data['summary'])),
+    );
+  }
+
+  Future<FamilyCarePlanDetailData> fetchFamilyCarePlan({
+    required String relationshipId,
+    required String planId,
+  }) async {
+    final data = await _request('GET', '/family/$relationshipId/plans/$planId');
+    final schedule = _map(data['schedule']);
+    return FamilyCarePlanDetailData(
+      relationship: _relationshipFromJson(_map(data['relationship'])),
+      plan: _map(data['plan']),
+      instructions: _list(data['instructions']),
+      tasks: _list(data['tasks']),
+      scheduleAllowed: schedule['allowed'] == true || schedule['allowed'] == 1,
+      scheduleRequiredScope: _text(schedule['requiredScope']).isEmpty
+          ? 'schedule.read'
+          : _text(schedule['requiredScope']),
+      readOnly: data['readOnly'] == true || data['readOnly'] == 1,
     );
   }
 
@@ -203,7 +275,7 @@ class FamilyCareService {
     String path, {
     Map<String, dynamic>? body,
   }) async {
-    final token = AuthSession.instance.token;
+    final token = _tokenProvider();
     if (token == null || token.isEmpty) {
       throw const FamilyCareException('Please sign in to continue.');
     }
@@ -301,6 +373,12 @@ class FamilyCareService {
       careRecipient: _personFromJson(json['careRecipient']),
       requestedScopes: _boolMap(json['requestedScopes']),
       createdAt: DateTime.tryParse(_text(json['createdAt'])),
+    );
+  }
+
+  FamilyInvitationDeliveryResult _deliveryFromJson(Map<String, dynamic> json) {
+    return FamilyInvitationDeliveryResult(
+      sent: json['sent'] == true || json['sent'] == 1,
     );
   }
 
