@@ -296,7 +296,7 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
     return ListView(
       controller: _scroll,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
       children: [
         SafetyNote(text: context.tr('agent_safety_note')),
         const SizedBox(height: 18),
@@ -349,27 +349,50 @@ class _AgentHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 68,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: const BoxDecoration(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+      padding: const EdgeInsets.fromLTRB(8, 9, 12, 9),
+      decoration: BoxDecoration(
         color: AppColors.card,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        border: Border.all(color: const Color(0xFFDCE8E6)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 18,
+            spreadRadius: -8,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
           IconButton(
             tooltip: context.tr('back'),
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back_rounded),
           ),
           const SizedBox(width: 4),
-          const CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.primaryLight,
-            child: Icon(
-              Icons.auto_awesome_outlined,
-              color: AppColors.primary,
-              size: 19,
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+              ),
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x260F766E),
+                  blurRadius: 14,
+                  spreadRadius: -6,
+                  offset: Offset(0, 7),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 20,
             ),
           ),
           const SizedBox(width: 12),
@@ -384,17 +407,51 @@ class _AgentHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 17,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -.2,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(AppRadii.md),
+            ),
+            child: const Icon(
+              Icons.shield_outlined,
+              color: AppColors.primary,
+              size: 17,
             ),
           ),
         ],
@@ -435,35 +492,109 @@ class _EmptyAgentState extends StatelessWidget {
       ],
     };
 
-    return AppCard(
-      padding: const EdgeInsets.all(18),
-      radius: AppRadii.xl,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.tr('agent_empty_title'),
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+    return FadeSlideIn(
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF1FAF8), Color(0xFFFFFFFF)],
           ),
-          const SizedBox(height: 6),
-          Text(
-            context.tr('agent_empty_desc'),
-            style: const TextStyle(color: AppColors.muted, fontSize: 14),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final suggestion in suggestions)
-                ActionChip(
-                  avatar: const Icon(Icons.north_east, size: 16),
-                  label: Text(suggestion),
-                  onPressed: enabled ? () => onSuggestion(suggestion) : null,
+          borderRadius: BorderRadius.circular(AppRadii.xxl),
+          border: Border.all(color: const Color(0xFFDCEAE7)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x100F172A),
+              blurRadius: 24,
+              spreadRadius: -10,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+                    ),
+                    borderRadius: BorderRadius.circular(AppRadii.xl),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 23,
+                  ),
                 ),
-            ],
-          ),
-        ],
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('agent_empty_title'),
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -.25,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        context.tr('agent_empty_desc'),
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 13,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 13),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (var i = 0; i < suggestions.length; i++)
+                  ActionChip(
+                    avatar: Icon(
+                      switch (i) {
+                        0 => Icons.insights_outlined,
+                        1 => Icons.next_plan_outlined,
+                        2 => Icons.warning_amber_rounded,
+                        3 => Icons.analytics_outlined,
+                        _ => Icons.tune_rounded,
+                      },
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    label: Text(suggestions[i]),
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFD9E7E4)),
+                    labelStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    onPressed: enabled
+                        ? () => onSuggestion(suggestions[i])
+                        : null,
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -513,20 +644,69 @@ class _MessageBubble extends StatelessWidget {
         constraints: BoxConstraints(
           maxWidth: MediaQuery.sizeOf(context).width >= 620
               ? 520
-              : MediaQuery.sizeOf(context).width * .84,
+              : MediaQuery.sizeOf(context).width * .86,
         ),
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: EdgeInsetsDirectional.only(
+          start: isUser ? 36 : 0,
+          end: isUser ? 0 : 36,
+          bottom: 12,
+        ),
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: BoxDecoration(
-          color: isUser ? AppColors.primary : AppColors.card,
+          gradient: isUser
+              ? const LinearGradient(
+                  colors: [Color(0xFF0F766E), Color(0xFF0D9488)],
+                )
+              : null,
+          color: isUser ? null : AppColors.card,
           border: Border.all(
-            color: message.failed ? AppColors.criticalSoft : AppColors.border,
+            color: message.failed
+                ? AppColors.criticalSoft
+                : isUser
+                ? const Color(0x00000000)
+                : const Color(0xFFDCE7E5),
           ),
-          borderRadius: BorderRadius.circular(AppRadii.lg),
+          borderRadius: BorderRadiusDirectional.only(
+            topStart: Radius.circular(AppRadii.xl),
+            topEnd: Radius.circular(AppRadii.xl),
+            bottomStart: Radius.circular(isUser ? AppRadii.xl : 6),
+            bottomEnd: Radius.circular(isUser ? 6 : AppRadii.xl),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isUser ? const Color(0x1F0F766E) : const Color(0x0D0F172A),
+              blurRadius: 16,
+              spreadRadius: -8,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (!isUser) ...[
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 13,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 5),
+                  Text(
+                    'AI',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: .6,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 7),
+            ],
             SelectableText(
               message.failed
                   ? _localizedAgentFailure(context, message.text)
@@ -545,7 +725,7 @@ class _MessageBubble extends StatelessWidget {
                       .findAncestorStateOfType<_AgentScreenState>();
                   state?._retry();
                 },
-                icon: const Icon(Icons.refresh, size: 17),
+                icon: const Icon(Icons.refresh_rounded, size: 17),
                 label: Text(context.tr('retry')),
               ),
             ] else if (showOpen) ...[
@@ -553,7 +733,7 @@ class _MessageBubble extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: () =>
                     navigationHandler.navigate(context, navigation),
-                icon: const Icon(Icons.open_in_new, size: 17),
+                icon: const Icon(Icons.open_in_new_rounded, size: 17),
                 label: Text(context.tr('open')),
               ),
             ],
@@ -830,13 +1010,13 @@ class _Composer extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
         12,
-        10,
+        9,
         12,
-        10 + MediaQuery.viewInsetsOf(context).bottom,
+        9 + MediaQuery.viewInsetsOf(context).bottom,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.card,
-        border: Border(top: BorderSide(color: AppColors.border)),
+        color: Color(0xFFF8FBFA),
+        border: Border(top: BorderSide(color: Color(0xFFDDE8E6))),
       ),
       child: SafeArea(
         top: false,
@@ -850,58 +1030,85 @@ class _Composer extends StatelessWidget {
               ),
               const SizedBox(height: 8),
             ],
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const ValueKey('agent_composer'),
-                    controller: controller,
-                    focusNode: focusNode,
-                    enabled: !loading && !voiceBusy,
-                    minLines: 1,
-                    maxLines: 5,
-                    maxLength: 2000,
-                    textInputAction: TextInputAction.newline,
-                    decoration: InputDecoration(
-                      counterText: '',
-                      hintText: context.tr('agent_input_hint'),
+            Container(
+              padding: const EdgeInsets.fromLTRB(6, 5, 5, 5),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadii.xl),
+                border: Border.all(color: const Color(0xFFD6E4E1)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x100F172A),
+                    blurRadius: 18,
+                    spreadRadius: -9,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('agent_composer'),
+                      controller: controller,
+                      focusNode: focusNode,
+                      enabled: !loading && !voiceBusy,
+                      minLines: 1,
+                      maxLines: 5,
+                      maxLength: 2000,
+                      textInputAction: TextInputAction.newline,
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: context.tr('agent_input_hint'),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        filled: false,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 11,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filledTonal(
-                  key: const ValueKey('agent_mic_button'),
-                  tooltip: _voiceTooltip(context, voiceState),
-                  onPressed:
-                      loading && voiceState != AgentVoiceUiState.recording
-                      ? null
-                      : onVoice,
-                  icon: _voiceIcon(voiceState),
-                ),
-                const SizedBox(width: 8),
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: controller,
-                  builder: (context, value, _) {
-                    final canSend =
-                        value.text.trim().isNotEmpty && !loading && !voiceBusy;
-                    return IconButton.filled(
-                      tooltip: context.tr('send'),
-                      onPressed: canSend ? onSend : null,
-                      icon: loading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.send_outlined),
-                    );
-                  },
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  IconButton.filledTonal(
+                    key: const ValueKey('agent_mic_button'),
+                    tooltip: _voiceTooltip(context, voiceState),
+                    onPressed:
+                        loading && voiceState != AgentVoiceUiState.recording
+                        ? null
+                        : onVoice,
+                    icon: _voiceIcon(voiceState),
+                  ),
+                  const SizedBox(width: 5),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: controller,
+                    builder: (context, value, _) {
+                      final canSend =
+                          value.text.trim().isNotEmpty &&
+                          !loading &&
+                          !voiceBusy;
+                      return IconButton.filled(
+                        tooltip: context.tr('send'),
+                        onPressed: canSend ? onSend : null,
+                        icon: loading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.send_outlined),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
