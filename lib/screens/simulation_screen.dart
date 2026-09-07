@@ -10,6 +10,7 @@ import '../features/agent/agent_entry.dart';
 import '../features/agent/models/agent_context.dart';
 import '../services/care_plan_service.dart';
 import '../services/notification_service.dart';
+import 'task_outcome_screens.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/care_setup_progress.dart';
 import '../widgets/page_header.dart';
@@ -56,6 +57,50 @@ class SimulationView extends StatefulWidget {
 
   @override
   State<SimulationView> createState() => _SimulationViewState();
+}
+
+CalendarRouteArgs? simulationCalendarArgsForFinding(
+  Map finding,
+  Iterable<DemoTask> tasks,
+) {
+  final dateKey = _simulationCalendarDateKeyForFinding(finding, tasks);
+  return dateKey == null ? null : CalendarRouteArgs(initialDate: dateKey);
+}
+
+String? _simulationCalendarDateKeyForFinding(
+  Map finding,
+  Iterable<DemoTask> tasks,
+) {
+  for (final key in const [
+    'date',
+    'scheduleDate',
+    'schedule_date',
+    'occurrenceDate',
+    'occurrence_date',
+    'taskDate',
+    'task_date',
+  ]) {
+    final parsed = calendarInitialDateFrom(_mapTextValue(finding, key));
+    if (parsed != null) return calendarLocalDateKey(parsed);
+  }
+
+  final taskId =
+      _mapTextValue(finding, 'taskId') ?? _mapTextValue(finding, 'task_id');
+  if (taskId == null) return null;
+  for (final task in tasks) {
+    if (task.id != taskId) continue;
+    final parsed = calendarInitialDateFrom(task.day);
+    if (parsed != null) return calendarLocalDateKey(parsed);
+  }
+  return null;
+}
+
+String? _mapTextValue(Map value, String key) {
+  final text = value[key]?.toString().trim();
+  if (text == null || text.isEmpty || text.toLowerCase() == 'null') {
+    return null;
+  }
+  return text;
 }
 
 class _SimulationViewState extends State<SimulationView> {
@@ -887,7 +932,7 @@ class _SimulationViewState extends State<SimulationView> {
               const SizedBox(height: 10),
 
               TextButton.icon(
-                onPressed: () => _openFindingAction(action),
+                onPressed: () => _openFindingAction(action, finding: insight),
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   foregroundColor: foreground,
@@ -1138,7 +1183,7 @@ class _SimulationViewState extends State<SimulationView> {
             ] else if (action.isNotEmpty) ...[
               const SizedBox(height: 10),
               TextButton.icon(
-                onPressed: () => _openFindingAction(action),
+                onPressed: () => _openFindingAction(action, finding: finding),
                 icon: const Icon(Icons.arrow_forward, size: 16),
                 label: Text(actionLabel ?? _findingActionLabel(action)),
               ),
@@ -1314,7 +1359,7 @@ class _SimulationViewState extends State<SimulationView> {
     _ => context.tr('sim_action_review'),
   };
 
-  void _openFindingAction(String action) {
+  void _openFindingAction(String action, {Map? finding}) {
     final planId = widget.planId;
 
     switch (action) {
@@ -1340,7 +1385,16 @@ class _SimulationViewState extends State<SimulationView> {
         return;
 
       case 'calendar':
-        Navigator.pushNamed(context, AppRoutes.calendar);
+        Navigator.pushNamed(
+          context,
+          AppRoutes.calendar,
+          arguments: finding == null
+              ? null
+              : simulationCalendarArgsForFinding(
+                  finding,
+                  data?.tasks ?? const <DemoTask>[],
+                ),
+        );
 
         return;
 
@@ -1521,7 +1575,7 @@ class _SimulationViewState extends State<SimulationView> {
       foreground: AppColors.criticalForeground,
       background: AppColors.criticalSoft,
       actionLabel: _findingActionLabel(action),
-      onAction: () => _openFindingAction(action),
+      onAction: () => _openFindingAction(action, finding: blocker),
     );
   }
 

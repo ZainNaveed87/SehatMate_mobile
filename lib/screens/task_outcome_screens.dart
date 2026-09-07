@@ -10,8 +10,48 @@ import '../widgets/app_shell.dart';
 import '../widgets/page_header.dart';
 import '../widgets/ui.dart';
 
+class CalendarRouteArgs {
+  const CalendarRouteArgs({this.initialDate});
+
+  final Object? initialDate;
+}
+
+String calendarLocalDateKey(DateTime value) =>
+    '${value.year.toString().padLeft(4, '0')}-'
+    '${value.month.toString().padLeft(2, '0')}-'
+    '${value.day.toString().padLeft(2, '0')}';
+
+DateTime? calendarInitialDateFrom(Object? value) {
+  if (value is DateTime) {
+    return DateTime(value.year, value.month, value.day);
+  }
+
+  if (value is! String) return null;
+  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value.trim());
+  if (match == null) return null;
+  final year = int.tryParse(match.group(1)!);
+  final month = int.tryParse(match.group(2)!);
+  final day = int.tryParse(match.group(3)!);
+  if (year == null || month == null || day == null) return null;
+
+  final parsed = DateTime(year, month, day);
+  if (parsed.year != year || parsed.month != month || parsed.day != day) {
+    return null;
+  }
+  return parsed;
+}
+
 class TaskCalendarScreen extends StatefulWidget {
-  const TaskCalendarScreen({super.key});
+  const TaskCalendarScreen({
+    super.key,
+    this.initialDate,
+    this.now,
+    this.startReliability = true,
+  });
+
+  final Object? initialDate;
+  final DateTime Function()? now;
+  final bool startReliability;
 
   @override
   State<TaskCalendarScreen> createState() => _TaskCalendarScreenState();
@@ -19,19 +59,31 @@ class TaskCalendarScreen extends StatefulWidget {
 
 class _TaskCalendarScreenState extends State<TaskCalendarScreen>
     with WidgetsBindingObserver {
-  DateTime selectedDate = DateTime.now();
+  late DateTime selectedDate;
   CareTaskAppDayData? data;
   bool loading = true;
   String? error;
   final Set<String> savingIds = {};
-  DateTime _lastToday = DateTime.now();
+  late DateTime _lastToday;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    CareReliabilityService.instance.start();
-    _lastToday = _dateOnly(DateTime.now());
+    if (widget.startReliability) {
+      CareReliabilityService.instance.start();
+    }
+    selectedDate = _initialSelectedDate();
+    _lastToday = _today;
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant TaskCalendarScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialDate == widget.initialDate) return;
+    selectedDate = _initialSelectedDate();
+    _lastToday = _today;
     _load();
   }
 
@@ -44,28 +96,37 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed || loading) return;
-    final now = _dateOnly(DateTime.now());
+    final now = _today;
     if (DateUtils.isSameDay(selectedDate, _lastToday) &&
         !DateUtils.isSameDay(now, _lastToday)) {
       selectedDate = now;
     }
     _lastToday = now;
-    CareReliabilityService.instance.onAppResumed();
+    if (widget.startReliability) {
+      CareReliabilityService.instance.onAppResumed();
+    }
     _load();
   }
 
   DateTime _dateOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 
+  DateTime _now() => widget.now?.call() ?? DateTime.now();
+
+  DateTime _initialSelectedDate() =>
+      calendarInitialDateFrom(widget.initialDate) ?? _today;
+
   DateTime get _dayOnly => _dateOnly(selectedDate);
 
-  DateTime get _today => _dateOnly(DateTime.now());
+  DateTime get _today => _dateOnly(_now());
 
   bool get _selectedIsToday => _dayOnly == _today;
 
-  DateTime _startOfWeek(DateTime value) =>
-      DateTime(value.year, value.month, value.day)
-          .subtract(Duration(days: value.weekday - DateTime.monday));
+  DateTime _startOfWeek(DateTime value) => DateTime(
+    value.year,
+    value.month,
+    value.day,
+  ).subtract(Duration(days: value.weekday - DateTime.monday));
 
   Future<void> _load() async {
     if (AuthSession.instance.isGuest) {
@@ -98,14 +159,10 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
     }
   }
 
-  Future<void> _setOutcome(
-    CareTaskOccurrence occurrence,
-    String status,
-  ) async {
+  Future<void> _setOutcome(CareTaskOccurrence occurrence, String status) async {
     setState(() => savingIds.add(occurrence.id));
     try {
-      final result =
-          await CareReliabilityService.instance.setOutcome(
+      final result = await CareReliabilityService.instance.setOutcome(
         occurrence,
         status,
       );
@@ -120,31 +177,24 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
           data = CareTaskAppDayData(
             date: current.date,
             occurrences: items,
-            summary: _summaryFor(
-              items,
-              current.summary,
-            ),
+            summary: _summaryFor(items, current.summary),
           );
         });
       }
       if (result.queued && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('calendar_saved_offline')),
-          ),
+          SnackBar(content: Text(context.tr('calendar_saved_offline'))),
         );
       } else if (result.conflictRecovered && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('calendar_conflict_restored')),
-          ),
+          SnackBar(content: Text(context.tr('calendar_conflict_restored'))),
         );
       }
     } on CarePlanException catch (exception) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(exception.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(exception.message)));
       }
     } finally {
       if (mounted) setState(() => savingIds.remove(occurrence.id));
@@ -195,7 +245,7 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
             subtitle: context.tr('calendar_subtitle'),
             action: OutlinedButton.icon(
               onPressed: () {
-                setState(() => selectedDate = DateTime.now());
+                setState(() => selectedDate = _today);
                 _load();
               },
               icon: const Icon(Icons.today_outlined, size: 17),
@@ -244,17 +294,17 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
         }
         final text = !sync.online
             ? sync.pendingCount > 0
-                ? context.tr(
-                    'calendar_offline_outcomes_waiting',
-                    values: {'count': sync.pendingCount},
-                  )
-                : context.tr('calendar_offline_saved_data')
+                  ? context.tr(
+                      'calendar_offline_outcomes_waiting',
+                      values: {'count': sync.pendingCount},
+                    )
+                  : context.tr('calendar_offline_saved_data')
             : sync.syncing
-                ? context.tr('calendar_syncing')
-                : context.tr(
-                    'calendar_outcomes_waiting',
-                    values: {'count': sync.pendingCount},
-                  );
+            ? context.tr('calendar_syncing')
+            : context.tr(
+                'calendar_outcomes_waiting',
+                values: {'count': sync.pendingCount},
+              );
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: AppCard(
@@ -262,18 +312,13 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
             child: Row(
               children: [
                 Icon(
-                  sync.online
-                      ? Icons.sync_outlined
-                      : Icons.cloud_off_outlined,
+                  sync.online ? Icons.sync_outlined : Icons.cloud_off_outlined,
                   size: 18,
                   color: AppColors.primary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    text,
-                    style: const TextStyle(fontSize: 13),
-                  ),
+                  child: Text(text, style: const TextStyle(fontSize: 13)),
                 ),
               ],
             ),
@@ -300,8 +345,9 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
                 tooltip: context.tr('previous_week'),
                 onPressed: () {
                   setState(
-                    () => selectedDate =
-                        selectedDate.subtract(const Duration(days: 7)),
+                    () => selectedDate = selectedDate.subtract(
+                      const Duration(days: 7),
+                    ),
                   );
                   _load();
                 },
@@ -311,17 +357,16 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
                 child: Text(
                   _weekLabel(context, start),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
               IconButton(
                 tooltip: context.tr('next_week'),
                 onPressed: () {
                   setState(
-                    () => selectedDate =
-                        selectedDate.add(const Duration(days: 7)),
+                    () => selectedDate = selectedDate.add(
+                      const Duration(days: 7),
+                    ),
                   );
                   _load();
                 },
@@ -354,6 +399,9 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
   Widget _dayButton(DateTime day, bool compact) {
     final selected = DateUtils.isSameDay(day, selectedDate);
     return InkWell(
+      key: ValueKey(
+        'calendar_day_${calendarLocalDateKey(day)}_${selected ? 'selected' : 'idle'}',
+      ),
       onTap: () {
         setState(() => selectedDate = day);
         _load();
@@ -409,10 +457,7 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
                 'no_care_tasks_on_date',
                 values: {'date': _displayDate(context, selectedDate)},
               ),
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
@@ -442,7 +487,13 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
                 ),
               ),
               Text(
-                context.tr('calendar_completed_summary', values: {'completed': value.summary.completed, 'total': value.summary.total}),
+                context.tr(
+                  'calendar_completed_summary',
+                  values: {
+                    'completed': value.summary.completed,
+                    'total': value.summary.total,
+                  },
+                ),
                 style: const TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w700,
@@ -514,9 +565,7 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
                     Text(
                       '${_clock(occurrence.scheduledTime)}'
                       '${occurrence.period.isEmpty ? '' : ' · ${_localizedPeriod(context, occurrence.period)}'}',
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                      ),
+                      style: const TextStyle(color: AppColors.muted),
                     ),
                   ],
                 ),
@@ -575,8 +624,8 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
         color: status == 'completed'
             ? AppColors.successSoft
             : (status == 'missed' || status == 'overdue')
-                ? AppColors.criticalSoft
-                : AppColors.secondary,
+            ? AppColors.criticalSoft
+            : AppColors.secondary,
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(
@@ -587,8 +636,8 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
           color: status == 'completed'
               ? AppColors.successForeground
               : (status == 'missed' || status == 'overdue')
-                  ? AppColors.criticalForeground
-                  : AppColors.muted,
+              ? AppColors.criticalForeground
+              : AppColors.muted,
         ),
       ),
     );
@@ -616,55 +665,55 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
   }
 
   String _displayDate(BuildContext context, DateTime value) => context.tr(
-        'calendar_full_date',
-        values: {
-          'weekday': _weekdayLong(context, value.weekday),
-          'day': value.day,
-          'month': _month(context, value.month),
-          'year': value.year,
-        },
-      );
+    'calendar_full_date',
+    values: {
+      'weekday': _weekdayLong(context, value.weekday),
+      'day': value.day,
+      'month': _month(context, value.month),
+      'year': value.year,
+    },
+  );
 
   String _weekday(BuildContext context, int value) => context.tr(
-        const [
-          'mon_short',
-          'tue_short',
-          'wed_short',
-          'thu_short',
-          'fri_short',
-          'sat_short',
-          'sun_short',
-        ][value - 1],
-      );
+    const [
+      'mon_short',
+      'tue_short',
+      'wed_short',
+      'thu_short',
+      'fri_short',
+      'sat_short',
+      'sun_short',
+    ][value - 1],
+  );
 
   String _weekdayLong(BuildContext context, int value) => context.tr(
-        const [
-          'monday',
-          'tuesday',
-          'wednesday',
-          'thursday',
-          'friday',
-          'saturday',
-          'sunday',
-        ][value - 1],
-      );
+    const [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ][value - 1],
+  );
 
   String _month(BuildContext context, int value) => context.tr(
-        const [
-          'jan_short',
-          'feb_short',
-          'mar_short',
-          'apr_short',
-          'may_short',
-          'jun_short',
-          'jul_short',
-          'aug_short',
-          'sep_short',
-          'oct_short',
-          'nov_short',
-          'dec_short',
-        ][value - 1],
-      );
+    const [
+      'jan_short',
+      'feb_short',
+      'mar_short',
+      'apr_short',
+      'may_short',
+      'jun_short',
+      'jul_short',
+      'aug_short',
+      'sep_short',
+      'oct_short',
+      'nov_short',
+      'dec_short',
+    ][value - 1],
+  );
 
   String _localizedPeriod(BuildContext context, String value) {
     return switch (value.trim().toLowerCase()) {
@@ -736,8 +785,9 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
       error = null;
     });
     try {
-      final result =
-          await CarePlanService.instance.fetchAllTaskOutcomeSummary(days: days);
+      final result = await CarePlanService.instance.fetchAllTaskOutcomeSummary(
+        days: days,
+      );
       if (!mounted) return;
       setState(() {
         data = result;
@@ -773,29 +823,21 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
               itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 7,
-                  child: Text(
-                    context.tr('last_days', values: {'count': 7}),
-                  ),
+                  child: Text(context.tr('last_days', values: {'count': 7})),
                 ),
                 PopupMenuItem(
                   value: 14,
-                  child: Text(
-                    context.tr('last_days', values: {'count': 14}),
-                  ),
+                  child: Text(context.tr('last_days', values: {'count': 14})),
                 ),
                 PopupMenuItem(
                   value: 30,
-                  child: Text(
-                    context.tr('last_days', values: {'count': 30}),
-                  ),
+                  child: Text(context.tr('last_days', values: {'count': 30})),
                 ),
               ],
               child: OutlinedButton.icon(
                 onPressed: null,
                 icon: const Icon(Icons.date_range_outlined, size: 17),
-                label: Text(
-                  context.tr('last_days', values: {'count': days}),
-                ),
+                label: Text(context.tr('last_days', values: {'count': days})),
               ),
             ),
           ),
@@ -810,9 +852,15 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
             AppCard(
               child: Column(
                 children: [
-                  Text(_localizedProgressError(context), textAlign: TextAlign.center),
+                  Text(
+                    _localizedProgressError(context),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 12),
-                  OutlinedButton(onPressed: _load, child: Text(context.tr('retry'))),
+                  OutlinedButton(
+                    onPressed: _load,
+                    child: Text(context.tr('retry')),
+                  ),
                 ],
               ),
             )
@@ -887,10 +935,7 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
               const SizedBox(height: 4),
               Text(
                 context.tr('progress_safety_explanation'),
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  height: 1.4,
-                ),
+                style: const TextStyle(color: AppColors.muted, height: 1.4),
               ),
               const SizedBox(height: 18),
               if (value.daily.every((day) => day.scheduled == 0))
@@ -927,12 +972,7 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
     );
   }
 
-  Widget _metric(
-    double width,
-    String label,
-    String value,
-    String hint,
-  ) {
+  Widget _metric(double width, String label, String value, String hint) {
     return SizedBox(
       width: width,
       child: AppCard(
@@ -944,18 +984,12 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 3),
             Text(
               hint,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.muted,
-              ),
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
             ),
           ],
         ),
@@ -1028,10 +1062,7 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
                     'pending': day.pending,
                   },
                 ),
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.muted,
-                ),
+                style: const TextStyle(fontSize: 11, color: AppColors.muted),
               ),
             ),
           ],
@@ -1041,27 +1072,21 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
   }
 
   Widget _plainStat(String label, int value) => SizedBox(
-        width: 100,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$value',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.muted,
-              ),
-            ),
-          ],
+    width: 100,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$value',
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
         ),
-      );
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: AppColors.muted),
+        ),
+      ],
+    ),
+  );
 
   String _localizedProgressError(BuildContext context) {
     if (error == '__progress_guest_sign_in__') {
@@ -1071,31 +1096,31 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
   }
 
   String _progressWeekday(BuildContext context, int value) => context.tr(
-        const [
-          'mon_short',
-          'tue_short',
-          'wed_short',
-          'thu_short',
-          'fri_short',
-          'sat_short',
-          'sun_short',
-        ][value - 1],
-      );
+    const [
+      'mon_short',
+      'tue_short',
+      'wed_short',
+      'thu_short',
+      'fri_short',
+      'sat_short',
+      'sun_short',
+    ][value - 1],
+  );
 
   String _progressMonth(BuildContext context, int value) => context.tr(
-        const [
-          'jan_short',
-          'feb_short',
-          'mar_short',
-          'apr_short',
-          'may_short',
-          'jun_short',
-          'jul_short',
-          'aug_short',
-          'sep_short',
-          'oct_short',
-          'nov_short',
-          'dec_short',
-        ][value - 1],
-      );
+    const [
+      'jan_short',
+      'feb_short',
+      'mar_short',
+      'apr_short',
+      'may_short',
+      'jun_short',
+      'jul_short',
+      'aug_short',
+      'sep_short',
+      'oct_short',
+      'nov_short',
+      'dec_short',
+    ][value - 1],
+  );
 }

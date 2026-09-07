@@ -819,15 +819,20 @@ class CareGapDetailData {
 }
 
 class CarePlanService {
-  CarePlanService({http.Client? client, String? Function()? tokenProvider})
-    : _client = client ?? http.Client(),
-      _tokenProvider = tokenProvider ?? (() => AuthSession.instance.token);
+  CarePlanService({
+    http.Client? client,
+    String? Function()? tokenProvider,
+    DateTime Function()? now,
+  }) : _client = client ?? http.Client(),
+       _tokenProvider = tokenProvider ?? (() => AuthSession.instance.token),
+       _now = now ?? DateTime.now;
 
   static final CarePlanService instance = CarePlanService();
   static const _timeout = Duration(seconds: 20);
 
   final http.Client _client;
   final String? Function() _tokenProvider;
+  final DateTime Function() _now;
 
   static const _cachePrefix = 'sehatmate_care_cache_v1';
 
@@ -1092,7 +1097,7 @@ class CarePlanService {
     await _request(
       'PATCH',
       '/care-plans/$planId/duration',
-      body: {'mode': mode, 'endDate': endDate},
+      body: {'mode': mode, 'endDate': endDate, 'today': _dateKey(_now())},
     );
   }
 
@@ -1108,7 +1113,7 @@ class CarePlanService {
     await _request(
       'PATCH',
       '/care-plans/$planId/status',
-      body: {'status': 'active', 'today': _dateKey(DateTime.now())},
+      body: {'status': 'active', 'today': _dateKey(_now())},
     );
     return fetchPlanDetail(planId);
   }
@@ -1119,9 +1124,9 @@ class CarePlanService {
       '${value.day.toString().padLeft(2, '0')}';
 
   Future<CareTaskAppDayData> fetchAllTaskOccurrences({DateTime? date}) async {
-    final target = date ?? DateTime.now();
+    final target = date ?? _now();
     final targetDate = _dateKey(target);
-    final today = _dateKey(DateTime.now());
+    final today = _dateKey(_now());
     final cacheSuffix = 'task-day:$targetDate';
 
     Map<String, dynamic> data;
@@ -1164,7 +1169,7 @@ class CarePlanService {
     int days = 7,
   }) async {
     final safeDays = days.clamp(1, 31).toInt();
-    final now = DateTime.now();
+    final now = _now();
     final endDate = _dateKey(now);
     final cacheSuffix = 'task-summary:$safeDays:$endDate';
 
@@ -1216,9 +1221,9 @@ class CarePlanService {
     String planId, {
     DateTime? date,
   }) async {
-    final target = date ?? DateTime.now();
+    final target = date ?? _now();
     final targetDate = _dateKey(target);
-    final today = _dateKey(DateTime.now());
+    final today = _dateKey(_now());
     final data = await _request(
       'GET',
       '/care-plans/$planId/task-occurrences?date=$targetDate&today=$today',
@@ -1255,7 +1260,7 @@ class CarePlanService {
       body: {
         'status': status,
         'note': note.trim(),
-        'today': _dateKey(DateTime.now()),
+        'today': _dateKey(_now()),
         if (operationKey.trim().isNotEmpty) 'operationKey': operationKey.trim(),
         if (baseStatus.trim().isNotEmpty) 'baseStatus': baseStatus.trim(),
       },
@@ -1376,7 +1381,7 @@ class CarePlanService {
     int days = 7,
   }) async {
     final safeDays = days.clamp(1, 31);
-    final endDate = _dateKey(DateTime.now());
+    final endDate = _dateKey(_now());
     final data = await _request(
       'GET',
       '/care-plans/$planId/task-outcomes/summary'
@@ -1996,7 +2001,7 @@ class CarePlanService {
     await _request(
       'PATCH',
       '/care-plans/$planId/status',
-      body: {'status': 'active', 'today': _dateKey(DateTime.now())},
+      body: {'status': 'active', 'today': _dateKey(_now())},
     );
     return fetchPlanDetail(planId);
   }

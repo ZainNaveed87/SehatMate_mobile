@@ -7445,14 +7445,47 @@ class AppStrings {
       AppLanguage.urdu: 'حقیقت کی جانچ کی طرف جائیں',
       AppLanguage.romanUrdu: 'Reality Check par jayein',
     },
+    'no_scheduled_tasks_yet': {
+      AppLanguage.english: 'No scheduled tasks yet',
+      AppLanguage.urdu: 'ابھی کوئی شیڈول شدہ کام نہیں ہے',
+      AppLanguage.romanUrdu: 'Abhi koi scheduled task nahi hai',
+    },
+    'generate_schedule_from_verified_instructions': {
+      AppLanguage.english:
+          'Generate a schedule from your verified instructions.',
+      AppLanguage.urdu: 'اپنی تصدیق شدہ ہدایات سے شیڈول بنائیں۔',
+      AppLanguage.romanUrdu: 'Apni verified instructions se schedule banayein.',
+    },
+    'generating': {
+      AppLanguage.english: 'Generating...',
+      AppLanguage.urdu: 'شیڈول بن رہا ہے...',
+      AppLanguage.romanUrdu: 'Schedule ban raha hai...',
+    },
   };
+  static String _readableFallback(String key) {
+    final words = key
+        .trim()
+        .split(RegExp(r'[_\-\s]+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (words.isEmpty) return 'Text unavailable';
+
+    final text = words.join(' ');
+    if (text.isEmpty) return 'Text unavailable';
+
+    return '${text[0].toUpperCase()}${text.substring(1)}';
+  }
+
   static String get(
     String key,
     AppLanguage language, {
     Map<String, Object?> values = const {},
   }) {
     var text =
-        _values[key]?[language] ?? _values[key]?[AppLanguage.english] ?? key;
+        _values[key]?[language] ??
+        _values[key]?[AppLanguage.english] ??
+        _readableFallback(key);
 
     for (final entry in values.entries) {
       text = text.replaceAll('{${entry.key}}', '${entry.value ?? ''}');

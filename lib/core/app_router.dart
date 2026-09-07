@@ -110,7 +110,11 @@ abstract final class AppRouter {
         returnToPrevious: args?.returnToPrevious ?? false,
       );
     } else if (name == AppRoutes.calendar) {
-      page = const TaskCalendarScreen();
+      final arguments = settings.arguments;
+
+      final args = arguments is CalendarRouteArgs ? arguments : null;
+
+      page = TaskCalendarScreen(initialDate: args?.initialDate);
     } else if (name == AppRoutes.notifications) {
       page = const NotificationsScreen();
     } else if (name == AppRoutes.documents) {
