@@ -161,7 +161,10 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
 
               return FadeTransition(
                 opacity: animation,
-                child: SlideTransition(position: slide, child: child),
+                child: SlideTransition(
+                  position: slide,
+                  child: child,
+                ),
               );
             },
             child: _loading
@@ -171,32 +174,30 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
                     child: _loadingSkeleton(),
                   )
                 : _error != null
-                ? FadeSlideIn(
-                    key: const ValueKey('care-plans-error'),
-                    child: _errorCard(),
-                  )
-                : KeyedSubtree(
-                    key: ValueKey(
-                      'care-plans-$selected-${currentPlans.length}',
-                    ),
-                    child: _PlanGrid(
-                      plans: currentPlans,
-                      onDelete: !AuthSession.instance.isGuest
-                          ? _deletePlan
-                          : null,
-                      onComplete: !AuthSession.instance.isGuest
-                          ? _completePlan
-                          : null,
-                      selectedIds: _selectedIds,
-                      onSelectionChanged: (plan, checked) => setState(() {
-                        if (checked) {
-                          _selectedIds.add(plan.id);
-                        } else {
-                          _selectedIds.remove(plan.id);
-                        }
-                      }),
-                    ),
-                  ),
+                    ? FadeSlideIn(
+                        key: const ValueKey('care-plans-error'),
+                        child: _errorCard(),
+                      )
+                    : KeyedSubtree(
+                        key: ValueKey(
+                          'care-plans-$selected-${currentPlans.length}',
+                        ),
+                        child: _PlanGrid(
+                          plans: currentPlans,
+                          onDelete:
+                              !AuthSession.instance.isGuest ? _deletePlan : null,
+                          onComplete:
+                              !AuthSession.instance.isGuest ? _completePlan : null,
+                          selectedIds: _selectedIds,
+                          onSelectionChanged: (plan, checked) => setState(() {
+                            if (checked) {
+                              _selectedIds.add(plan.id);
+                            } else {
+                              _selectedIds.remove(plan.id);
+                            }
+                          }),
+                        ),
+                      ),
           ),
         ],
       ),
@@ -218,7 +219,11 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF0F766E), Color(0xFF0D9488), Color(0xFF14B8A6)],
+              colors: [
+                Color(0xFF0F766E),
+                Color(0xFF0D9488),
+                Color(0xFF14B8A6),
+              ],
             ),
             borderRadius: BorderRadius.circular(AppRadii.xxxl),
             boxShadow: const [
@@ -267,8 +272,10 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
                     ),
                     const SizedBox(height: 18),
                     FilledButton.icon(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, AppRoutes.carePlanNew),
+                      onPressed: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.carePlanNew,
+                      ),
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.primary,
@@ -291,8 +298,10 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
                     ),
                     const SizedBox(width: 22),
                     FilledButton.icon(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, AppRoutes.carePlanNew),
+                      onPressed: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.carePlanNew,
+                      ),
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.primary,
@@ -387,7 +396,10 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
     );
   }
 
-  Widget _heroChip({required IconData icon, required String label}) {
+  Widget _heroChip({
+    required IconData icon,
+    required String label,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
@@ -424,7 +436,8 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 760 ? 4 : 2;
         const gap = 10.0;
-        final width = (constraints.maxWidth - ((columns - 1) * gap)) / columns;
+        final width =
+            (constraints.maxWidth - ((columns - 1) * gap)) / columns;
 
         return Wrap(
           spacing: gap,
@@ -704,8 +717,8 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
                         selected == 0
                             ? 'active'
                             : selected == 1
-                            ? 'draft'
-                            : 'completed',
+                                ? 'draft'
+                                : 'completed',
                       )
                       .toLowerCase(),
                 },
@@ -741,7 +754,10 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
                         _skeleton(width: 40, height: 40, radius: 12),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _skeleton(width: double.infinity, height: 18),
+                          child: _skeleton(
+                            width: double.infinity,
+                            height: 18,
+                          ),
                         ),
                       ],
                     ),
@@ -802,7 +818,10 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, height: 1.45),
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.45,
+                ),
               ),
               const SizedBox(height: 14),
               OutlinedButton.icon(
@@ -816,6 +835,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
       ),
     );
   }
+
 
   Future<void> _deletePlan(DemoPlan plan) async {
     final confirmed = await showDialog<bool>(
@@ -985,7 +1005,10 @@ class _PlanGrid extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFF0FDFA), Color(0xFFF8FAFC)],
+            colors: [
+              Color(0xFFF0FDFA),
+              Color(0xFFF8FAFC),
+            ],
           ),
           borderRadius: BorderRadius.circular(AppRadii.xxxl),
           border: Border.all(color: const Color(0xFFCCFBF1)),
@@ -1009,7 +1032,10 @@ class _PlanGrid extends StatelessWidget {
             Text(
               context.tr('no_care_plans_here'),
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 5),
             Text(
@@ -1049,7 +1075,9 @@ class _PlanGrid extends StatelessWidget {
                 (entry) => SizedBox(
                   width: width,
                   child: FadeSlideIn(
-                    delay: Duration(milliseconds: 35 * entry.key.clamp(0, 5)),
+                    delay: Duration(
+                      milliseconds: 35 * entry.key.clamp(0, 5),
+                    ),
                     child: _PlanCard(
                       plan: entry.value,
                       onDelete: onDelete,
@@ -1066,6 +1094,7 @@ class _PlanGrid extends StatelessWidget {
     );
   }
 }
+
 
 class _PlanCard extends StatelessWidget {
   const _PlanCard({
@@ -1089,13 +1118,16 @@ class _PlanCard extends StatelessWidget {
     final statusAccent = attention
         ? AppColors.warning
         : plan.status == PlanStatus.completed
-        ? AppColors.success
-        : AppColors.primary;
+            ? AppColors.success
+            : AppColors.primary;
 
     return HoverLift(
       cursor: SystemMouseCursors.click,
       child: InkWell(
-        onTap: () => Navigator.pushNamed(context, AppRoutes.carePlan(plan.id)),
+        onTap: () => Navigator.pushNamed(
+          context,
+          AppRoutes.carePlan(plan.id),
+        ),
         borderRadius: BorderRadius.circular(AppRadii.xxl),
         child: AppCard(
           padding: EdgeInsets.zero,
@@ -1124,21 +1156,21 @@ class _PlanCard extends StatelessWidget {
                             color: attention
                                 ? AppColors.warningSoft
                                 : plan.status == PlanStatus.completed
-                                ? AppColors.successSoft
-                                : AppColors.primaryLight,
+                                    ? AppColors.successSoft
+                                    : AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(AppRadii.xl),
                           ),
                           child: Icon(
                             attention
                                 ? Icons.warning_amber_rounded
                                 : plan.status == PlanStatus.completed
-                                ? Icons.task_alt_rounded
-                                : Icons.health_and_safety_outlined,
+                                    ? Icons.task_alt_rounded
+                                    : Icons.health_and_safety_outlined,
                             color: attention
                                 ? AppColors.warningForeground
                                 : plan.status == PlanStatus.completed
-                                ? AppColors.successForeground
-                                : AppColors.primary,
+                                    ? AppColors.successForeground
+                                    : AppColors.primary,
                             size: 21,
                           ),
                         ),
@@ -1309,7 +1341,10 @@ class _PlanCard extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              style: const TextStyle(fontSize: 12, height: 1.4),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
                             ),
                           ),
                         ],
@@ -1393,191 +1428,214 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
     return AppShell(
       currentRoute: AppRoutes.carePlanNew,
       title: context.tr('new_care_plan'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
-              onPressed: () =>
-                  Navigator.pushReplacementNamed(context, AppRoutes.carePlans),
-              icon: const Icon(Icons.arrow_back_rounded, size: 17),
-              label: Text(context.tr('care_plans')),
-            ),
-          ),
-          const SizedBox(height: 6),
-          FadeSlideIn(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF0F766E),
-                    Color(0xFF0D9488),
-                    Color(0xFF14B8A6),
-                  ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // AppShell can provide unbounded vertical constraints because its
+          // content is scrollable. Use the real viewport height instead so
+          // compact mode also works in widget tests and short phone screens.
+          final viewportHeight = MediaQuery.sizeOf(context).height;
+          final compactHeight = viewportHeight < 700;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.carePlans,
+                  ),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 17),
+                  label: Text(context.tr('care_plans')),
                 ),
-                borderRadius: BorderRadius.circular(AppRadii.xxxl),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x260F766E),
-                    blurRadius: 30,
-                    spreadRadius: -12,
-                    offset: Offset(0, 15),
-                  ),
-                ],
               ),
-              child: Stack(
-                children: [
-                  PositionedDirectional(
-                    top: -62,
-                    end: -42,
-                    child: Container(
-                      width: 150,
-                      height: 150,
-                      decoration: const BoxDecoration(
-                        color: Color(0x16FFFFFF),
-                        shape: BoxShape.circle,
-                      ),
+              SizedBox(height: compactHeight ? 2 : 6),
+              FadeSlideIn(
+                child: Container(
+                  padding: EdgeInsets.all(compactHeight ? 14 : 20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF0F766E),
+                        Color(0xFF0D9488),
+                        Color(0xFF14B8A6),
+                      ],
                     ),
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(0x24FFFFFF),
-                          borderRadius: BorderRadius.circular(AppRadii.xl),
-                          border: Border.all(color: const Color(0x32FFFFFF)),
-                        ),
-                        child: const Icon(
-                          Icons.health_and_safety_outlined,
-                          color: Colors.white,
-                          size: 23,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.tr('new_care_plan'),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 26,
-                                height: 1.08,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -.4,
-                              ),
-                            ),
-                            const SizedBox(height: 7),
-                            Text(
-                              context.tr('plan_name_helper'),
-                              style: const TextStyle(
-                                color: Color(0xE6FFFFFF),
-                                fontSize: 13,
-                                height: 1.45,
-                              ),
-                            ),
-                          ],
-                        ),
+                    borderRadius: BorderRadius.circular(AppRadii.xxxl),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x260F766E),
+                        blurRadius: 30,
+                        spreadRadius: -12,
+                        offset: Offset(0, 15),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 60),
-            child: AppCard(
-              radius: AppRadii.xxl,
-              padding: const EdgeInsets.all(18),
-              borderColor: const Color(0xFFDCE8E6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
+                  child: Stack(
                     children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(AppRadii.lg),
-                        ),
-                        child: const Icon(
-                          Icons.edit_note_rounded,
-                          color: AppColors.primary,
-                          size: 19,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          context.tr('plan_name'),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
+                      PositionedDirectional(
+                        top: -62,
+                        end: -42,
+                        child: Container(
+                          width: 150,
+                          height: 150,
+                          decoration: const BoxDecoration(
+                            color: Color(0x16FFFFFF),
+                            shape: BoxShape.circle,
                           ),
                         ),
                       ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: compactHeight ? 40 : 48,
+                            height: compactHeight ? 40 : 48,
+                            decoration: BoxDecoration(
+                              color: const Color(0x24FFFFFF),
+                              borderRadius: BorderRadius.circular(AppRadii.xl),
+                              border: Border.all(
+                                color: const Color(0x32FFFFFF),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.health_and_safety_outlined,
+                              color: Colors.white,
+                              size: compactHeight ? 20 : 23,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  context.tr('new_care_plan'),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: compactHeight ? 22 : 26,
+                                    height: 1.08,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -.4,
+                                  ),
+                                ),
+                                if (!compactHeight) ...[
+                                  const SizedBox(height: 7),
+                                  Text(
+                                    context.tr('plan_name_helper'),
+                                    style: const TextStyle(
+                                      color: Color(0xE6FFFFFF),
+                                      fontSize: 13,
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 15),
-                  TextField(
-                    key: const ValueKey('new_care_plan_name_field'),
-                    controller: _planNameController,
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      labelText: '${context.tr('plan_name')} *',
-                      hintText: context.tr('plan_name_hint'),
-                      helperText: context.tr('plan_name_helper'),
-                      prefixIcon: const Icon(Icons.folder_open_outlined),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FBFA),
-                      errorText: _nameTouched && _planNameErrorKey != null
-                          ? context.tr(_planNameErrorKey!)
-                          : null,
-                    ),
-                    onChanged: (_) => setState(() => _nameTouched = true),
-                    onSubmitted: (_) {
-                      if (_canContinue) _continue();
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  SafetyNote(text: context.tr('new_plan_safety_note')),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    height: 50,
-                    child: FilledButton.icon(
-                      key: const ValueKey('new_care_plan_continue_button'),
-                      onPressed: _canContinue ? _continue : null,
-                      iconAlignment: IconAlignment.end,
-                      icon: _creating
-                          ? const SizedBox(
-                              width: 17,
-                              height: 17,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.arrow_forward_rounded, size: 18),
-                      label: Text(context.tr('continue')),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+              SizedBox(height: compactHeight ? 10 : 18),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 60),
+                child: AppCard(
+                  radius: AppRadii.xxl,
+                  padding: EdgeInsets.all(compactHeight ? 14 : 18),
+                  borderColor: const Color(0xFFDCE8E6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: compactHeight ? 30 : 36,
+                            height: compactHeight ? 30 : 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(AppRadii.lg),
+                            ),
+                            child: Icon(
+                              Icons.edit_note_rounded,
+                              color: AppColors.primary,
+                              size: compactHeight ? 17 : 19,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              context.tr('plan_name'),
+                              style: TextStyle(
+                                fontSize: compactHeight ? 14 : 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: compactHeight ? 9 : 15),
+                      TextField(
+                        key: const ValueKey('new_care_plan_name_field'),
+                        controller: _planNameController,
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(
+                          labelText: '${context.tr('plan_name')} *',
+                          hintText: context.tr('plan_name_hint'),
+                          helperText: compactHeight
+                              ? null
+                              : context.tr('plan_name_helper'),
+                          prefixIcon: const Icon(Icons.folder_open_outlined),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FBFA),
+                          errorText: _nameTouched && _planNameErrorKey != null
+                              ? context.tr(_planNameErrorKey!)
+                              : null,
+                        ),
+                        onChanged: (_) => setState(() => _nameTouched = true),
+                        onSubmitted: (_) {
+                          if (_canContinue) _continue();
+                        },
+                      ),
+                      SizedBox(height: compactHeight ? 10 : 16),
+                      SafetyNote(text: context.tr('new_plan_safety_note')),
+                      SizedBox(height: compactHeight ? 10 : 18),
+                      SizedBox(
+                        height: compactHeight ? 46 : 50,
+                        child: FilledButton.icon(
+                          key: const ValueKey(
+                            'new_care_plan_continue_button',
+                          ),
+                          onPressed: _canContinue ? _continue : null,
+                          iconAlignment: IconAlignment.end,
+                          icon: _creating
+                              ? const SizedBox(
+                                  width: 17,
+                                  height: 17,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 18,
+                                ),
+                          label: Text(context.tr('continue')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
