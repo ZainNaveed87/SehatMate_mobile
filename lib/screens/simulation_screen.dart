@@ -146,7 +146,6 @@ class _SimulationViewState extends State<SimulationView> {
           data = result;
           careGaps = gapResult;
           setupProgress = progress;
-
           loading = false;
         });
       }
@@ -1331,7 +1330,7 @@ class _SimulationViewState extends State<SimulationView> {
   }
 
   String _findingActionLabel(String action) => switch (action) {
-    'schedule' => context.tr('sim_action_review_schedule'),
+    'schedule' || 'review_schedule' => context.tr('sim_action_review_schedule'),
 
     'family_care' => context.tr('sim_action_open_family_care'),
 
@@ -1343,7 +1342,9 @@ class _SimulationViewState extends State<SimulationView> {
 
     'review_instruction' => context.tr('sim_action_review_instruction'),
 
-    _ => context.tr('sim_action_review'),
+    'documents' => context.tr('documents'),
+
+    _ => context.tr('sim_action_review_care_plan'),
   };
 
   void _openFindingAction(String action, {Map? finding}) {
@@ -1351,6 +1352,7 @@ class _SimulationViewState extends State<SimulationView> {
 
     switch (action) {
       case 'schedule':
+      case 'review_schedule':
         if (planId == null) {
           return;
         }
@@ -1397,7 +1399,6 @@ class _SimulationViewState extends State<SimulationView> {
         _openRealityCheck();
         return;
 
-      // NEW
       case 'review_instruction':
         if (planId == null) {
           return;
@@ -1411,8 +1412,24 @@ class _SimulationViewState extends State<SimulationView> {
 
         return;
 
+      case 'documents':
+        if (planId == null) {
+          return;
+        }
+
+        Navigator.pushNamed(
+          context,
+          AppRoutes.carePlan(planId),
+          arguments: const CarePlanDetailArgs(
+            initialTab: 4,
+            returnToPrevious: true,
+          ),
+        );
+
+        return;
+
       default:
-        _openRealityCheck();
+        _openCarePlan();
     }
   }
 

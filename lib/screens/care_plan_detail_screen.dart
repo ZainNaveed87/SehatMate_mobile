@@ -612,19 +612,34 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
 
   Widget _planEndDateCard(DemoPlan plan) {
     final selectedDate = _planEndDate;
-
     final suggestedDate = DateTime.tryParse(plan.suggestedEndDate);
+    final showSuggestion =
+        suggestedDate != null &&
+        (selectedDate == null ||
+            !DateUtils.isSameDay(selectedDate, suggestedDate));
 
     return AppCard(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.event_outlined, color: AppColors.primary),
-              const SizedBox(width: 10),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.event_outlined,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 11),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -632,31 +647,27 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                     Text(
                       'Care plan end date',
                       style: TextStyle(
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    SizedBox(height: 2),
                     Text(
-                      'Choose how long this care plan should remain active. '
-                      'Medicine repeat patterns and course durations are set separately below.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.4,
-                        color: AppColors.muted,
-                      ),
+                      'Overall plan boundary',
+                      style: TextStyle(fontSize: 12, color: AppColors.muted),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
+              color: AppColors.secondary,
+              borderRadius: BorderRadius.circular(AppRadii.lg),
               border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(AppRadii.xl),
             ),
             child: Row(
               children: [
@@ -665,16 +676,16 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Selected end date',
-                        style: TextStyle(fontSize: 12, color: AppColors.muted),
+                        'Ends',
+                        style: TextStyle(fontSize: 11, color: AppColors.muted),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 2),
                       Text(
                         selectedDate == null
                             ? 'Not selected'
                             : _displayPlanEndDate(selectedDate),
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -683,38 +694,36 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
                 ),
                 OutlinedButton.icon(
                   onPressed: _savingPlanDuration ? null : _pickPlanEndDate,
-                  icon: const Icon(Icons.calendar_month_outlined, size: 18),
-                  label: const Text('Choose date'),
+                  icon: const Icon(Icons.edit_calendar_outlined, size: 17),
+                  label: const Text('Change'),
+                ),
+                const SizedBox(width: 7),
+                FilledButton(
+                  onPressed: _savingPlanDuration || selectedDate == null
+                      ? null
+                      : _savePlanEndDate,
+                  child: _savingPlanDuration
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save'),
                 ),
               ],
             ),
           ),
-          if (suggestedDate != null) ...[
-            const SizedBox(height: 10),
+          if (showSuggestion) ...[
+            const SizedBox(height: 7),
             Text(
-              'Suggested plan end: '
-              '${_displayPlanEndDate(suggestedDate)}',
-              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+              'Suggested: ${_displayPlanEndDate(suggestedDate)}',
+              style: const TextStyle(fontSize: 11, color: AppColors.muted),
             ),
           ],
-          const SizedBox(height: 14),
-          FilledButton.icon(
-            onPressed: _savingPlanDuration || selectedDate == null
-                ? null
-                : _savePlanEndDate,
-            icon: _savingPlanDuration
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined, size: 18),
-            label: Text(_savingPlanDuration ? 'Saving…' : 'Save end date'),
-          ),
-          const SizedBox(height: 10),
-          const SafetyNote(
-            text:
-                'The care-plan end date does not automatically extend a medicine that has a verified fixed duration.',
+          const SizedBox(height: 7),
+          const Text(
+            'This caps the care plan. It never extends a verified medicine course.',
+            style: TextStyle(fontSize: 11, height: 1.3, color: AppColors.muted),
           ),
         ],
       ),
@@ -739,6 +748,85 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     }
 
     return groups;
+  }
+
+  bool _scheduleTaskIsMedicine(CarePlanDetailData detail, DemoTask task) {
+    final meta = detail.metaForTask(task.id);
+    return meta?.isMedicine ?? task.kind == TaskKind.medicine;
+  }
+
+  String? _canonicalClockTime(String value) {
+    final match = RegExp(
+      r'(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?',
+      caseSensitive: false,
+    ).firstMatch(value.trim());
+
+    if (match == null) return null;
+
+    var hour = int.tryParse(match.group(1)!);
+    final minute = int.tryParse(match.group(2)!);
+    final suffix = match.group(3)?.toUpperCase();
+
+    if (hour == null || minute == null || minute > 59) return null;
+
+    if (suffix != null) {
+      if (hour < 1 || hour > 12) return null;
+      if (suffix == 'PM' && hour != 12) {
+        hour += 12;
+      } else if (suffix == 'AM' && hour == 12) {
+        hour = 0;
+      }
+    } else if (hour > 23) {
+      return null;
+    }
+
+    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  }
+
+  String _displayClockTime(String value) {
+    final canonical = _canonicalClockTime(value);
+    if (canonical == null) return value.trim();
+
+    final parts = canonical.split(':');
+    final hour = int.parse(parts[0]);
+    final minute = parts[1];
+    final suffix = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour % 12 == 0 ? 12 : hour % 12;
+    return '$displayHour:$minute $suffix';
+  }
+
+  String _scheduleDisplaySlotKey(DemoTask task) {
+    final displayTime = (_timeOverrides[task.id] ?? task.time).trim();
+    final canonicalTime = _canonicalClockTime(displayTime);
+
+    if (canonicalTime != null) {
+      return 'time|$canonicalTime';
+    }
+
+    final period =
+        (_periodOverrides[task.id] ?? _periodFrom('${task.time} ${task.note}'))
+            .trim()
+            .toLowerCase();
+    return 'period|$period|${displayTime.toLowerCase()}';
+  }
+
+  List<DemoTask> _medicineReminderTasksForDisplay(List<DemoTask> tasks) {
+    final rows = <DemoTask>[];
+    final seenSlots = <String>{};
+
+    for (final task in tasks) {
+      if (seenSlots.add(_scheduleDisplaySlotKey(task))) {
+        rows.add(task);
+      }
+    }
+
+    return rows;
+  }
+
+  List<DemoTask> _nonMedicineScheduleRows(CarePlanDetailData detail) {
+    return detail.tasks
+        .where((task) => !_scheduleTaskIsMedicine(detail, task))
+        .toList();
   }
 
   ScheduleTaskMeta? _medicineMetaForGroup(
@@ -1382,93 +1470,159 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     }
   }
 
-  Widget _medicineStatusPanel({
+  Widget _medicineSettingRow({
     required String title,
     required String label,
     required bool resolved,
     required bool verified,
     required bool saving,
-    required Widget? action,
-    String? note,
+    Widget? action,
   }) {
-    final background = verified
-        ? AppColors.successSoft
+    final icon = saving
+        ? null
+        : verified
+        ? Icons.lock_outline
         : resolved
-        ? AppColors.infoSoft
-        : AppColors.warningSoft;
-    final foreground = verified
+        ? Icons.check_circle_outline
+        : Icons.warning_amber_rounded;
+    final iconColor = verified
         ? AppColors.successForeground
         : resolved
-        ? AppColors.infoForeground
+        ? AppColors.primary
         : AppColors.warningForeground;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(AppRadii.md),
+          SizedBox(
+            width: 28,
+            child: Center(
+              child: saving
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: iconColor,
+                      ),
+                    )
+                  : Icon(icon, size: 18, color: iconColor),
             ),
-            child: Row(
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (saving)
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: foreground,
-                    ),
-                  )
-                else
-                  Icon(
-                    verified
-                        ? Icons.lock_outline
-                        : resolved
-                        ? Icons.check_circle_outline
-                        : Icons.warning_amber_rounded,
-                    size: 18,
-                    color: foreground,
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
                   ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: foreground,
-                    ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.foreground,
                   ),
                 ),
               ],
             ),
           ),
-          if (note != null && note.trim().isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              note,
-              style: const TextStyle(
-                fontSize: 12,
-                height: 1.4,
-                color: AppColors.muted,
-              ),
+          if (action != null) ...[const SizedBox(width: 6), action],
+        ],
+      ),
+    );
+  }
+
+  bool _medicineReminderIsLocked(DemoTask task) {
+    final note = task.note.toLowerCase();
+    final hasVerifiedExactReason =
+        note.contains('exact clock time') &&
+        note.contains('verified instruction');
+    return _canonicalClockTime(_timeOverrides[task.id] ?? task.time) != null &&
+        (task.timeLocked ||
+            task.grounding.trim().toLowerCase() == 'explicit' ||
+            hasVerifiedExactReason);
+  }
+
+  Widget _medicineReminderRow(DemoTask task) {
+    final period =
+        _periodOverrides[task.id] ?? _periodFrom('${task.time} ${task.note}');
+    final displayTime = _timeOverrides[task.id] ?? task.time;
+    final formattedTime = _displayClockTime(displayTime);
+    final locked = _medicineReminderIsLocked(task);
+    final periodChanged = _unsavedPeriodChanges.contains(task.id);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 28,
+            child: Icon(
+              Icons.alarm_outlined,
+              size: 18,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${_localizedPeriod(context, period)} · $formattedTime',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ),
+          if (locked)
+            const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_outline, size: 14, color: AppColors.muted),
+                SizedBox(width: 4),
+                Text(
+                  'Verified',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Edit period',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _editSchedulePeriod(task),
+                  icon: const Icon(Icons.wb_sunny_outlined, size: 18),
+                ),
+                IconButton(
+                  tooltip: 'Set time',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _confirmScheduleItem(task),
+                  icon: const Icon(Icons.schedule_outlined, size: 18),
+                ),
+              ],
+            ),
+          if (periodChanged) ...[
+            const SizedBox(width: 5),
+            const Icon(
+              Icons.info_outline,
+              size: 15,
+              color: AppColors.warningForeground,
             ),
           ],
-          if (action != null) ...[const SizedBox(height: 10), action],
         ],
       ),
     );
@@ -1479,151 +1633,151 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
     List<DemoTask> tasks,
   ) {
     final task = tasks.first;
-
     final meta = _medicineMetaForGroup(detail, tasks);
-
     final durationResolved = _medicineGroupDurationResolved(detail, tasks);
-
     final durationVerified = durationResolved && meta?.verifiedDuration == true;
-
     final recurrenceResolved = _medicineGroupRecurrenceResolved(detail, tasks);
-
     final recurrenceVerified =
         recurrenceResolved && meta?.verifiedRecurrence == true;
-
     final key = _medicineDurationKey(task, meta);
-
     final durationSaving = _medicineDurationSavingKeys.contains(key);
-
     final recurrenceSaving = _medicineRecurrenceSavingKeys.contains(key);
-
     final planEndAvailable = detail.plan.plannedEndDate.trim().isNotEmpty;
-
     final durationLabel = _medicineDurationLabel(meta, durationResolved);
-
     final recurrenceLabel = _medicineRecurrenceLabel(meta, recurrenceResolved);
+    final reminderTasks = _medicineReminderTasksForDisplay(tasks);
+    final reminderTimeCount = reminderTasks.length;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(AppRadii.xl),
-      ),
+    Widget? recurrenceAction;
+    if (!recurrenceVerified) {
+      recurrenceAction = TextButton(
+        onPressed: recurrenceSaving
+            ? null
+            : () => _setMedicineRepeatPattern(task, meta),
+        style: TextButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+        ),
+        child: Text(
+          meta?.userRecurrence == true ? 'Change' : 'Set repeat pattern',
+        ),
+      );
+    }
+
+    Widget? durationAction;
+    if (!durationVerified) {
+      durationAction = PopupMenuButton<String>(
+        tooltip: 'Course duration options',
+        onSelected: (value) {
+          if (value == 'days') {
+            _setMedicineDuration(task, meta);
+          } else if (value == 'plan_end') {
+            _setMedicineUntilPlanEnd(task, meta);
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem<String>(
+            value: 'days',
+            child: Text(
+              meta?.userDuration == true ? 'Change duration' : 'Set duration',
+            ),
+          ),
+          if (planEndAvailable)
+            const PopupMenuItem<String>(
+              value: 'plan_end',
+              child: Text('Use care-plan end date'),
+            ),
+        ],
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Icon(Icons.more_horiz, size: 20, color: AppColors.primary),
+        ),
+      );
+    }
+
+    return AppCard(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
+                alignment: Alignment.center,
                 child: const Icon(
                   Icons.medication_outlined,
-                  size: 20,
+                  size: 21,
                   color: AppColors.primary,
                 ),
               ),
               const SizedBox(width: 11),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task.title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${tasks.length} '
-                      '${tasks.length == 1 ? 'reminder slot' : 'reminder slots'}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.muted,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  task.title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Text(
+                  '$reminderTimeCount ${reminderTimeCount == 1 ? 'time' : 'times'}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _medicineStatusPanel(
+          const SizedBox(height: 10),
+          Container(height: 1, color: AppColors.border),
+          _medicineSettingRow(
             title: 'Repeat pattern',
             label: recurrenceLabel,
             resolved: recurrenceResolved,
             verified: recurrenceVerified,
             saving: recurrenceSaving,
-            note: recurrenceVerified
-                ? 'This repeat pattern comes from the verified instruction and cannot be changed here.'
-                : null,
-            action: recurrenceVerified
-                ? null
-                : Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: OutlinedButton.icon(
-                      onPressed: recurrenceSaving
-                          ? null
-                          : () => _setMedicineRepeatPattern(task, meta),
-                      icon: const Icon(Icons.repeat_outlined, size: 17),
-                      label: Text(
-                        meta?.userRecurrence == true
-                            ? 'Change repeat pattern'
-                            : 'Set repeat pattern',
-                      ),
-                    ),
-                  ),
+            action: recurrenceAction,
           ),
-          const SizedBox(height: 10),
-          _medicineStatusPanel(
+          Container(height: 1, color: AppColors.border),
+          _medicineSettingRow(
             title: 'Course duration',
             label: durationLabel,
             resolved: durationResolved,
             verified: durationVerified,
             saving: durationSaving,
-            note: durationVerified
-                ? 'This course duration comes from the verified instruction and cannot be extended here.'
-                : null,
-            action: durationVerified
-                ? null
-                : Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: durationSaving
-                            ? null
-                            : () => _setMedicineDuration(task, meta),
-                        icon: const Icon(
-                          Icons.edit_calendar_outlined,
-                          size: 17,
-                        ),
-                        label: Text(
-                          meta?.userDuration == true
-                              ? 'Change duration'
-                              : 'Set duration',
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: durationSaving || !planEndAvailable
-                            ? null
-                            : () => _setMedicineUntilPlanEnd(task, meta),
-                        icon: const Icon(
-                          Icons.event_available_outlined,
-                          size: 17,
-                        ),
-                        label: const Text('Until plan end'),
-                      ),
-                    ],
-                  ),
+            action: durationAction,
           ),
+          Container(height: 1, color: AppColors.border),
+          Padding(
+            padding: const EdgeInsets.only(top: 9, bottom: 1),
+            child: Text(
+              reminderTimeCount == 1
+                  ? 'Reminder time'
+                  : 'Reminder times ($reminderTimeCount)',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.muted,
+              ),
+            ),
+          ),
+          ...reminderTasks.map(_medicineReminderRow),
         ],
       ),
     );
@@ -1636,56 +1790,44 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
       return const SizedBox.shrink();
     }
 
-    return AppCard(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Row(
             children: [
-              Icon(Icons.medication_liquid_outlined, color: AppColors.primary),
-              SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Medicine repeat patterns and course durations',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Set the repeat pattern and course duration once for each medicine. '
-                      'Both apply to all reminder times for that medicine.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.4,
-                        color: AppColors.muted,
-                      ),
-                    ),
-                  ],
+              const Icon(
+                Icons.medication_liquid_outlined,
+                size: 20,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Medicines',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text(
+                '${groups.length}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.muted,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          ...groups.values.map(
-            (tasks) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _medicineDurationCard(detail, tasks),
-            ),
+        ),
+        const SizedBox(height: 10),
+        ...groups.values.map(
+          (tasks) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _medicineDurationCard(detail, tasks),
           ),
-          const SizedBox(height: 2),
-          const SafetyNote(
-            text:
-                'Enter only the repeat pattern stated in the healthcare professional instructions. SehatMate does not recommend or invent medicine frequency.',
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1762,6 +1904,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         );
         final hasUnresolvedMedicineRecurrences =
             _hasUnresolvedMedicineRecurrences(detail);
+        final scheduleRows = _nonMedicineScheduleRows(detail);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1776,39 +1919,35 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
               _todayTaskOutcomesSection(detail.plan),
               const SizedBox(height: 22),
             ],
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    context.tr('schedule_ai_copied_timings_help'),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.muted,
-                    ),
-                  ),
+            if (scheduleRows.isNotEmpty) ...[
+              const Text(
+                'Other schedule items',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 10),
+              ...scheduleRows.map(
+                (task) => _ScheduleRow(
+                  task: task,
+                  period:
+                      _periodOverrides[task.id] ??
+                      _periodFrom('${task.time} ${task.note}'),
+                  displayTime: _timeOverrides[task.id] ?? task.time,
+                  periodChanged: _unsavedPeriodChanges.contains(task.id),
+                  onEditPeriod: () => _editSchedulePeriod(task),
+                  onSetTime: () => _confirmScheduleItem(task),
                 ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: _generatingSchedule ? null : _generateSchedule,
-                  icon: const Icon(Icons.refresh, size: 17),
-                  label: Text(context.tr('regenerate')),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            ...detail.tasks.map(
-              (task) => _ScheduleRow(
-                task: task,
-                period:
-                    _periodOverrides[task.id] ??
-                    _periodFrom('${task.time} ${task.note}'),
-                displayTime: _timeOverrides[task.id] ?? task.time,
-                periodChanged: _unsavedPeriodChanges.contains(task.id),
-                onEditPeriod: () => _editSchedulePeriod(task),
-                onSetTime: () => _confirmScheduleItem(task),
+              ),
+              const SizedBox(height: 4),
+            ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _generatingSchedule ? null : _generateSchedule,
+                icon: const Icon(Icons.refresh, size: 16),
+                label: Text(context.tr('regenerate')),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             FilledButton.icon(
               onPressed:
                   detail.tasks.any(

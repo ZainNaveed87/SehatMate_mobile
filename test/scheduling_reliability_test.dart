@@ -242,12 +242,16 @@ void main() {
       },
     );
 
-    final setDurationButton = find.text('Set duration');
+    final durationMenu = find.byTooltip('Course duration options');
 
-    await tester.ensureVisible(setDurationButton);
+    await tester.ensureVisible(durationMenu);
     await tester.pumpAndSettle();
 
-    await tester.tap(setDurationButton);
+    await tester.tap(durationMenu);
+    await tester.pumpAndSettle();
+    expect(find.text('Set duration'), findsOneWidget);
+
+    await tester.tap(find.text('Set duration'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Set course duration'), findsOneWidget);
 
@@ -255,7 +259,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(patchCount, 0);
-    expect(find.text('Set duration'), findsOneWidget);
+    expect(find.byTooltip('Course duration options'), findsOneWidget);
   });
 
   testWidgets('medicine repeat pattern dialog cancel does not save', (
