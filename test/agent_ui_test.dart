@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:sehatmate_ai/features/agent/services/agent_session_store.dart';
+import 'package:sehatmate_ai/widgets/assistant_motion.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sehatmate_ai/features/agent/controllers/agent_controller.dart';
@@ -167,28 +170,45 @@ Future<AgentController> _pumpAgent(
   required _UiFakeClient client,
   AppLanguage language = AppLanguage.english,
   AgentVoiceClient? voiceService,
+  double textScale = 1,
+  bool reducedMotion = false,
+  AgentSessionStore sessionStore = const AgentSessionStore(),
+  bool initializeBeforeMount = true,
 }) async {
   final languageController = LanguageController.forTesting();
   await languageController.setLanguage(language, syncToServer: false);
 
-  final controller = AgentController(client: client);
+  final controller = AgentController(
+    client: client,
+    sessionStore: sessionStore,
+  );
 
   // Make initialization deterministic before the screen starts interacting
   // with the controller.
-  await controller.initialize();
+  if (initializeBeforeMount) await controller.initialize();
 
   await tester.pumpWidget(
     LanguageScope(
       controller: languageController,
       child: MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScale),
+            disableAnimations: reducedMotion,
+          ),
+          child: child!,
+        ),
         home: AgentScreen(controller: controller, voiceService: voiceService),
       ),
     ),
   );
 
-  await tester.pumpAndSettle();
-
-  expect(controller.initialized, isTrue);
+  if (initializeBeforeMount) {
+    await tester.pumpAndSettle();
+    expect(controller.initialized, isTrue);
+  } else {
+    await tester.pump(const Duration(milliseconds: 450));
+  }
 
   return controller;
 }
@@ -250,6 +270,15 @@ TextButton _cancelButton(WidgetTester tester, String key) =>
 
 OutlinedButton _choiceButton(WidgetTester tester, String key) =>
     tester.widget<OutlinedButton>(find.byKey(ValueKey(key)));
+
+class _ProgressStore extends AgentSessionStore {
+  final restore = Completer<String?>();
+  final saveReply = Completer<void>();
+  @override
+  Future<String?> read() => restore.future;
+  @override
+  Future<void> save(String sessionId) => saveReply.future;
+}
 
 void main() {
   setUpAll(() async {
@@ -893,6 +922,18 @@ void main() {
         reason: 'Normal sends must be ignored while confirmation is in flight.',
       );
 
+      final progress = find.descendant(
+        of: find.byKey(const ValueKey('agent_send_button')),
+        matching: find.byType(CircularProgressIndicator),
+      );
+      expect(
+        tester.widget<CircularProgressIndicator>(progress).color,
+        const Color(0xFF0F766E),
+      );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('agent_send_button'))).height,
+        greaterThanOrEqualTo(48),
+      );
       confirmationCompleter.complete(_response(actionStatus: 'confirmed'));
       await tester.pumpAndSettle();
       expect(
@@ -1008,6 +1049,327 @@ void main() {
 
     expect(find.text('Open'), findsOneWidget);
   });
+
+  testWidgets(
+    'composer stays cohesive from empty to typing and displays exact messages',
+    (tester) async {
+      final client = _UiFakeClient([_response(reply: 'Exact verified reply.')]);
+      final controller = await _pumpAgent(tester, client: client);
+      final send = find.byKey(const ValueKey('agent_send_button'));
+      expect(tester.widget<IconButton>(send).onPressed, isNull);
+      expect(find.text('Ask SehatMate AI...'), findsOneWidget);
+      expect(
+        tester.getSize(find.byKey(const ValueKey('agent_mic_button'))).height,
+        greaterThanOrEqualTo(48),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('agent_composer')),
+        'Hello',
+      );
+      await tester.pump(const Duration(milliseconds: 240));
+      expect(tester.widget<IconButton>(send).onPressed, isNotNull);
+      expect(
+        find.byKey(const ValueKey('agent_composer_surface')),
+        findsOneWidget,
+      );
+      await _sendFromComposer(tester, controller, client, 'Hello');
+      expect(find.text('Hello'), findsOneWidget);
+      expect(find.text('Exact verified reply.'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('agent_message_agent_msg_1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('agent_message_agent_msg_2')),
+        findsOneWidget,
+      );
+      expect(find.text('AI'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('chat composer fits narrow screen with keyboard and large text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+    final client = _UiFakeClient([]);
+    await _pumpAgent(tester, client: client, textScale: 1.8);
+    await tester.enterText(
+      find.byKey(const ValueKey('agent_composer')),
+      'A long phrase to type with the keyboard open.',
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getRect(find.byKey(const ValueKey('agent_composer'))).bottom,
+      lessThanOrEqualTo(380),
+    );
+  });
+
+  testWidgets(
+    'welcome and entry motion yield to request progress and exact final answer',
+    (tester) async {
+      final reply = Completer<AgentResponse>();
+      final client = _UiFakeClient([reply]);
+      final controller = await _pumpAgent(tester, client: client);
+      expect(find.byKey(const ValueKey('agent_welcome')), findsOneWidget);
+      expect(find.text('How can I help with your care today?'), findsOneWidget);
+      expect(find.byKey(const ValueKey('agent_header_entry')), findsOneWidget);
+      expect(
+        tester
+            .widget<AssistantEntrance>(
+              find.byKey(const ValueKey('agent_header_entry')),
+            )
+            .duration,
+        const Duration(milliseconds: 320),
+      );
+      expect(
+        find.byKey(const ValueKey('agent_composer_entry')),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('agent_composer')),
+        'Hello',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('agent_send_button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
+      expect(find.byKey(const ValueKey('agent_welcome')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('agent_request_progress')),
+        findsOneWidget,
+      );
+      expect(find.text('Waiting for SehatMate AI...'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('agent_send_button')));
+      expect(client.requests, hasLength(1));
+      reply.complete(_response(reply: 'The full verified answer.'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('agent_request_progress')),
+        findsNothing,
+      );
+      expect(find.text('The full verified answer.'), findsOneWidget);
+      expect(controller.loading, isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('progress labels change only at real client milestones', (
+    tester,
+  ) async {
+    final store = _ProgressStore();
+    final reply = Completer<AgentResponse>();
+    final client = _UiFakeClient([reply]);
+    await _pumpAgent(
+      tester,
+      client: client,
+      sessionStore: store,
+      initializeBeforeMount: false,
+    );
+    expect(find.text('Restoring your conversation...'), findsOneWidget);
+    store.restore.complete('s-ui');
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('agent_composer')),
+      'Hello',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('agent_send_button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('Waiting for SehatMate AI...'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
+    expect(find.text('Waiting for SehatMate AI...'), findsOneWidget);
+    expect(find.text('Preparing your answer...'), findsNothing);
+    reply.complete(_response(reply: 'Exact answer.'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('Preparing your answer...'), findsOneWidget);
+    expect(find.text('Exact answer.'), findsNothing);
+    store.saveReply.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Exact answer.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  Future<void> editHello(WidgetTester tester) async {
+    await tester.longPress(find.text('Hello'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('agent_message_actions')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('agent_edit_action')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('edit cancellation restores the unsent draft', (tester) async {
+    final client = _UiFakeClient([_response(reply: 'Original answer.')]);
+    final controller = await _pumpAgent(tester, client: client);
+    await _sendFromComposer(tester, controller, client, 'Hello');
+    await tester.enterText(
+      find.byKey(const ValueKey('agent_composer')),
+      'Unsent draft',
+    );
+    await editHello(tester);
+    expect(find.text('Editing message'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('agent_composer')))
+          .controller!
+          .text,
+      'Hello',
+    );
+    await tester.tap(find.byKey(const ValueKey('agent_cancel_edit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Editing message'), findsNothing);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('agent_composer')))
+          .controller!
+          .text,
+      'Unsent draft',
+    );
+    expect(client.requests, hasLength(1));
+  });
+
+  testWidgets(
+    'edited text uses normal session send without changing historical results',
+    (tester) async {
+      final reply = Completer<AgentResponse>();
+      final client = _UiFakeClient([
+        _response(reply: 'Original answer.'),
+        reply,
+      ]);
+      final controller = await _pumpAgent(tester, client: client);
+      await _sendFromComposer(tester, controller, client, 'Hello');
+      await editHello(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('agent_composer')),
+        'Hello again',
+      );
+      await tester.pump();
+      expect(find.byTooltip('Save & resend'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('agent_send_button')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('agent_send_button')));
+      expect(client.requests, hasLength(2));
+      expect(client.requests.last.toJson(), {
+        'sessionId': 's-ui',
+        'message': 'Hello again',
+      });
+      expect(controller.messages.first.text, 'Hello');
+      expect(find.text('Edited'), findsOneWidget);
+      expect(find.text('Replaced locally'), findsOneWidget);
+      reply.complete(_response(reply: 'New authoritative answer.'));
+      await tester.pumpAndSettle();
+      expect(find.text('Original answer.'), findsOneWidget);
+      expect(find.text('New authoritative answer.'), findsOneWidget);
+      expect(find.text('Editing message'), findsNothing);
+      await tester.longPress(find.text('New authoritative answer.'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byKey(const ValueKey('agent_message_actions')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'copy uses the exact user message without sending an Agent request',
+    (tester) async {
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      final client = _UiFakeClient([_response()]);
+      final controller = await _pumpAgent(tester, client: client);
+      await _sendFromComposer(tester, controller, client, 'Hello');
+      await tester.longPress(find.text('Hello'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('agent_copy_action')));
+      await tester.pumpAndSettle();
+      expect(copied, 'Hello');
+      expect(client.requests, hasLength(1));
+    },
+  );
+
+  for (final selected in AppLanguage.values) {
+    testWidgets(
+      '$selected editing and progress fit keyboard with large text and reduced motion',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1;
+        tester.view.viewInsets = const FakeViewPadding(bottom: 240);
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetViewInsets);
+        final reply = Completer<AgentResponse>();
+        final client = _UiFakeClient([
+          _response(reply: 'Original answer.'),
+          reply,
+        ]);
+        final controller = await _pumpAgent(
+          tester,
+          client: client,
+          language: selected,
+          textScale: 1.6,
+          reducedMotion: true,
+        );
+        await _sendFromComposer(tester, controller, client, 'Hello');
+        await tester.scrollUntilVisible(
+          find.text('Hello'),
+          -80,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        await tester.longPress(find.text('Hello'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('agent_edit_action')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('agent_editing_bar')), findsOneWidget);
+        expect(
+          tester.getRect(find.byKey(const ValueKey('agent_composer'))).bottom,
+          lessThanOrEqualTo(400),
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('agent_composer')),
+          'Edited words',
+        );
+        await tester.pump();
+        await tester.tap(find.byKey(const ValueKey('agent_send_button')));
+        await tester.pumpAndSettle();
+        expect(client.requests, hasLength(2));
+        expect(controller.loading, isTrue);
+        final chatList = tester.widget<ListView>(find.byType(ListView));
+        expect(
+          find.byKey(const ValueKey('agent_request_progress')),
+          findsOneWidget,
+          reason:
+              'viewport=${tester.getSize(find.byType(ListView))}, '
+              'scroll=${chatList.controller!.position.pixels}/'
+              '${chatList.controller!.position.maxScrollExtent}',
+        );
+        expect(tester.takeException(), isNull);
+        reply.complete(_response());
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets('sign-in unavailable state renders safely', (tester) async {
     await AuthSession.instance.logout();

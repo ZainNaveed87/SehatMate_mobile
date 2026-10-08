@@ -221,6 +221,12 @@ Future<void> _pumpNewCarePlan(
     LanguageScope(
       controller: languageController,
       child: MaterialApp(
+        // Business-flow assertions should settle independently of the
+        // assistant launcher's intentionally continuous decorative breathing.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
         navigatorObservers: [
           if (observer != null) observer,
         ],

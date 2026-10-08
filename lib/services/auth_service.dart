@@ -388,6 +388,8 @@ class AuthSession extends ChangeNotifier implements ProfileSession {
     _onboardingComplete = false;
     _guestMode = false;
 
+    // Tear down foreground audio immediately, before storage/Google awaits.
+    notifyListeners();
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _userKey);
 

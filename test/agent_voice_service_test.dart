@@ -168,6 +168,20 @@ void main() {
   });
 
   test(
+    'interim recognition is never submitted as an executable utterance',
+    () async {
+      final speech = _FakeSpeechRecognizer();
+      final service = AgentVoiceService(speechRecognizer: speech);
+      await service.startListening(language: AppLanguage.english);
+      speech.emitResult('mark medicine completed', finalResult: false);
+      await expectLater(
+        service.stopListening(),
+        throwsA(isA<AgentException>()),
+      );
+    },
+  );
+
+  test(
     'empty speech result is rejected before any Agent request exists',
     () async {
       final service = AgentVoiceService(

@@ -23,6 +23,7 @@ import '../services/care_plan_service.dart';
 import '../localization/language_scope.dart';
 import 'app_routes.dart';
 import 'app_theme.dart';
+import '../widgets/app_error_boundary.dart';
 
 abstract final class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -185,23 +186,33 @@ abstract final class AppRouter {
 
     return PageRouteBuilder<void>(
       settings: RouteSettings(name: name, arguments: settings.arguments),
-      pageBuilder: (_, animation, secondaryAnimation) => page,
+      pageBuilder: (_, animation, secondaryAnimation) =>
+          AppRouteErrorBoundary(child: page),
       transitionDuration: const Duration(milliseconds: 220),
       reverseTransitionDuration: const Duration(milliseconds: 180),
-      transitionsBuilder: (_, animation, secondaryAnimation, child) {
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        if (MediaQuery.disableAnimationsOf(context) ||
+            MediaQuery.accessibleNavigationOf(context)) {
+          return child;
+        }
         final curve = CurvedAnimation(parent: animation, curve: Curves.easeOut);
 
         return FadeTransition(
           opacity: curve,
-          child: AnimatedBuilder(
-            animation: curve,
-            child: child,
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(0, 6 * (1 - curve.value)),
-                child: child,
-              );
-            },
+          child: ScaleTransition(
+            scale: name == AppRoutes.agent
+                ? Tween<double>(begin: .97, end: 1).animate(curve)
+                : const AlwaysStoppedAnimation(1),
+            child: AnimatedBuilder(
+              animation: curve,
+              child: child,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, 6 * (1 - curve.value)),
+                  child: child,
+                );
+              },
+            ),
           ),
         );
       },

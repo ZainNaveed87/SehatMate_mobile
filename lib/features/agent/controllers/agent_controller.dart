@@ -22,6 +22,13 @@ class AgentServiceClient implements AgentClient {
   Future<AgentResponse> send(AgentRequest request) => service.send(request);
 }
 
+enum AgentRequestProgress {
+  idle,
+  restoringSession,
+  awaitingResponse,
+  applyingResponse,
+}
+
 class AgentController extends ChangeNotifier {
   AgentController({
     required AgentClient client,
@@ -41,6 +48,7 @@ class AgentController extends ChangeNotifier {
   String? _sessionId;
   String? _lastFailedText;
   bool _loading = false;
+  AgentRequestProgress _requestProgress = AgentRequestProgress.awaitingResponse;
   bool _initializing = false;
   bool _confirmationLoading = false;
   bool _clarificationLoading = false;
@@ -51,9 +59,94 @@ class AgentController extends ChangeNotifier {
   String? _pendingClarificationMessage;
   Future<void>? _initializationFuture;
   int _idSeed = 0;
+  bool _disposed = false;
+  int _generation = 0;
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _generation++;
+    super.dispose();
+  }
+
+  Future<void> bindSession(String id) async {
+    _sessionId = id;
+    _initialized = true;
+    await _sessionStore.save(id);
+    notifyListeners();
+  }
+
+  /// Invalidate only the rejected reference, preserving chat and other accounts.
+  Future<void> clearRejectedSession(String rejectedId) async {
+    if (_sessionId != rejectedId) return;
+    _sessionId = null;
+    await _sessionStore.clear();
+    notifyListeners();
+  }
+
+  /// Worker receipts are already executed by the sole backend Agent.
+  Future<void> acceptVoiceResult(
+    AgentResponse response, {
+    String? transcript,
+  }) async {
+    if (_disposed) return;
+    if (_sessionId != null && _sessionId != response.sessionId) return;
+    _sessionId = response.sessionId;
+    await _sessionStore.save(response.sessionId);
+    if (_disposed) return;
+    if (transcript != null && transcript.trim().isNotEmpty) {
+      _append(
+        AgentChatMessage(
+          id: _nextId(),
+          author: AgentMessageAuthor.user,
+          text: transcript,
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+    _append(
+      AgentChatMessage(
+        id: _nextId(),
+        author: AgentMessageAuthor.assistant,
+        text: response.reply,
+        createdAt: DateTime.now(),
+        navigation: response.navigation,
+        confirmation: response.confirmation,
+        clarification: response.clarification,
+        speech: response.speech,
+        actionStatus: response.actionStatus,
+      ),
+    );
+    _applyActionState(response, sourceMessage: transcript);
+    notifyListeners();
+  }
 
   List<AgentChatMessage> get messages => List.unmodifiable(_messages);
   bool get loading => _loading;
+
+  /// Locally observed milestones, not claims about backend reasoning stages.
+  AgentRequestProgress get requestProgress => _initializing
+      ? AgentRequestProgress.restoringSession
+      : (_loading || _confirmationLoading || _clarificationLoading)
+      ? _requestProgress
+      : AgentRequestProgress.idle;
+
+  Future<AgentResponse> _withRequestProgress(
+    Future<AgentResponse> Function() request,
+  ) async {
+    _requestProgress = AgentRequestProgress.awaitingResponse;
+    notifyListeners();
+    final response = await request();
+    _requestProgress = AgentRequestProgress.applyingResponse;
+    notifyListeners();
+    return response;
+  }
+
   bool get confirmationLoading => _confirmationLoading;
   bool get clarificationLoading => _clarificationLoading;
   bool get initializing => _initializing;
@@ -118,6 +211,8 @@ class AgentController extends ChangeNotifier {
     required bool appendUserMessage,
     bool requestSpeech = false,
   }) async {
+    final generation = _generation;
+    _requestProgress = AgentRequestProgress.awaitingResponse;
     _loading = true;
     _error = null;
     _lastFailedText = null;
@@ -139,10 +234,10 @@ class AgentController extends ChangeNotifier {
 
     try {
       await initialize();
-      final response = await _sendWithSessionRetry(
-        text,
-        requestSpeech: requestSpeech,
+      final response = await _withRequestProgress(
+        () => _sendWithSessionRetry(text, requestSpeech: requestSpeech),
       );
+      if (_disposed || generation != _generation) return null;
       _sessionId = response.sessionId;
       await _sessionStore.save(response.sessionId);
       _append(
@@ -197,8 +292,7 @@ class AgentController extends ChangeNotifier {
         rethrow;
       }
 
-      _sessionId = null;
-      await _sessionStore.clear();
+      await clearRejectedSession(_sessionId!);
 
       return _client.send(
         AgentRequest(
@@ -231,16 +325,19 @@ class AgentController extends ChangeNotifier {
     final sessionId = _sessionId;
     if (sessionId == null || sessionId.trim().isEmpty) return;
 
+    _requestProgress = AgentRequestProgress.awaitingResponse;
     _confirmationLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await _client.send(
-        AgentRequest.confirmation(
-          sessionId: sessionId,
-          confirmationId: confirmationId,
-          confirmationDecision: decision,
+      final response = await _withRequestProgress(
+        () => _client.send(
+          AgentRequest.confirmation(
+            sessionId: sessionId,
+            confirmationId: confirmationId,
+            confirmationDecision: decision,
+          ),
         ),
       );
       _sessionId = response.sessionId;
@@ -290,17 +387,20 @@ class AgentController extends ChangeNotifier {
     final sessionId = _sessionId;
     if (sessionId == null || sessionId.trim().isEmpty) return;
 
+    _requestProgress = AgentRequestProgress.awaitingResponse;
     _clarificationLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await _client.send(
-        AgentRequest.clarification(
-          sessionId: sessionId,
-          message: sourceMessage,
-          clarificationId: clarificationId,
-          choiceId: choiceId,
+      final response = await _withRequestProgress(
+        () => _client.send(
+          AgentRequest.clarification(
+            sessionId: sessionId,
+            message: sourceMessage,
+            clarificationId: clarificationId,
+            choiceId: choiceId,
+          ),
         ),
       );
       _sessionId = response.sessionId;

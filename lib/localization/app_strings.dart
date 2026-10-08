@@ -4137,6 +4137,17 @@ class AppStrings {
       AppLanguage.romanUrdu: 'Week {number}',
     },
 
+    'agent_language_label': {
+      AppLanguage.english: 'Language',
+      AppLanguage.urdu: 'زبان',
+      AppLanguage.romanUrdu: 'Zaban',
+    },
+    'agent_language_current': {
+      AppLanguage.english: 'Language, currently {language}',
+      AppLanguage.urdu: 'زبان، موجودہ انتخاب {language}',
+      AppLanguage.romanUrdu: 'Zaban, filhal {language}',
+    },
+
     // Language settings
     'language': {
       AppLanguage.english: 'Language',
@@ -7215,6 +7226,161 @@ class AppStrings {
     },
 
     // Agent Copilot
+    'agent_voice_resume': {
+      AppLanguage.english: 'Resume voice',
+      AppLanguage.urdu: 'آواز دوبارہ شروع کریں',
+      AppLanguage.romanUrdu: 'Voice dobara shuru karein',
+    },
+    'agent_voice_mute': {
+      AppLanguage.english: 'Mute',
+      AppLanguage.urdu: 'آواز بند کریں',
+      AppLanguage.romanUrdu: 'Mic band karein',
+    },
+    'agent_voice_interrupt': {
+      AppLanguage.english: 'Interrupt reply',
+      AppLanguage.urdu: 'جواب روکیں',
+      AppLanguage.romanUrdu: 'Jawab rokein',
+    },
+    'agent_voice_end': {
+      AppLanguage.english: 'End voice',
+      AppLanguage.urdu: 'گفتگو ختم کریں',
+      AppLanguage.romanUrdu: 'Voice khatam karein',
+    },
+    'agent_manual_mode': {
+      AppLanguage.english: 'Manual mode',
+      AppLanguage.urdu: 'دستی طریقہ',
+      AppLanguage.romanUrdu: 'Manual mode',
+    },
+    'agent_device_speech': {
+      AppLanguage.english: 'Use device speech',
+      AppLanguage.urdu: 'فون کی آواز شناخت استعمال کریں',
+      AppLanguage.romanUrdu: 'Phone speech use karein',
+    },
+    'agent_device_tts': {
+      AppLanguage.english: 'Read on device',
+      AppLanguage.urdu: 'فون پر جواب سنیں',
+      AppLanguage.romanUrdu: 'Phone par jawab sunein',
+    },
+    'agent_companion_idle': {
+      AppLanguage.english: 'Voice ready',
+      AppLanguage.urdu: 'آواز تیار ہے',
+      AppLanguage.romanUrdu: 'Voice tayyar hai',
+    },
+    'agent_companion_connecting': {
+      AppLanguage.english: 'Connecting...',
+      AppLanguage.urdu: 'آواز جڑ رہی ہے…',
+      AppLanguage.romanUrdu: 'Voice connect ho rahi hai…',
+    },
+    'agent_companion_listening': {
+      AppLanguage.english: 'Listening',
+      AppLanguage.urdu: 'سن رہا ہے',
+      AppLanguage.romanUrdu: 'Sun raha hai',
+    },
+    'agent_companion_speaking': {
+      AppLanguage.english: 'SehatMate is speaking',
+      AppLanguage.urdu: 'بول رہا ہے · بات کرنے کے لیے روکیں',
+      AppLanguage.romanUrdu: 'Bol raha hai · baat karne ke liye rokein',
+    },
+    'agent_companion_processing': {
+      AppLanguage.english: 'Thinking...',
+      AppLanguage.urdu: 'آپ کی درخواست پر کام ہو رہا ہے',
+      AppLanguage.romanUrdu: 'Aap ki request par kaam ho raha hai',
+    },
+    'agent_companion_muted': {
+      AppLanguage.english: 'Muted',
+      AppLanguage.urdu: 'مائیک بند ہے',
+      AppLanguage.romanUrdu: 'Mic band hai',
+    },
+    'agent_companion_manual': {
+      AppLanguage.english: 'Manual mode · microphone off',
+      AppLanguage.urdu: 'دستی طریقہ · مائیک بند ہے',
+      AppLanguage.romanUrdu: 'Manual mode · mic band hai',
+    },
+    'agent_companion_recovering': {
+      AppLanguage.english: 'Voice needs attention',
+      AppLanguage.urdu: 'آواز کی بحالی درکار ہے',
+      AppLanguage.romanUrdu: 'Voice recovery chahiye',
+    },
+    'agent_companion_disconnected': {
+      AppLanguage.english: 'Voice disconnected',
+      AppLanguage.urdu: 'آواز کا رابطہ ختم ہوگیا',
+      AppLanguage.romanUrdu: 'Voice disconnect ho gayi',
+    },
+    'agent_voice_connecting_detail': {
+      AppLanguage.english: 'Setting up your voice session',
+      AppLanguage.urdu: 'آپ کی آواز کی گفتگو تیار ہو رہی ہے',
+      AppLanguage.romanUrdu: 'Aap ki voice session tayyar ho rahi hai',
+    },
+    'agent_voice_speak_naturally': {
+      AppLanguage.english: 'Speak naturally',
+      AppLanguage.urdu: 'آرام سے بات کریں',
+      AppLanguage.romanUrdu: 'Aaram se baat karein',
+    },
+    'agent_voice_recovering_detail': {
+      AppLanguage.english: 'Your conversation is still here.',
+      AppLanguage.urdu: 'آپ کی گفتگو یہیں موجود ہے۔',
+      AppLanguage.romanUrdu: 'Aap ki guftagu yahin maujood hai.',
+    },
+    'agent_voice_budget_detail': {
+      AppLanguage.english:
+          'Voice limit reached for this session. Your answer is in chat. Use device voice or start a new voice session.',
+      AppLanguage.urdu:
+          'اس گفتگو میں آواز کی حد پوری ہو گئی ہے۔ جواب چیٹ میں موجود ہے۔ فون کی آواز استعمال کریں یا نئی آواز کی گفتگو شروع کریں۔',
+      AppLanguage.romanUrdu:
+          'Is session ki voice limit poori ho gayi hai. Jawab chat mein hai. Phone ki voice use karein ya naya voice session shuru karein.',
+    },
+    'agent_voice_speech_unavailable_detail': {
+      AppLanguage.english:
+          'Your answer is in chat. Voice is unavailable right now. You can resume listening or continue by typing.',
+      AppLanguage.urdu:
+          'جواب چیٹ میں موجود ہے۔ ابھی آواز دستیاب نہیں۔ دوبارہ سننا شروع کریں یا لکھ کر گفتگو جاری رکھیں۔',
+      AppLanguage.romanUrdu:
+          'Jawab chat mein hai. Abhi voice dastiyab nahi. Dobara sunna shuru karein ya likh kar baat jari rakhein.',
+    },
+    'agent_voice_delayed_detail': {
+      AppLanguage.english:
+          'This answer is taking longer. Checking its status safely; please do not repeat an action. You can continue in chat.',
+      AppLanguage.urdu:
+          'جواب میں زیادہ وقت لگ رہا ہے۔ حالت محفوظ طریقے سے دیکھی جا رہی ہے؛ کارروائی دوبارہ نہ کریں۔ چیٹ میں گفتگو جاری رکھ سکتے ہیں۔',
+      AppLanguage.romanUrdu:
+          'Jawab mein zyada waqt lag raha hai. Status safely check ho raha hai; action dobara na karein. Chat mein baat jari rakh sakte hain.',
+    },
+    'agent_voice_disconnected_detail': {
+      AppLanguage.english:
+          'We lost the voice connection. You can reconnect or continue by typing.',
+      AppLanguage.urdu:
+          'آواز کا رابطہ ختم ہو گیا ہے۔ دوبارہ رابطہ کریں یا لکھ کر گفتگو جاری رکھیں۔',
+      AppLanguage.romanUrdu:
+          'Voice ka rabta khatam ho gaya. Dobara connect karein ya likh kar baat jari rakhein.',
+    },
+    'agent_voice_muted_detail': {
+      AppLanguage.english: 'Unmute when you are ready to speak.',
+      AppLanguage.urdu: 'بات کرنے کے لیے تیار ہوں تو مائیک کھولیں۔',
+      AppLanguage.romanUrdu: 'Baat karne ke liye tayyar hon to mic kholein.',
+    },
+    'agent_voice_reconnect': {
+      AppLanguage.english: 'Reconnect',
+      AppLanguage.urdu: 'دوبارہ رابطہ کریں',
+      AppLanguage.romanUrdu: 'Dobara connect karein',
+    },
+    'agent_voice_action_failed_detail': {
+      AppLanguage.english:
+          "Couldn't update voice. Try again or continue by typing.",
+      AppLanguage.urdu:
+          'آواز کی ترتیب تبدیل نہیں ہو سکی۔ دوبارہ کوشش کریں یا لکھ کر گفتگو جاری رکھیں۔',
+      AppLanguage.romanUrdu:
+          'Voice update nahi ho saki. Dobara koshish karein ya likh kar baat jari rakhein.',
+    },
+    'agent_companion_awaiting_confirmation': {
+      AppLanguage.english: 'Waiting for your confirmation',
+      AppLanguage.urdu: 'آپ کی تصدیق کا انتظار ہے',
+      AppLanguage.romanUrdu: 'Aap ki confirmation ka intezar hai',
+    },
+    'agent_companion_awaiting_clarification': {
+      AppLanguage.english: 'Waiting for your clarification',
+      AppLanguage.urdu: 'آپ کی وضاحت کا انتظار ہے',
+      AppLanguage.romanUrdu: 'Aap ki wazahat ka intezar hai',
+    },
     'agent_title': {
       AppLanguage.english: 'SehatMate AI',
       AppLanguage.urdu: 'صحت میٹ اے آئی',
@@ -7234,17 +7400,62 @@ class AppStrings {
           'SehatMate aap ke verified care plan ko samjhane aur organize karne mein madad karta hai. Yeh khud se prescribed treatment change nahi karta.',
     },
     'agent_empty_title': {
-      AppLanguage.english: 'Ask about your care plan',
-      AppLanguage.urdu: 'اپنے نگہداشت منصوبے کے بارے میں پوچھیں',
-      AppLanguage.romanUrdu: 'Apne care plan ke bare mein poochein',
+      AppLanguage.english: 'How can I help with your care today?',
+      AppLanguage.urdu: 'آج آپ کی نگہداشت میں کیسے مدد کروں؟',
+      AppLanguage.romanUrdu: 'Aaj aap ki care mein kaise madad karoon?',
     },
     'agent_empty_desc': {
       AppLanguage.english:
-          'Use natural language. SehatMate AI answers from verified app data.',
+          'Ask about your verified care plan, tasks, progress or care gaps.',
       AppLanguage.urdu:
-          'سادہ زبان استعمال کریں۔ صحت میٹ اے آئی تصدیق شدہ ایپ ڈیٹا سے جواب دیتا ہے۔',
+          'اپنے تصدیق شدہ نگہداشت منصوبے، کاموں، پیش رفت یا کیئر گیپس کے بارے میں پوچھیں۔',
       AppLanguage.romanUrdu:
-          'Seedhi zuban use karein. SehatMate AI verified app data se jawab deta hai.',
+          'Apne verified care plan, tasks, progress ya care gaps ke bare mein poochein.',
+    },
+    'agent_progress_restoring': {
+      AppLanguage.english: 'Restoring your conversation...',
+      AppLanguage.urdu: 'آپ کی گفتگو بحال ہو رہی ہے...',
+      AppLanguage.romanUrdu: 'Aap ki guftagu restore ho rahi hai...',
+    },
+    'agent_progress_waiting': {
+      AppLanguage.english: 'Waiting for SehatMate AI...',
+      AppLanguage.urdu: 'صحت میٹ اے آئی کے جواب کا انتظار ہے...',
+      AppLanguage.romanUrdu: 'SehatMate AI ke jawab ka intezar hai...',
+    },
+    'agent_progress_preparing': {
+      AppLanguage.english: 'Preparing your answer...',
+      AppLanguage.urdu: 'آپ کا جواب تیار ہو رہا ہے...',
+      AppLanguage.romanUrdu: 'Aap ka jawab tayyar ho raha hai...',
+    },
+    'agent_edit': {
+      AppLanguage.english: 'Edit',
+      AppLanguage.urdu: 'ترمیم',
+      AppLanguage.romanUrdu: 'Edit',
+    },
+    'agent_copy': {
+      AppLanguage.english: 'Copy',
+      AppLanguage.urdu: 'کاپی',
+      AppLanguage.romanUrdu: 'Copy',
+    },
+    'agent_editing_message': {
+      AppLanguage.english: 'Editing message',
+      AppLanguage.urdu: 'پیغام میں ترمیم',
+      AppLanguage.romanUrdu: 'Message edit ho raha hai',
+    },
+    'agent_save_resend': {
+      AppLanguage.english: 'Save & resend',
+      AppLanguage.urdu: 'محفوظ کریں اور دوبارہ بھیجیں',
+      AppLanguage.romanUrdu: 'Save aur dobara bhejein',
+    },
+    'agent_edited': {
+      AppLanguage.english: 'Edited',
+      AppLanguage.urdu: 'ترمیم شدہ',
+      AppLanguage.romanUrdu: 'Edited',
+    },
+    'agent_replaced_locally': {
+      AppLanguage.english: 'Replaced locally',
+      AppLanguage.urdu: 'یہاں نیا پیغام بھیجا گیا',
+      AppLanguage.romanUrdu: 'Yahan naya message bheja gaya',
     },
     'agent_input_hint': {
       AppLanguage.english: 'Ask SehatMate AI...',

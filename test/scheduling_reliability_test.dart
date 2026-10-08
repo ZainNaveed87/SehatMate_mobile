@@ -309,6 +309,11 @@ Future<void> _pumpCalendar(
     LanguageScope(
       controller: LanguageController.forTesting(),
       child: MaterialApp(
+        // Keep calendar assertions independent of decorative launcher motion.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
         home: TaskCalendarScreen(
           initialDate: initialDate,
           now: now,

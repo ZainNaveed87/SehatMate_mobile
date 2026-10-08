@@ -9,6 +9,7 @@ import '../localization/app_language.dart';
 import '../localization/language_scope.dart';
 import '../services/auth_service.dart';
 import 'brand_logo.dart';
+import 'assistant_launcher.dart';
 
 const _logoutAction = '__logout__';
 
@@ -125,13 +126,12 @@ class AppShell extends StatelessWidget {
       textDirection: language.textDirection,
       child: Scaffold(
         floatingActionButton: AuthSession.instance.canAccessApp
-            ? FloatingActionButton.small(
-                tooltip: context.tr('agent_title'),
+            ? AssistantLauncher(
+                label: context.tr('agent_title'),
                 onPressed: () => openAgent(
                   context,
                   screenContext: _agentContextForRoute(currentRoute),
                 ),
-                child: const Icon(Icons.auto_awesome_outlined),
               )
             : null,
         bottomNavigationBar: desktop

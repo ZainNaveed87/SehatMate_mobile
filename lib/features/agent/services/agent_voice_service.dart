@@ -222,7 +222,8 @@ class AgentVoiceService implements AgentVoiceClient {
 
   void _handleSpeechResult(String recognizedWords, bool finalResult) {
     final text = recognizedWords.trim();
-    if (text.isNotEmpty) _latestTranscript = text;
+    // Partial recognizer hypotheses must never become executable instructions.
+    if (finalResult && text.isNotEmpty) _latestTranscript = text;
   }
 
   void _handleSpeechError(AgentSpeechRecognitionFailure error) {
