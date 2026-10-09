@@ -330,7 +330,7 @@ class CopilotRegistry extends ChangeNotifier {
     _stateKey = null;
     highlightedTarget = null;
     _highlightTimer?.cancel();
-    _notify();
+    _notify(afterBuild: true);
   }
 
   void _registerAnchor(String id, _CopilotAnchorState anchor) {
@@ -375,11 +375,25 @@ class CopilotRegistry extends ChangeNotifier {
     _notify();
   }
 
-  void _notify() {
-    if (_disposed) return;
-    if(WidgetsBinding.instance.schedulerPhase==SchedulerPhase.persistentCallbacks) {
-      WidgetsBinding.instance.addPostFrameCallback((_){if(!_disposed)notifyListeners();});
-    } else {notifyListeners();}
+  bool _notificationPending = false;
+
+  void _notify({bool afterBuild = false}) {
+    if (_disposed || _notificationPending) return;
+    if (!afterBuild &&
+        WidgetsBinding.instance.schedulerPhase != SchedulerPhase.persistentCallbacks &&
+        WidgetsBinding.instance.buildOwner?.debugBuilding != true) {
+      notifyListeners();
+      return;
+    }
+    _notificationPending = true;
+    // Navigator mount/restoration can run during idle as well as frame build.
+    // State changes above remain immediate; UI listeners see the newest state
+    // once the current build is over, with at most one outstanding callback.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _notificationPending = false;
+      if (!_disposed) notifyListeners();
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   /// Wait for the destination's real semantic target, never for a fixed delay.
