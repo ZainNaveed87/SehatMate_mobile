@@ -873,7 +873,7 @@ class _MessageBubble extends StatelessWidget {
               ],
               if (isUser)
                 Text(
-                  message.text,
+                  message.displayText,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,

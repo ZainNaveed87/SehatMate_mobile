@@ -4,6 +4,7 @@ import 'dart:ui' show AppLifecycleState;
 import 'package:flutter/foundation.dart';
 import '../controllers/agent_controller.dart';
 import '../models/agent_response.dart';
+import '../models/agent_transcript_presentation.dart';
 import '../services/agent_voice_service.dart';
 import '../../../localization/app_language.dart';
 import '../../../localization/language_controller.dart';
@@ -55,6 +56,11 @@ class VoiceCompanionController extends ChangeNotifier {
   Map<String, dynamic>? _binding;
   String? _workerIdentity, _inflight, _playbackId;
   final _transcripts = <String, String>{};
+  String? _finalTranscriptTurn, _romanFinalTranscript;
+  bool _finalPresentationComplete = false;
+  String get visibleFinalTranscript => transcriptForDisplay(finalTranscript, language,
+      rendering: _romanFinalTranscript, complete: _finalPresentationComplete);
+  String get visibleInterimTranscript => transcriptForDisplay(interimTranscript, language, interim: true);
   final _completed = <String>{};
   final _devicePlaybacks = <String>{};
   int _speechGeneration = 0;
@@ -550,6 +556,9 @@ class VoiceCompanionController extends ChangeNotifier {
       case 'transcript_final':
         if (turn == null) return;
         finalTranscript = value['text']?.toString() ?? '';
+        _finalTranscriptTurn = turn;
+        _romanFinalTranscript = null;
+        _finalPresentationComplete = false;
         interimTranscript = '';
         _transcripts[turn] = finalTranscript;
         if (_transcripts.length > 100) {
@@ -659,9 +668,17 @@ class VoiceCompanionController extends ChangeNotifier {
     }
     reply = response.reply;
     _replyLanguage = AppLanguageX.fromStorage(raw['language'] as String?);
+    final rawTranscript = _transcripts.remove(turn);
+    final displayTranscript = rawTranscript == null ? null : transcriptForDisplay(rawTranscript, language,
+      rendering: response.language == 'roman_ur' ? response.displayTranscript : null, complete: true);
+    if (turn == _finalTranscriptTurn && rawTranscript != null) {
+      _romanFinalTranscript = response.language == 'roman_ur' ? validatedRomanTranscript(rawTranscript, response.displayTranscript) : null;
+      _finalPresentationComplete = true;
+    }
     await agent.acceptVoiceResult(
       response,
-      transcript: _transcripts.remove(turn),
+      transcript: rawTranscript,
+      transcriptDisplayText: displayTranscript,
     );
     if (_current(generation)) {
       // Completion is authoritative even when no later speech event arrives.
@@ -858,6 +875,11 @@ class VoiceCompanionController extends ChangeNotifier {
     await device?.stopSpeaking();
     if (!_current(generation)) return null;
     _transcripts[id] = text;
+    if (finalTranscript == text) {
+      _finalTranscriptTurn = id;
+      _romanFinalTranscript = null;
+      _finalPresentationComplete = false;
+    }
     state = 'processing';
     notifyListeners();
     await transport.microphone(false);
@@ -1069,6 +1091,9 @@ class VoiceCompanionController extends ChangeNotifier {
     _binding = null;
     _inflight = null;
     _transcripts.clear();
+    _finalTranscriptTurn = null;
+    _romanFinalTranscript = null;
+    _finalPresentationComplete = false;
     _completed.clear();
     _devicePlaybacks.clear();
     _workerIdentity = null;

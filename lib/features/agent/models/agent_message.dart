@@ -17,6 +17,7 @@ class AgentChatMessage {
     this.actionStatus,
     this.failed = false,
     this.failureCode,
+    this.transcriptDisplayText,
   });
 
   final String id;
@@ -30,6 +31,9 @@ class AgentChatMessage {
   final String? actionStatus;
   final bool failed;
   final String? failureCode;
+  /// Only spoken user turns carry a presentation distinct from their raw text.
+  final String? transcriptDisplayText;
+  String get displayText => transcriptDisplayText ?? text;
 
   AgentChatMessage copyWith({
     AgentNavigation? navigation,
@@ -51,6 +55,7 @@ class AgentChatMessage {
       actionStatus: actionStatus ?? this.actionStatus,
       failed: failed ?? this.failed,
       failureCode: failureCode,
+      transcriptDisplayText: transcriptDisplayText,
     );
   }
 }

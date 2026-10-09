@@ -78,10 +78,10 @@ class _VoiceCompanionSurfaceState extends State<VoiceCompanionSurface> {
     final speaking = state == 'speaking';
     final recovering = state == 'recovering';
     final transcript = processing
-        ? voice.finalTranscript
+        ? voice.visibleFinalTranscript
         : (voice.interimTranscript.isNotEmpty
-              ? voice.interimTranscript
-              : voice.finalTranscript);
+              ? voice.visibleInterimTranscript
+              : voice.visibleFinalTranscript);
     final detail = speaking || state.startsWith('awaiting_')
         ? voice.reply
         : (state == 'listening' || processing ? transcript : '');

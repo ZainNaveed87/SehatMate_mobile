@@ -112,6 +112,7 @@ class AgentController extends ChangeNotifier {
   Future<void> acceptVoiceResult(
     AgentResponse response, {
     String? transcript,
+    String? transcriptDisplayText,
   }) async {
     if (_disposed) return;
     if (_sessionId != null && _sessionId != response.sessionId) return;
@@ -124,6 +125,7 @@ class AgentController extends ChangeNotifier {
           id: _nextId(),
           author: AgentMessageAuthor.user,
           text: transcript,
+          transcriptDisplayText: transcriptDisplayText,
           createdAt: DateTime.now(),
         ),
       );

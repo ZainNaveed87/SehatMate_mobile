@@ -158,6 +158,7 @@ class AgentResponse {
     this.memoryProposal,
     this.conflicts = const [],
     this.taskWorkflow,
+    this.displayTranscript,
   });
 
   final String sessionId;
@@ -174,6 +175,8 @@ class AgentResponse {
   final List<CopilotConflict> conflicts;
   final Map<String, dynamic>? memoryProposal;
   final AgentTaskWorkflow? taskWorkflow;
+  /// Optional server rendering; raw ASR remains separate action input.
+  final String? displayTranscript;
 
   factory AgentResponse.fromJson(Map<String, dynamic> json) {
     if (json['success'] != true) {
@@ -253,6 +256,8 @@ class AgentResponse {
     if(taskWorkflow?.status=='awaiting_confirmation'&&(confirmation?.kind!='create_care_plan'||confirmation?.confirmationId!=taskWorkflow?.confirmationId))throw const FormatException('Task confirmation mismatch');
     if(confirmation?.kind=='create_care_plan'&&taskWorkflow?.status!='awaiting_confirmation')throw const FormatException('Missing task confirmation state');
     return AgentResponse(
+      displayTranscript: json['displayTranscript'] is String && (json['displayTranscript'] as String).length <= 3000
+          ? json['displayTranscript'] as String : null,
       taskWorkflow:taskWorkflow,
       uiPlan: uiPlan,
       conflicts: CopilotConflict.parse(json['conflicts']),
