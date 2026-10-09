@@ -13,6 +13,7 @@ abstract final class AppRoutes {
   static const teachBack = '/teach-back';
   static const progress = '/progress';
   static const documents = '/documents';
+  static const documentViewer = '/documents/view';
   static const careGaps = '/care-gaps';
   static const simulation = '/simulation';
   static const realityCheck = '/reality-check';

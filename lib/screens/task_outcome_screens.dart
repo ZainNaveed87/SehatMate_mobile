@@ -1,3 +1,4 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
@@ -420,7 +421,7 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
       (index) => start.add(Duration(days: index)),
     );
 
-    return AppCard(
+    return copilotSection(context,'today.date_picker',context.tr('calendar'),AppCard(
       padding: const EdgeInsets.all(12),
       child: Column(
         children: [
@@ -496,7 +497,7 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _dayButton(DateTime day, bool compact) {
@@ -580,7 +581,7 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
     final value = data;
 
     if (value == null || value.occurrences.isEmpty) {
-      return AppCard(
+      return copilotSection(context,'today.tasks',context.tr('today'),AppCard(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
@@ -614,7 +615,7 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen>
             ),
           ],
         ),
-      );
+      ));
     }
 
     return Column(
@@ -1192,7 +1193,7 @@ class _TaskProgressScreenState extends State<TaskProgressScreen>
 
   Widget _content() {
     final value = data;
-    if (value == null) return const SizedBox.shrink();
+    if (value == null) return copilotSection(context,'progress.summary',context.tr('progress'),const SizedBox.shrink());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

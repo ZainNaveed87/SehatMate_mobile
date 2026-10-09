@@ -1,3 +1,6 @@
+import '../features/agent/copilot/copilot.dart';
+import '../features/agent/copilot/copilot_screen_adapter.dart';
+import '../features/agent/models/agent_context.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 
@@ -145,7 +148,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         ? 'Image'
         : 'Document';
 
-    return Scaffold(
+    final controls=<String,Future<void> Function()?>{
+      if(widget.file.isImage)...{'zoom_out':_imageScale>_minImageScale?()async=>_zoomImageOut():null,'zoom_in':_imageScale<_maxImageScale?()async=>_zoomImageIn():null,'reset':()async=>_resetImage()},
+      if(widget.file.isPdf)...{'previous_page':_pdfController.isReady&&_pdfPage>1?_previousPdfPage:null,'next_page':_pdfController.isReady&&_pdfPage<_pdfPageCount?_nextPdfPage:null,'zoom_out':_pdfController.isReady?_zoomPdfOut:null,'zoom_in':_pdfController.isReady?_zoomPdfIn:null,'reset':_resetPdf},
+      'rotate_left':()async=>_rotateLeft(),'rotate_right':()async=>_rotateRight(),
+    };
+    return CopilotScreenAdapter(contextData:const AgentScreenContext(screenId:'document_viewer'),title:context.tr('documents'),data:CopilotScreenData(stateKey:'${widget.file.documentId}:$_rotationTurns:$_imageScale:$_pdfPage:$_pdfPageCount',targets:[for(final e in controls.entries)CopilotTarget(id:'document_viewer.${e.key}',kind:'control',label:context.tr('document_viewer_${e.key}'),enabled:e.value!=null)],actions:[for(final e in controls.entries)...[CopilotAction(id:'document_viewer.${e.key}.read',kind:'read_section',targetId:'document_viewer.${e.key}'),if(e.value!=null)CopilotAction(id:'document_viewer.${e.key}.execute',kind:'open_section',targetId:'document_viewer.${e.key}',execute:()async{if(!mounted||ModalRoute.of(context)?.isCurrent==false)return false;await e.value!();return mounted;})]]),child:Scaffold(
       backgroundColor: const Color(0xFFF4F8F7),
       appBar: AppBar(
         elevation: 0,
@@ -267,7 +275,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   String _formattedFileSize(int bytes) {
@@ -530,7 +538,7 @@ class _ToolbarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
 
-    return Padding(
+    final content = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
       child: Tooltip(
         message: label,
@@ -553,6 +561,8 @@ class _ToolbarButton extends StatelessWidget {
         ),
       ),
     );
+    final keyValue=key is ValueKey<String>?(key as ValueKey<String>).value:null;
+    return keyValue==null?content:copilotAnchor(context,keyValue.replaceFirst('document_viewer_','document_viewer.'),content);
   }
 }
 
@@ -601,5 +611,6 @@ class _ViewerMessage extends StatelessWidget {
         ),
       ),
     );
+
   }
 }

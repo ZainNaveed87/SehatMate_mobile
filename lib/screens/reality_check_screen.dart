@@ -1,3 +1,6 @@
+import '../features/agent/copilot/copilot.dart';
+import '../features/agent/copilot/copilot_screen_adapter.dart';
+import '../features/agent/copilot/copilot_workflow_store.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -29,6 +32,7 @@ class RealityCheckScreen extends StatefulWidget {
   const RealityCheckScreen({
     super.key,
     this.planId,
+    this.service,
     this.guidedSetup = false,
     this.returnToPrevious = false,
     this.focusedQuestionKey,
@@ -36,6 +40,7 @@ class RealityCheckScreen extends StatefulWidget {
   });
 
   final String? planId;
+  final CarePlanService? service;
   final bool guidedSetup;
   final bool returnToPrevious;
 
@@ -57,6 +62,23 @@ class RealityCheckScreen extends StatefulWidget {
 
 class _RealityCheckScreenState extends State<RealityCheckScreen> {
   int index = 0;
+  late final String? _ownedAccountId;
+  CarePlanService get _service => widget.service ?? CarePlanService.instance;
+  bool get _accountCurrent => AuthSession.instance.user?.id == _ownedAccountId;
+  CopilotWorkflowStore get _workflow =>
+      CopilotWorkflowStore(accountId: _ownedAccountId ?? 'signed_out');
+  void _bookmark() {
+    if (widget.planId != null &&
+        questions.isNotEmpty &&
+        !_isFocusedReview &&
+        _accountCurrent) {
+      unawaited(
+        _workflow
+            .save('reality_check', widget.planId!, questions[index].key)
+            .catchError((Object _) {}),
+      );
+    }
+  }
 
   bool loading = true;
   bool saving = false;
@@ -80,6 +102,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   @override
   void initState() {
     super.initState();
+    _ownedAccountId = AuthSession.instance.user?.id;
     _load();
   }
 
@@ -126,11 +149,9 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
     }
 
     try {
-      final result = await CarePlanService.instance.fetchRealityQuestions(
-        widget.planId!,
-      );
+      final result = await _service.fetchRealityQuestions(widget.planId!);
 
-      if (!mounted) return;
+      if (!mounted || !_accountCurrent) return;
 
       answers.clear();
       notes.clear();
@@ -169,9 +190,14 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         }
       }
 
+      final bookmark = await _workflow.read('reality_check', widget.planId!);
+      if (!mounted || !_accountCurrent) return;
+      final resumed = _isFocusedReview
+          ? -1
+          : visibleQuestions.indexWhere((q) => q.key == bookmark);
       setState(() {
         questions = visibleQuestions;
-        index = 0;
+        index = resumed < 0 ? 0 : resumed;
         loading = false;
         error = null;
         _saveState = 'Saved';
@@ -212,6 +238,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
   Widget build(BuildContext context) {
     return AppShell(
       currentRoute: AppRoutes.realityCheck,
+      copilot: _copilotData(),
       title: _isFocusedReview
           ? 'Review Reality Check'
           : _trOrFallback(context, 'life_reality_check', 'Reality Check'),
@@ -382,6 +409,134 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  String _optionTarget(PlanRealityQuestion question, String option) =>
+      'reality_check.option.${question.options.indexOf(option)}';
+
+  CopilotScreenData _copilotData() {
+    final entity = widget.planId == null
+        ? null
+        : AgentEntityContext(type: 'care_plan', id: widget.planId!);
+    if (loading || error != null || questions.isEmpty || !_accountCurrent) {
+      return CopilotScreenData(
+        stateKey: 'unavailable:$loading:$error',
+        entity: entity,
+      );
+    }
+    final q = questions[index];
+    final selected = answers[q.key];
+    final targets = <CopilotTarget>[
+      CopilotTarget(
+        id: 'reality_check.question.current',
+        sectionId: 'reality_check.question.current',
+        kind: 'question',
+        label: _questionText(context, q),
+      ),
+      for (final option in q.options)
+        CopilotTarget(
+          id: _optionTarget(q, option),
+          kind: 'option',
+          sectionId: 'reality_check.question.current',
+          label: _optionText(context, option),
+          selected: selected == option,
+        ),
+      const CopilotTarget(
+        id: 'reality_check.next',
+        kind: 'button',
+        label: 'Save answer and continue',
+      ),
+      if (index > 0 && !_isFocusedReview)
+        const CopilotTarget(
+          id: 'reality_check.previous',
+          kind: 'button',
+          label: 'Previous question; save current answer',
+        ),
+    ];
+    bool ready() =>
+        mounted &&
+        _accountCurrent &&
+        !loading &&
+        !saving &&
+        ModalRoute.of(context)?.isCurrent != false &&
+        questions[index].key == q.key;
+    final actions = <CopilotAction>[
+      const CopilotAction(
+        id: 'reality_check.question.read',
+        kind: 'read_section',
+        targetId: 'reality_check.question.current',
+      ),
+      const CopilotAction(
+        id: 'reality_check.question.highlight',
+        kind: 'highlight',
+        targetId: 'reality_check.question.current',
+      ),
+      for (final option in q.options) ...[
+        CopilotAction(
+          id: '${_optionTarget(q, option)}.highlight',
+          kind: 'highlight',
+          targetId: _optionTarget(q, option),
+        ),
+        CopilotAction(
+          id: '${_optionTarget(q, option)}.select',
+          kind: 'select_option',
+          targetId: _optionTarget(q, option),
+          requiresConfirmation: true,
+          execute: () async {
+            if (!ready()) return false;
+            // The existing callback toggles; selecting an existing choice is a no-op.
+            if (answers[q.key] == option) return true;
+            _selectAnswer(q.key, option);
+            _autosaveTimer?.cancel();
+            final ok = _isFocusedReview || await _saveCurrent(showError: true);
+            _bookmark();
+            await WidgetsBinding.instance.endOfFrame;
+            return ok && _accountCurrent;
+          },
+        ),
+      ],
+      if (selected != null || note.text.trim().isNotEmpty)
+        CopilotAction(
+          id: 'reality_check.next.execute',
+          kind: 'next',
+          targetId: 'reality_check.next',
+          requiresConfirmation: true,
+          execute: () async {
+            if (!ready()) return false;
+            final oldIndex = index;
+            await _next();
+            await WidgetsBinding.instance.endOfFrame;
+            return _accountCurrent &&
+                (!mounted || index != oldIndex || _isFocusedReview);
+          },
+        ),
+      if (index > 0 && !_isFocusedReview)
+        CopilotAction(
+          id: 'reality_check.previous.execute',
+          kind: 'previous',
+          targetId: 'reality_check.previous',
+          requiresConfirmation: true,
+          execute: () async {
+            if (!ready()) return false;
+            _autosaveTimer?.cancel();
+            if (!await _saveCurrent(showError: false) || !ready()) return false;
+            setState(() {
+              index--;
+            });
+            _syncNote();
+            _bookmark();
+            await WidgetsBinding.instance.endOfFrame;
+            return _accountCurrent;
+          },
+        ),
+    ];
+    return CopilotScreenData(
+      stateKey: '${q.key}:$index:$selected:${note.text.hashCode}:$saving',
+      entity: entity,
+      focusedSectionId: 'reality_check.question.current',
+      targets: targets,
+      actions: actions,
     );
   }
 
@@ -668,12 +823,16 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              _questionText(context, question),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                height: 1.32,
+                            child: copilotAnchor(
+                              context,
+                              'reality_check.question.current',
+                              Text(
+                                _questionText(context, question),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.32,
+                                ),
                               ),
                             ),
                           ),
@@ -758,10 +917,14 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
                       ...question.options.map(
                         (option) => Padding(
                           padding: const EdgeInsets.only(bottom: 10),
-                          child: OptionCard(
-                            label: _optionText(context, option),
-                            selected: selected == option,
-                            onTap: () => _selectAnswer(question.key, option),
+                          child: copilotAnchor(
+                            context,
+                            _optionTarget(question, option),
+                            OptionCard(
+                              label: _optionText(context, option),
+                              selected: selected == option,
+                              onTap: () => _selectAnswer(question.key, option),
+                            ),
                           ),
                         ),
                       ),
@@ -937,19 +1100,39 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
                               children: [
                                 SizedBox(
                                   width: double.infinity,
-                                  child: saveButton,
+                                  child: copilotAnchor(
+                                    context,
+                                    'reality_check.next',
+                                    saveButton,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Align(
                                   alignment: AlignmentDirectional.centerStart,
-                                  child: backButton,
+                                  child: copilotAnchor(
+                                    context,
+                                    'reality_check.previous',
+                                    backButton,
+                                  ),
                                 ),
                               ],
                             );
                           }
 
                           return Row(
-                            children: [backButton, const Spacer(), saveButton],
+                            children: [
+                              copilotAnchor(
+                                context,
+                                'reality_check.previous',
+                                backButton,
+                              ),
+                              const Spacer(),
+                              copilotAnchor(
+                                context,
+                                'reality_check.next',
+                                saveButton,
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -1225,7 +1408,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         });
       }
 
-      await CarePlanService.instance.saveRealityAnswers(widget.planId!, [
+      await _service.saveRealityAnswers(widget.planId!, [
         {'key': question.key, 'answer': answer, 'note': writtenAnswer},
       ]);
 
@@ -1285,6 +1468,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
     });
 
     _syncNote();
+    _bookmark();
   }
 
   void _backToSchedule() {
@@ -1353,7 +1537,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
 
     final saved = await _saveCurrent(showError: true);
 
-    if (!saved) return;
+    if (!saved || !_accountCurrent || !mounted) return;
 
     if (index < questions.length - 1) {
       setState(() {
@@ -1361,6 +1545,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
       });
 
       _syncNote();
+      _bookmark();
       return;
     }
 
@@ -1371,7 +1556,7 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
     try {
       // Final consistency save for the complete currently visible
       // Reality Check question set.
-      await CarePlanService.instance.saveRealityAnswers(
+      await _service.saveRealityAnswers(
         widget.planId!,
         questions.map((item) {
           final savedAnswer = answers[item.key];
@@ -1390,8 +1575,9 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         }).toList(),
       );
 
+      if (!_accountCurrent || !mounted) return;
       if (widget.guidedSetup && !widget.returnToPrevious) {
-        await CarePlanService.instance.updateSetupStep(
+        await _service.updateSetupStep(
           widget.planId!,
           CareSetupStep.simulation,
         );
@@ -1404,6 +1590,8 @@ class _RealityCheckScreenState extends State<RealityCheckScreen> {
         return;
       }
 
+      await _workflow.clear('reality_check', widget.planId!);
+      if (!mounted || !_accountCurrent) return;
       Navigator.pushReplacementNamed(
         context,
         AppRoutes.simulation,

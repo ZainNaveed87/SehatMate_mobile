@@ -4,6 +4,7 @@ class AppStrings {
   AppStrings._();
 
   static const Map<String, Map<AppLanguage, String>> _values = {
+    'agent_task_draft': {AppLanguage.english:'Care plan draft',AppLanguage.urdu:'کیئر پلان کا مسودہ',AppLanguage.romanUrdu:'Care plan ka draft'},
     // Core navigation
     'app_name': {
       AppLanguage.english: 'SehatMate',

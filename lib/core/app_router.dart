@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../features/agent/agent_entry.dart';
-import '../features/agent/screens/agent_screen.dart';
 import '../screens/auth_screen.dart';
 import '../screens/care_gap_screens.dart';
 import '../screens/care_plan_detail_screen.dart';
@@ -149,9 +148,7 @@ abstract final class AppRouter {
     } else if (name == AppRoutes.patientProfile) {
       page = const PatientProfileScreen();
     } else if (name == AppRoutes.agent) {
-      final arguments = settings.arguments;
-
-      page = AgentScreen(args: arguments is AgentScreenArgs ? arguments : null);
+      page = const AgentCompatibilityEntry();
     } else if (RegExp(r'^/care-plan/[^/]+$').hasMatch(name)) {
       final arguments = settings.arguments;
 

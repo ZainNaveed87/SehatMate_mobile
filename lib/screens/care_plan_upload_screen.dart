@@ -1,3 +1,4 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
@@ -782,7 +783,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
   }
 
   Widget _uploadPanel() {
-    return HoverLift(
+    return copilotSection(context,'care_plan_upload.files',context.tr('upload_documents'),HoverLift(
       child: DashedBorder(
         radius: AppRadii.xxxl,
         strokeWidth: 1.6,
@@ -916,7 +917,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _filesHeader({
@@ -1179,7 +1180,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
   }
 
   Widget _continueCard(bool canContinue) {
-    return AnimatedContainer(
+    return copilotSection(context,'care_plan_upload.continue',context.tr('continue'),AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1271,7 +1272,7 @@ class _CarePlanUploadScreenState extends State<CarePlanUploadScreen> {
           );
         },
       ),
-    );
+    ));
   }
 
   Widget _processing() {

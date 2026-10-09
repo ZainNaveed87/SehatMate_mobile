@@ -1,15 +1,16 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
 import '../data/demo_data.dart';
-import '../features/agent/agent_entry.dart';
 import '../features/agent/models/agent_context.dart';
+import '../features/agent/navigation/semantic_route_registry.dart';
+import '../services/care_plan_service.dart';
 import '../localization/app_language.dart';
 import '../localization/language_scope.dart';
 import '../services/auth_service.dart';
 import 'brand_logo.dart';
-import 'assistant_launcher.dart';
 
 const _logoutAction = '__logout__';
 
@@ -106,12 +107,14 @@ class AppShell extends StatelessWidget {
     required this.child,
     super.key,
     this.subtitle,
+    this.copilot,
   });
 
   final String currentRoute;
   final String title;
   final String? subtitle;
   final Widget child;
+  final CopilotScreenData? copilot;
 
   void _go(BuildContext context, String route) {
     _navigateShellRoute(context, currentRoute: currentRoute, route: route);
@@ -125,15 +128,6 @@ class AppShell extends StatelessWidget {
     return Directionality(
       textDirection: language.textDirection,
       child: Scaffold(
-        floatingActionButton: AuthSession.instance.canAccessApp
-            ? AssistantLauncher(
-                label: context.tr('agent_title'),
-                onPressed: () => openAgent(
-                  context,
-                  screenContext: _agentContextForRoute(currentRoute),
-                ),
-              )
-            : null,
         bottomNavigationBar: desktop
             ? null
             : _MobileNavigation(currentRoute: currentRoute),
@@ -165,7 +159,12 @@ class AppShell extends StatelessWidget {
                         child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 1180),
-                            child: child,
+                            child: CopilotScreenAdapter(
+                              contextData: agentContextForRoute(currentRoute,arguments:ModalRoute.of(context)?.settings.arguments),
+                              title: title,
+                              data: copilot,
+                              child: child,
+                            ),
                           ),
                         ),
                       ),
@@ -181,68 +180,19 @@ class AppShell extends StatelessWidget {
   }
 }
 
-AgentScreenContext? _agentContextForRoute(String route) {
-  if (route == AppRoutes.dashboard) {
-    return const AgentScreenContext(screenId: 'home');
-  }
-  if (route == AppRoutes.calendar) {
-    return const AgentScreenContext(screenId: 'today');
-  }
-  if (route == AppRoutes.carePlans) {
-    return const AgentScreenContext(screenId: 'care_plans');
-  }
-  if (route == AppRoutes.realityCheck) {
-    return const AgentScreenContext(screenId: 'reality_check');
-  }
-  if (route == AppRoutes.simulation) {
-    return const AgentScreenContext(screenId: 'simulation');
-  }
-  if (route == AppRoutes.careGaps) {
-    return const AgentScreenContext(screenId: 'care_gaps');
-  }
-  if (route == AppRoutes.family) {
-    return const AgentScreenContext(screenId: 'family_care');
-  }
-  if (route == AppRoutes.routinePreferences) {
-    return const AgentScreenContext(screenId: 'routine_settings');
-  }
-  if (route == AppRoutes.patientProfile) {
-    return const AgentScreenContext(screenId: 'profile');
-  }
-  if (route == AppRoutes.documents) {
-    return const AgentScreenContext(screenId: 'documents');
-  }
-  if (route == AppRoutes.notifications) {
-    return const AgentScreenContext(screenId: 'notifications');
-  }
-  if (route == AppRoutes.settings) {
-    return const AgentScreenContext(screenId: 'settings');
-  }
-
-  const carePlanPrefix = '/care-plan/';
-  if (route.startsWith(carePlanPrefix)) {
-    final id = route.split('/').last;
-    return AgentScreenContext(
-      screenId: 'care_plan_detail',
-      entity: AgentEntityContext(type: 'care_plan', id: id),
-    );
-  }
-  if (route.startsWith('${AppRoutes.careGaps}/')) {
-    final id = route.split('/').last;
-    return AgentScreenContext(
-      screenId: 'care_gap_detail',
-      entity: AgentEntityContext(type: 'care_gap', id: id),
-    );
-  }
-  if (route.startsWith('${AppRoutes.family}/')) {
-    final id = route.split('/').last;
-    return AgentScreenContext(
-      screenId: 'family_member_detail',
-      entity: AgentEntityContext(type: 'family_member', id: id),
-    );
-  }
-
-  return null;
+AgentScreenContext? agentContextForRoute(String route,{Object? arguments}) {
+  final screen=const SemanticRouteRegistry().screenForRoute(route);
+  if(screen==null)return null;
+  AgentEntityContext? entity;
+  final planId=switch(arguments){CareFlowArgs()=>arguments.planId,CarePlanUploadArgs()=>arguments.planId,CarePlanReviewArgs()=>arguments.planId,_=>null};
+  if(planId!=null&&RegExp(r'^[1-9][0-9]{0,19}$').hasMatch(planId))entity=AgentEntityContext(type:'care_plan',id:planId);
+  final plan=RegExp(r'^/care-plan/([1-9][0-9]{0,19})$').firstMatch(route);
+  final gap=RegExp(r'^/care-gaps/([1-9][0-9]{0,19})$').firstMatch(route);
+  final family=RegExp(r'^/family/([1-9][0-9]{0,19})(?:/plans/[1-9][0-9]{0,19})?$').firstMatch(route);
+  if(plan!=null)entity=AgentEntityContext(type:'care_plan',id:plan.group(1)!);
+  if(gap!=null)entity=AgentEntityContext(type:'care_gap',id:gap.group(1)!);
+  if(family!=null)entity=AgentEntityContext(type:'family_member',id:family.group(1)!);
+  return AgentScreenContext(screenId:screen,entity:entity);
 }
 
 class _DesktopSidebar extends StatelessWidget {

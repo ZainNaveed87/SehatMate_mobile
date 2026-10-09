@@ -1,6 +1,9 @@
+import '../copilot/copilot_conflict.dart';
+import '../copilot/copilot.dart';
 import 'agent_navigation.dart';
 import 'agent_speech.dart';
 import 'agent_validation.dart';
+import 'agent_task_workflow.dart';
 
 class AgentReferencedEntity {
   const AgentReferencedEntity({required this.type, required this.id});
@@ -61,7 +64,7 @@ class AgentConfirmation {
     );
   }
 
-  static const supportedKinds = {'task_outcome', 'schedule_time'};
+  static const supportedKinds = {'task_outcome', 'schedule_time','create_care_plan'};
 }
 
 class AgentClarificationOption {
@@ -151,6 +154,10 @@ class AgentResponse {
     this.speech,
     this.actionStatus,
     this.fallbackCode,
+    this.uiPlan,
+    this.memoryProposal,
+    this.conflicts = const [],
+    this.taskWorkflow,
   });
 
   final String sessionId;
@@ -163,6 +170,10 @@ class AgentResponse {
   final String? actionStatus;
   final List<AgentReferencedEntity> referencedEntities;
   final String? fallbackCode;
+  final CopilotPlan? uiPlan;
+  final List<CopilotConflict> conflicts;
+  final Map<String, dynamic>? memoryProposal;
+  final AgentTaskWorkflow? taskWorkflow;
 
   factory AgentResponse.fromJson(Map<String, dynamic> json) {
     if (json['success'] != true) {
@@ -230,7 +241,24 @@ class AgentResponse {
         .map<AgentReferencedEntity>(AgentReferencedEntity.fromJson)
         .toList(growable: false);
 
+    CopilotPlan? uiPlan;
+    if (json['uiPlan'] != null) {
+      try {
+        uiPlan = CopilotPlan.fromJson(json['uiPlan']);
+      } catch (_) {
+        uiPlan = null;
+      }
+    }
+    final taskWorkflow=json['taskWorkflow']==null?null:AgentTaskWorkflow.fromJson(json['taskWorkflow']);
+    if(taskWorkflow?.status=='awaiting_confirmation'&&(confirmation?.kind!='create_care_plan'||confirmation?.confirmationId!=taskWorkflow?.confirmationId))throw const FormatException('Task confirmation mismatch');
+    if(confirmation?.kind=='create_care_plan'&&taskWorkflow?.status!='awaiting_confirmation')throw const FormatException('Missing task confirmation state');
     return AgentResponse(
+      taskWorkflow:taskWorkflow,
+      uiPlan: uiPlan,
+      conflicts: CopilotConflict.parse(json['conflicts']),
+      memoryProposal: json['memoryProposal'] is Map<String, dynamic>
+          ? Map<String, dynamic>.unmodifiable(json['memoryProposal'])
+          : null,
       sessionId: sessionId,
       language: language,
       reply: reply,

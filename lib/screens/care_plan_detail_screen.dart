@@ -1,3 +1,4 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
@@ -283,7 +284,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   Widget _premiumPlanHero(CarePlanDetailData detail, int openGaps) {
     final plan = detail.plan;
 
-    return LayoutBuilder(
+    return copilotSection(context,'care_plan_detail.summary',context.tr('care_plans'),LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 650;
 
@@ -353,7 +354,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           ),
         );
       },
-    );
+    ));
   }
 
   Widget _heroPlanContent(DemoPlan plan, int openGaps) {
@@ -701,7 +702,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
   }
 
   Widget _premiumTabBar() {
-    return Container(
+    return copilotSection(context,'care_plan_detail.tabs',context.tr('care_plans'),Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFFF0F5F4),
@@ -723,7 +724,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           _premiumTab(4, context.tr('documents'), Icons.description_outlined),
         ],
       ),
-    );
+    ));
   }
 
   Widget _premiumTab(int value, String label, IconData icon) {
@@ -779,7 +780,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
         ? context.tr('completed_plan_reactivate_explanation')
         : context.tr('active_plan_complete_explanation');
 
-    return AppCard(
+    return copilotSection(context,'care_plan_detail.lifecycle',context.tr('care_plans'),AppCard(
       padding: const EdgeInsets.all(16),
       color: completed ? const Color(0xFFF8FAFC) : const Color(0xFFF0FDFA),
       borderColor: completed ? AppColors.border : const Color(0xFFCCFBF1),
@@ -890,7 +891,7 @@ class _CarePlanDetailScreenState extends State<CarePlanDetailScreen> {
           );
         },
       ),
-    );
+    ));
   }
 
   Future<void> _completePlanFromDetail(DemoPlan plan) async {

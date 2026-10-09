@@ -1,3 +1,4 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -411,7 +412,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
   }) {
     final progress = total == 0 ? 0.0 : reviewed / total;
 
-    return LayoutBuilder(
+    return copilotSection(context,'care_plan_review.summary',context.tr('review'),LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 650;
 
@@ -502,7 +503,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
           ),
         );
       },
-    );
+    ));
   }
 
   Widget _heroCopy({
@@ -963,7 +964,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
   Widget _finalReviewCard({required int reviewed, required int total}) {
     final ready = confirmed && reviewed == total && !continuing;
 
-    return AppCard(
+    return copilotSection(context,'care_plan_review.continue',context.tr('continue'),AppCard(
       padding: const EdgeInsets.all(18),
       color: ready ? const Color(0xFFF0FDFA) : const Color(0xFFFAFCFD),
       borderColor: ready ? const Color(0xFF99F6E4) : AppColors.border,
@@ -1044,7 +1045,7 @@ class _CarePlanReviewScreenState extends State<CarePlanReviewScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _group(String group, List<ReviewInstruction> visibleItems) {

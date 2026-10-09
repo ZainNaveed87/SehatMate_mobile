@@ -1,3 +1,4 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
@@ -469,7 +470,7 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
   }
 
   Widget _routineHero(int totalSignals) {
-    return Container(
+    return copilotSection(context,'routine_settings.summary',context.tr('routine_preferences'),Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -573,7 +574,7 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _routineHeroChip(IconData icon, String label) {
@@ -658,7 +659,7 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
   }
 
   Widget _routineErrorState() {
-    return Center(
+    return copilotSection(context,'routine_settings.retry',context.tr('retry'),Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 540),
         child: AppCard(
@@ -699,7 +700,7 @@ class _RoutinePreferencesScreenState extends State<RoutinePreferencesScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _learnedPeriod(String period) {

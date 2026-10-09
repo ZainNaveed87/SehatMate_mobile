@@ -1,3 +1,4 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
@@ -354,7 +355,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _dashboardHero(String greetingText, String overviewText) {
-    return LayoutBuilder(
+    return copilotSection(context,'home.create',context.tr('care_plans'),LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
 
@@ -504,7 +505,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         );
       },
-    );
+    ));
   }
 
   Widget _loadingSkeleton() {
@@ -631,7 +632,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     final progressValue =
         progress.completedCount / CareSetupProgress.totalSteps;
 
-    return HoverLift(
+    return copilotSection(context,'home.setup',context.tr('care_setup'),HoverLift(
       cursor: SystemMouseCursors.click,
       child: AppCard(
         color: const Color(0xFFF0FDFA),
@@ -747,7 +748,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           },
         ),
       ),
-    );
+    ));
   }
 
   Widget _metrics() {
@@ -760,7 +761,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         ? 0
         : (((summary?.completed ?? 0) / decided) * 100).round();
 
-    return LayoutBuilder(
+    return copilotSection(context,'home.progress',context.tr('progress'),LayoutBuilder(
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 760 ? 4 : 2;
         const gap = 12.0;
@@ -830,7 +831,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         );
       },
-    );
+    ));
   }
 
   Widget _metricCard(
@@ -1019,7 +1020,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _todayTasks() {
     final value = today;
-    return AppCard(
+    return copilotSection(context,'home.tasks',context.tr('today'),AppCard(
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1117,7 +1118,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             ],
         ],
       ),
-    );
+    ));
   }
 
   Widget _todayRow(CareTaskOccurrence occurrence) {

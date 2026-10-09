@@ -16,6 +16,7 @@ class AgentChatMessage {
     this.speech,
     this.actionStatus,
     this.failed = false,
+    this.failureCode,
   });
 
   final String id;
@@ -28,6 +29,7 @@ class AgentChatMessage {
   final AgentSpeech? speech;
   final String? actionStatus;
   final bool failed;
+  final String? failureCode;
 
   AgentChatMessage copyWith({
     AgentNavigation? navigation,
@@ -48,6 +50,7 @@ class AgentChatMessage {
       speech: speech ?? this.speech,
       actionStatus: actionStatus ?? this.actionStatus,
       failed: failed ?? this.failed,
+      failureCode: failureCode,
     );
   }
 }

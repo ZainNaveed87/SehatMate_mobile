@@ -84,6 +84,17 @@ class VoiceCompanionController extends ChangeNotifier {
       reply = '',
       recoveryCode = '';
   void Function(AgentResponse)? onResult;
+  bool presentationMinimized = false;
+  void minimizePresentation() {
+    presentationMinimized = true;
+    notifyListeners();
+  }
+
+  void expandPresentation() {
+    presentationMinimized = false;
+    notifyListeners();
+  }
+
   Map<String, dynamic>? _pendingDeviceTts;
   String? get voiceSessionId => _binding?['id'] as String?;
   int? get epoch => _binding?['epoch'] as int?;

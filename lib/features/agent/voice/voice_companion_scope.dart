@@ -1,3 +1,4 @@
+import '../copilot/copilot_strings.dart';
 import 'package:flutter/material.dart';
 import '../../../widgets/assistant_motion.dart';
 import 'voice_companion_controller.dart';
@@ -30,36 +31,92 @@ class VoiceCompanionHost extends StatelessWidget {
     super.key,
     required this.controller,
     required this.child,
+    this.unifiedPresentation=false,
   });
   final VoiceCompanionController controller;
   final Widget child;
+  final bool unifiedPresentation;
   @override
   Widget build(BuildContext context) => VoiceCompanionScope(
     controller: controller,
-    child: AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final showVoice =
-            controller.state != 'idle' && controller.state != 'manual';
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Offstage(
-              offstage: showVoice,
-              child: ExcludeFocus(
-                excluding: showVoice,
-                child: TickerMode(enabled: !showVoice, child: child),
-              ),
-            ),
-            if (showVoice)
-              AssistantEntrance(
-                child: Overlay.wrap(
-                  child: VoiceCompanionSurface(controller: controller),
+    child: Overlay.wrap(
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          final showVoice =
+              controller.state != 'idle' &&
+              controller.state != 'manual' &&
+              !controller.presentationMinimized;
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Offstage(
+                offstage: showVoice,
+                child: ExcludeFocus(
+                  excluding: showVoice,
+                  child: TickerMode(enabled: !showVoice, child: child),
                 ),
               ),
-          ],
-        );
-      },
+              if (!unifiedPresentation && !showVoice &&
+                  controller.presentationMinimized &&
+                  controller.state != 'idle' &&
+                  controller.state != 'manual')
+                PositionedDirectional(
+                  top: MediaQuery.paddingOf(context).top + 6,
+                  end: 8,
+                  child: Material(
+                    elevation: 3,
+                    borderRadius: BorderRadius.circular(30),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: copilotText(context, 'return_voice'),
+                          onPressed: controller.expandPresentation,
+                          icon: const Icon(Icons.mic),
+                        ),
+                        IconButton(
+                          tooltip: copilotText(
+                            context,
+                            controller.muted ? 'unmute' : 'mute',
+                          ),
+                          onPressed: controller.muted
+                              ? controller.resume
+                              : controller.mute,
+                          icon: Icon(
+                            controller.muted ? Icons.mic_off : Icons.mic_none,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (showVoice)
+                AssistantEntrance(
+                  child: Overlay.wrap(
+                    child: Stack(
+                      children: [
+                        VoiceCompanionSurface(controller: controller),
+                        PositionedDirectional(
+                          top: MediaQuery.paddingOf(context).top + 4,
+                          end: 8,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: IconButton(
+                              tooltip: copilotText(context, 'minimize_voice'),
+                              onPressed: controller.minimizePresentation,
+                              icon: const Icon(Icons.minimize),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
     ),
   );
 }
@@ -83,6 +140,7 @@ class VoiceCompanionControls extends StatelessWidget {
             style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
             onPressed: () async {
               FocusScope.of(context).unfocus();
+              voice.expandPresentation();
               if (voice.voiceSessionId == null) {
                 await voice.start(context.appLanguage);
               } else {

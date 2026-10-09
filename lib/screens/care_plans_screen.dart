@@ -1,3 +1,5 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
+import '../features/agent/copilot/adapters/care_plans_copilot_adapter.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
@@ -103,6 +105,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
     return AppShell(
       currentRoute: AppRoutes.carePlans,
       title: context.tr('care_plans'),
+      copilot:carePlansCopilotData(stateKey:'$selected:$_loading:$_error:${_plans.map((p)=>p.id).join(',')}:${_selectedIds.join(',')}',loading:_loading,controls:{'create':context.tr('create_care_plan'),'tab.active':context.tr('active'),'tab.draft':context.tr('draft'),'tab.completed':context.tr('completed'),if(_error!=null)'retry':context.tr('retry'),if(!_loading&&_error==null&&!AuthSession.instance.isGuest)'selection':context.tr('select_all'),for(final plan in currentPlans)'card.${plan.id}':plan.title},selectTab:(i)async{if(!mounted||ModalRoute.of(context)?.isCurrent==false)return false;setState((){selected=i;_selectedIds.clear();});await WidgetsBinding.instance.endOfFrame;return mounted&&selected==i;}),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -209,7 +212,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
     required int draftCount,
     required int completedCount,
   }) {
-    return LayoutBuilder(
+    return copilotAnchor(context,'care_plans.create',LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 640;
 
@@ -315,7 +318,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
           ),
         );
       },
-    );
+    ));
   }
 
   Widget _heroCopy({
@@ -588,7 +591,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
   }) {
     final active = selected == value;
 
-    return InkWell(
+    return copilotAnchor(context,'care_plans.tab.${const ['active','draft','completed'][value]}',InkWell(
       onTap: () {
         if (selected == value) return;
         setState(() {
@@ -653,14 +656,14 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _selectionBar(List<DemoPlan> plans) {
     final ids = plans.map((item) => item.id).toSet();
     final allSelected = ids.isNotEmpty && _selectedIds.containsAll(ids);
 
-    return AppCard(
+    return copilotAnchor(context,'care_plans.selection',AppCard(
       padding: const EdgeInsets.all(12),
       color: const Color(0xFFFAFCFD),
       child: Wrap(
@@ -727,7 +730,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _loadingSkeleton() {
@@ -793,7 +796,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
   }
 
   Widget _errorCard() {
-    return Center(
+    return copilotAnchor(context,'care_plans.retry',Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 540),
         child: AppCard(
@@ -833,7 +836,7 @@ class _CarePlansScreenState extends State<CarePlansScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 
 
@@ -1121,7 +1124,7 @@ class _PlanCard extends StatelessWidget {
             ? AppColors.success
             : AppColors.primary;
 
-    return HoverLift(
+    return copilotAnchor(context,'care_plans.card.${plan.id}',HoverLift(
       cursor: SystemMouseCursors.click,
       child: InkWell(
         onTap: () => Navigator.pushNamed(
@@ -1198,7 +1201,7 @@ class _PlanCard extends StatelessWidget {
                         if (onDelete != null ||
                             (plan.status == PlanStatus.active &&
                                 onComplete != null))
-                          PopupMenuButton<String>(
+                          copilotSection(context,'care_plans.card.${plan.id}.menu',context.tr('care_plans'),PopupMenuButton<String>(
                             tooltip: context.tr('plan_actions'),
                             onSelected: (value) {
                               if (value == 'complete') {
@@ -1221,7 +1224,7 @@ class _PlanCard extends StatelessWidget {
                                   child: Text(context.tr('delete_plan')),
                                 ),
                             ],
-                          ),
+                          )),
                       ],
                     ),
 
@@ -1355,11 +1358,11 @@ class _PlanCard extends StatelessWidget {
 
                     Row(
                       children: [
-                        Checkbox(
+                        copilotSection(context,'care_plans.card.${plan.id}.selection',context.tr('select_all'),Checkbox(
                           value: selected,
                           onChanged: (value) =>
                               onSelectionChanged(plan, value ?? false),
-                        ),
+                        )),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -1386,7 +1389,7 @@ class _PlanCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -1580,7 +1583,7 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
                         ],
                       ),
                       SizedBox(height: compactHeight ? 9 : 15),
-                      TextField(
+                      copilotSection(context,'care_plan_new.name',context.tr('plan_name'),TextField(
                         key: const ValueKey('new_care_plan_name_field'),
                         controller: _planNameController,
                         textInputAction: TextInputAction.done,
@@ -1601,13 +1604,13 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
                         onSubmitted: (_) {
                           if (_canContinue) _continue();
                         },
-                      ),
+                      )),
                       SizedBox(height: compactHeight ? 10 : 16),
                       SafetyNote(text: context.tr('new_plan_safety_note')),
                       SizedBox(height: compactHeight ? 10 : 18),
                       SizedBox(
                         height: compactHeight ? 46 : 50,
-                        child: FilledButton.icon(
+                        child: copilotSection(context,'care_plan_new.continue',context.tr('continue'),FilledButton.icon(
                           key: const ValueKey(
                             'new_care_plan_continue_button',
                           ),
@@ -1627,7 +1630,7 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
                                   size: 18,
                                 ),
                           label: Text(context.tr('continue')),
-                        ),
+                        )),
                       ),
                     ],
                   ),

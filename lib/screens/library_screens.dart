@@ -1,3 +1,4 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/app_theme.dart';
@@ -944,7 +945,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _notificationHero(int unreadCount) {
-    return Container(
+    return copilotSection(context,'notifications.actions',context.tr('notifications'),Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -1062,11 +1063,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 );
         },
       ),
-    );
+    ));
   }
 
   Widget _notificationFilters(int unreadCount) {
-    return Container(
+    return copilotSection(context,'notifications.filters',context.tr('notifications'),Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFFF0F5F4),
@@ -1095,7 +1096,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _notificationFilter({
@@ -1614,7 +1615,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     required int processing,
     required int failed,
   }) {
-    return Container(
+    return copilotSection(context,'documents.actions',context.tr('documents'),Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -1741,7 +1742,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                 );
         },
       ),
-    );
+    ));
   }
 
   Widget _documentCard(CareDocument document) {
@@ -2496,7 +2497,7 @@ Future<void> _openDocumentViewer(
   DocumentFile file,
 ) async {
   await Navigator.of(context).push<void>(
-    MaterialPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)),
+    MaterialPageRoute<void>(settings:RouteSettings(name:AppRoutes.documentViewer,arguments:file),builder: (_) => DocumentViewerScreen(file: file)),
   );
 }
 

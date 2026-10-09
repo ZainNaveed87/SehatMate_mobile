@@ -21,13 +21,17 @@ class AgentEntityContext {
 }
 
 class AgentScreenContext {
-  const AgentScreenContext({required this.screenId, this.entity});
+  const AgentScreenContext({required this.screenId, this.entity, this.ui});
 
   final String screenId;
   final AgentEntityContext? entity;
+  final Map<String, dynamic>? ui;
 
   static const supportedScreenIds = {
+    'care_plan_new','care_plan_upload','care_plan_review','family_member_new',
+    'doctor_questions','simple_care','teach_back','document_viewer',
     'home',
+    'progress',
     'today',
     'care_plans',
     'care_plan_detail',
@@ -60,6 +64,7 @@ class AgentScreenContext {
 
     return {
       'screenId': screenId,
+      if (ui != null) 'ui': ui,
       if (entity != null) 'entity': entity!.toJson(),
     };
   }

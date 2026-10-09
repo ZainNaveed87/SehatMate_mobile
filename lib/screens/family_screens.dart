@@ -1,3 +1,4 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
@@ -101,7 +102,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
   );
 
   Widget _familyHero({required int relationships, required int invitations}) {
-    return LayoutBuilder(
+    return copilotSection(context,'family_care.actions',context.tr('family_care'),LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
 
@@ -194,7 +195,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
           ),
         );
       },
-    );
+    ));
   }
 
   Widget _familyHeroCopy({
@@ -1230,7 +1231,7 @@ class _AddCaregiverScreenState extends State<AddCaregiverScreen> {
                       const SizedBox(height: 14),
                       fieldLabel(
                         'SehatMate account email',
-                        TextFormField(
+                        copilotSection(context,'family_member_new.email',context.tr('email'),TextFormField(
                           controller: email,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
@@ -1241,12 +1242,12 @@ class _AddCaregiverScreenState extends State<AddCaregiverScreen> {
                               value == null || !value.contains('@')
                               ? 'Enter a valid email.'
                               : null,
-                        ),
+                        )),
                       ),
                       const SizedBox(height: 14),
                       fieldLabel(
                         'Relationship label',
-                        TextFormField(
+                        copilotSection(context,'family_member_new.relationship',context.tr('family_care'),TextFormField(
                           controller: relationship,
                           decoration: const InputDecoration(
                             hintText: 'Ammi, Abu, daughter, caregiver',
@@ -1256,7 +1257,7 @@ class _AddCaregiverScreenState extends State<AddCaregiverScreen> {
                               value == null || value.trim().isEmpty
                               ? 'Enter a relationship label.'
                               : null,
-                        ),
+                        )),
                       ),
                       const SizedBox(height: 24),
                       _inviteSectionHeader(
@@ -1273,14 +1274,14 @@ class _AddCaregiverScreenState extends State<AddCaregiverScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      _PermissionToggles(
+                      copilotSection(context,'family_member_new.permissions',context.tr('family_care'),_PermissionToggles(
                         scopes: scopes,
                         onChanged: () => setState(() {}),
-                      ),
+                      )),
                       const SizedBox(height: 22),
                       SizedBox(
                         width: double.infinity,
-                        child: FilledButton.icon(
+                        child: copilotSection(context,'family_member_new.submit',context.tr('family_care'),FilledButton.icon(
                           onPressed: saving ? null : _submit,
                           icon: saving
                               ? const SizedBox(
@@ -1293,7 +1294,7 @@ class _AddCaregiverScreenState extends State<AddCaregiverScreen> {
                                 )
                               : const Icon(Icons.send_outlined, size: 18),
                           label: const Text('Send invitation'),
-                        ),
+                        )),
                       ),
                     ],
                   ),

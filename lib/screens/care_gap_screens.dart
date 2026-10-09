@@ -1,3 +1,9 @@
+import '../features/agent/navigation/agent_navigation_coordinator.dart';
+import '../features/agent/navigation/semantic_route_registry.dart';
+import 'dart:async';
+import '../features/agent/copilot/copilot.dart';
+import '../features/agent/copilot/copilot_diagnostics.dart';
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,6 +21,66 @@ import '../widgets/page_header.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ui.dart';
 import 'reality_check_screen.dart';
+
+CopilotScreenData _gapCopilotData(
+  BuildContext context,
+  List<CareGapItemData> gaps,
+  String stateKey, {
+  required Future<void> Function(CareGapItemData) open,
+  AgentEntityContext? entity,
+}) {
+  return CopilotScreenData(
+    stateKey: stateKey,
+    entity: entity,
+    targets: [
+      for (final gap in gaps)
+        CopilotTarget(
+          id: 'care_gaps.card.${gap.id}',
+          kind: 'section',
+          label: gap.title,
+        ),
+    ],
+    actions: [
+      for (final gap in gaps) ...[
+        CopilotAction(
+          id: 'care_gaps.card.${gap.id}.read',
+          kind: 'read_section',
+          targetId: 'care_gaps.card.${gap.id}',
+        ),
+        CopilotAction(
+          id: 'care_gaps.card.${gap.id}.highlight',
+          kind: 'highlight',
+          targetId: 'care_gaps.card.${gap.id}',
+        ),
+        if (const [
+          'reality_check',
+          'review_schedule',
+          'care_plan',
+        ].contains(gap.actionType))
+          CopilotAction(
+            id: 'care_gaps.card.${gap.id}.open',
+            kind: 'open_entity',
+            targetId: 'care_gaps.card.${gap.id}',
+            execute: () async {
+              if (!context.mounted ||
+                  ModalRoute.of(context)?.isCurrent == false) {
+                CopilotDiagnostics.emit(CopilotDiagnostic.navigationResolved,outcome:CopilotDiagnosticOutcome.stale);
+                return false;
+              }
+              final coordinator=AgentNavigationScope.maybeOf(context);
+              if(coordinator==null){CopilotDiagnostics.emit(CopilotDiagnostic.navigationResolved,outcome:CopilotDiagnosticOutcome.rejected);return false;}
+              final planId=gap.targetCarePlanId.isNotEmpty?gap.targetCarePlanId:gap.carePlanId;
+              final question=_realityQuestionKeyForGap(gap);
+              final destination=gap.actionType=='reality_check'
+                ?SemanticDestination('reality_check',AppRoutes.realityCheck,'reality_check',question.isEmpty?CareFlowArgs(planId:planId,returnToPrevious:true):FocusedRealityCheckArgs(planId:planId,questionKey:question,reviewContextLabel:_realityReviewContextLabel(gap)))
+                :SemanticDestination('care_plan_detail',AppRoutes.carePlan(planId),'care_plan_detail',CarePlanDetailArgs(initialTab:gap.targetCarePlanTab??(gap.actionType=='review_schedule'?1:0),returnToPrevious:true));
+              return (await coordinator.navigateLocal(destination)).succeeded;
+            },
+          ),
+      ],
+    ],
+  );
+}
 
 String _realityQuestionKeyForGap(CareGapItemData gap) {
   final sourceKind = gap.sourceKind.trim().toLowerCase();
@@ -325,6 +391,12 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
     return AppShell(
       currentRoute: AppRoutes.careGaps,
       title: context.tr('care_gaps'),
+      copilot: _gapCopilotData(
+        context,
+        loading ? const [] : visibleGaps.take(4).toList(),
+        '$filter:$loading:${gaps.map((g) => '${g.id}:${g.lifecycleStatus}').join(',')}',
+        open: _openAction,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1316,266 +1388,273 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
         ? AppColors.accentForeground
         : AppColors.warningForeground;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: HoverLift(
-        cursor: SystemMouseCursors.click,
-        child: AppCard(
-          padding: EdgeInsets.zero,
-          borderColor: accent.withValues(alpha: .18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppRadii.xxl),
+    return copilotAnchor(
+      context,
+      'care_gaps.card.${gap.id}',
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: HoverLift(
+          cursor: SystemMouseCursors.click,
+          child: AppCard(
+            padding: EdgeInsets.zero,
+            borderColor: accent.withValues(alpha: .18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppRadii.xxl),
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(17),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: soft,
-                            borderRadius: BorderRadius.circular(AppRadii.xl),
+                Padding(
+                  padding: const EdgeInsets.all(17),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: soft,
+                              borderRadius: BorderRadius.circular(AppRadii.xl),
+                            ),
+                            child: Icon(
+                              _groupIcon(_groupKey(gap)),
+                              color: foreground,
+                              size: 21,
+                            ),
                           ),
-                          child: Icon(
-                            _groupIcon(_groupKey(gap)),
-                            color: foreground,
-                            size: 21,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                gap.title,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  height: 1.25,
-                                  fontWeight: FontWeight.w800,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  gap.title,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    height: 1.25,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                '${_localizedTypeLabel(context, gap.typeLabel)} · $planTitle',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.muted,
+                                const SizedBox(height: 5),
+                                Text(
+                                  '${_localizedTypeLabel(context, gap.typeLabel)} · $planTitle',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.muted,
+                                  ),
                                 ),
-                              ),
-                              if (gap.whenText.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.schedule_outlined,
-                                      size: 13,
-                                      color: AppColors.subtle,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Expanded(
-                                      child: Text(
-                                        gap.whenText,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.muted,
+                                if (gap.whenText.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.schedule_outlined,
+                                        size: 13,
+                                        color: AppColors.subtle,
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Expanded(
+                                        child: Text(
+                                          gap.whenText,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.muted,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                ],
                               ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 13),
+
+                      Wrap(
+                        spacing: 7,
+                        runSpacing: 7,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          StatusBadge(status: gap.badgeStatus),
+                          _smallBadge(
+                            _localizedSeverityLabel(context, gap.severityLabel),
+                            gap.severityWasBlocking
+                                ? AppColors.criticalSoft
+                                : AppColors.warningSoft,
+                            gap.severityWasBlocking
+                                ? AppColors.criticalForeground
+                                : AppColors.warningForeground,
+                          ),
+                          if (!gap.isResolved)
+                            _smallBadge(
+                              _localizedLifecycleLabel(
+                                context,
+                                gap.lifecycleLabel,
+                              ),
+                              AppColors.infoSoft,
+                              AppColors.infoForeground,
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 13),
+
+                      Text(
+                        gap.summary,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.muted,
+                          height: 1.45,
+                        ),
+                      ),
+
+                      if (gap.reason.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(11),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(AppRadii.lg),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.info_outline_rounded,
+                                size: 16,
+                                color: AppColors.muted,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${context.tr('why')}: ${gap.reason}',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ],
-                    ),
 
-                    const SizedBox(height: 13),
-
-                    Wrap(
-                      spacing: 7,
-                      runSpacing: 7,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        StatusBadge(status: gap.badgeStatus),
-                        _smallBadge(
-                          _localizedSeverityLabel(context, gap.severityLabel),
-                          gap.severityWasBlocking
-                              ? AppColors.criticalSoft
-                              : AppColors.warningSoft,
-                          gap.severityWasBlocking
-                              ? AppColors.criticalForeground
-                              : AppColors.warningForeground,
-                        ),
-                        if (!gap.isResolved)
-                          _smallBadge(
-                            _localizedLifecycleLabel(
-                              context,
-                              gap.lifecycleLabel,
-                            ),
-                            AppColors.infoSoft,
-                            AppColors.infoForeground,
+                      if (!gap.isResolved && gap.nextStep.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(11),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(AppRadii.lg),
                           ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.arrow_circle_right_outlined,
+                                size: 17,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${context.tr('care_gap_next_step_label')}: ${gap.nextStep}',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    height: 1.4,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.accentForeground,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
-                    ),
 
-                    const SizedBox(height: 13),
+                      const SizedBox(height: 15),
 
-                    Text(
-                      gap.summary,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.muted,
-                        height: 1.45,
-                      ),
-                    ),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final narrow = constraints.maxWidth < 430;
 
-                    if (gap.reason.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(11),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(AppRadii.lg),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.info_outline_rounded,
-                              size: 16,
-                              color: AppColors.muted,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${context.tr('why')}: ${gap.reason}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    if (!gap.isResolved && gap.nextStep.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(11),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(AppRadii.lg),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.arrow_circle_right_outlined,
-                              size: 17,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${context.tr('care_gap_next_step_label')}: ${gap.nextStep}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  height: 1.4,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.accentForeground,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 15),
-
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final narrow = constraints.maxWidth < 430;
-
-                        final openButton = FilledButton.icon(
-                          onPressed: () async {
-                            await Navigator.pushNamed(
-                              context,
-                              AppRoutes.careGap(gap.id),
-                            );
-
-                            if (mounted) {
-                              await _load();
-                            }
-                          },
-                          icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                          label: Text(context.tr('open')),
-                        );
-
-                        final actionButton =
-                            gap.isResolved && gap.actionLabel.isEmpty
-                            ? null
-                            : OutlinedButton.icon(
-                                onPressed: () => _openAction(gap),
-                                icon: Icon(
-                                  gap.isResolved
-                                      ? Icons.open_in_new_rounded
-                                      : Icons.arrow_forward_rounded,
-                                  size: 17,
-                                ),
-                                label: Text(
-                                  _localizedActionLabel(context, gap),
-                                ),
+                          final openButton = FilledButton.icon(
+                            onPressed: () async {
+                              await Navigator.pushNamed(
+                                context,
+                                AppRoutes.careGap(gap.id),
                               );
 
-                        if (narrow) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                              if (mounted) {
+                                await _load();
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.open_in_new_rounded,
+                              size: 16,
+                            ),
+                            label: Text(context.tr('open')),
+                          );
+
+                          final actionButton =
+                              gap.isResolved && gap.actionLabel.isEmpty
+                              ? null
+                              : OutlinedButton.icon(
+                                  onPressed: () => _openAction(gap),
+                                  icon: Icon(
+                                    gap.isResolved
+                                        ? Icons.open_in_new_rounded
+                                        : Icons.arrow_forward_rounded,
+                                    size: 17,
+                                  ),
+                                  label: Text(
+                                    _localizedActionLabel(context, gap),
+                                  ),
+                                );
+
+                          if (narrow) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                openButton,
+                                if (actionButton != null) ...[
+                                  const SizedBox(height: 8),
+                                  actionButton,
+                                ],
+                              ],
+                            );
+                          }
+
+                          return Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
                             children: [
                               openButton,
-                              if (actionButton != null) ...[
-                                const SizedBox(height: 8),
-                                actionButton,
-                              ],
+                              if (actionButton != null) actionButton,
                             ],
                           );
-                        }
-
-                        return Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            openButton,
-                            if (actionButton != null) actionButton,
-                          ],
-                        );
-                      },
-                    ),
-                  ],
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1806,15 +1885,17 @@ class _CareGapsScreenState extends State<CareGapsScreen> {
 }
 
 class CareGapDetailScreen extends StatefulWidget {
-  const CareGapDetailScreen({required this.gapId, super.key});
+  const CareGapDetailScreen({required this.gapId, this.service, super.key});
 
   final String gapId;
+  final CarePlanService? service;
 
   @override
   State<CareGapDetailScreen> createState() => _CareGapDetailScreenState();
 }
 
 class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
+  CarePlanService get _service => widget.service ?? CarePlanService.instance;
   final info = TextEditingController();
 
   final doctorAnswerControllers = <String, TextEditingController>{};
@@ -1872,7 +1953,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     }
 
     try {
-      final result = await CarePlanService.instance.fetchCareGap(widget.gapId);
+      final result = await _service.fetchCareGap(widget.gapId);
 
       if (!mounted) return;
 
@@ -2584,6 +2665,13 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     return AppShell(
       currentRoute: AppRoutes.careGap(widget.gapId),
       title: context.tr('gap_detail_title'),
+      copilot: _gapCopilotData(
+        context,
+        [gap],
+        '${gap.id}:${gap.lifecycleStatus}:$saving',
+        open: _openAction,
+        entity: AgentEntityContext(type: 'care_gap', id: gap.id),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2627,7 +2715,14 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 7, child: main),
+                    Expanded(
+                      flex: 7,
+                      child: copilotAnchor(
+                        context,
+                        'care_gaps.card.${gap.id}',
+                        main,
+                      ),
+                    ),
                     const SizedBox(width: 24),
                     Expanded(flex: 5, child: aside),
                   ],
@@ -2635,7 +2730,11 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
               }
 
               return Column(
-                children: [main, const SizedBox(height: 16), aside],
+                children: [
+                  copilotAnchor(context, 'care_gaps.card.${gap.id}', main),
+                  const SizedBox(height: 16),
+                  aside,
+                ],
               );
             },
           ),
@@ -2652,7 +2751,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     try {
       final updatedNote = info.text.trim();
 
-      await CarePlanService.instance.updateCareGap(
+      await _service.updateCareGap(
         gap.id,
         lifecycleStatus: 'in_progress',
         resolutionNote: updatedNote,
@@ -2691,7 +2790,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     });
 
     try {
-      await CarePlanService.instance.updateCareGap(
+      await _service.updateCareGap(
         gap.id,
         lifecycleStatus: 'resolved',
         resolutionNote: info.text.trim().isEmpty
@@ -2744,7 +2843,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     try {
       final subject = _doctorQuestionSubject(gap);
 
-      await CarePlanService.instance.createCareGapDoctorQuestion(
+      await _service.createCareGapDoctorQuestion(
         gap.id,
         groupName: 'Care Instructions',
         title: context.tr('gap_doctor_q_title', values: {'subject': subject}),
@@ -2787,10 +2886,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     });
 
     try {
-      await CarePlanService.instance.answerCareGapDoctorQuestion(
-        question.id,
-        answer: answer,
-      );
+      await _service.answerCareGapDoctorQuestion(question.id, answer: answer);
 
       controller.clear();
 
@@ -2820,7 +2916,7 @@ class _CareGapDetailScreenState extends State<CareGapDetailScreen> {
     if (!mounted) return;
 
     try {
-      await CarePlanService.instance.refreshCareGaps(gap.carePlanId);
+      await _service.refreshCareGaps(gap.carePlanId);
 
       await _load();
     } on CarePlanException catch (exception) {

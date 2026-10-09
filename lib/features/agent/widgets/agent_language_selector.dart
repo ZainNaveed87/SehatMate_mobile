@@ -122,7 +122,7 @@ class _AgentLanguageSelectorState extends State<AgentLanguageSelector> {
                   runSpacing: 2,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(
+                    if(!widget.compact) Text(
                       '$label:',
                       style: const TextStyle(
                         color: AppColors.muted,
@@ -132,13 +132,13 @@ class _AgentLanguageSelectorState extends State<AgentLanguageSelector> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          selected.displayName,
+                        Flexible(child:Text(
+                          selected.displayName,maxLines:1,overflow:TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: AppColors.foreground,
                             fontWeight: FontWeight.w700,
                           ),
-                        ),
+                        )),
                         const SizedBox(width: 4),
                         if (_saving)
                           const SizedBox(

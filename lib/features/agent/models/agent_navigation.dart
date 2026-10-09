@@ -6,7 +6,8 @@ class AgentNavigation {
   final String target;
   final Map<String, String> params;
 
-  static const supportedTargets = AgentScreenContext.supportedScreenIds;
+  static const supportedTargets = {...AgentScreenContext.supportedScreenIds,
+    'calendar','family'};
 
   factory AgentNavigation.fromJson(Object? value) {
     if (value == null) {

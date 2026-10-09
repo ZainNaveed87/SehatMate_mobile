@@ -52,6 +52,20 @@ class _DelayedSessionStore extends AgentSessionStore {
 }
 
 void main() {
+  test('language barrier prevents a text turn before preference sync', () async {
+    SharedPreferences.setMockInitialValues({});
+    final barrier = Completer<bool>();
+    final client = _FakeAgentClient([]);
+    final controller = AgentController(client: client, prepareLanguage: () => barrier.future);
+    final turn = controller.sendText('settings kholo');
+    await Future<void>.delayed(Duration.zero);
+    expect(client.requests, isEmpty);
+    barrier.complete(false);
+    expect(await turn, isNull);
+    expect(client.requests, isEmpty);
+    expect(controller.error?.code, AgentErrorCode.unavailable);
+    controller.dispose();
+  });
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
@@ -127,6 +141,39 @@ void main() {
     expect(await store.read(), 'session-a');
     expect(client.requests.first.sessionId, isNull);
     expect(client.requests.last.sessionId, 'session-a');
+  });
+
+  test('account disposal during language preparation never sends old input',()async{
+    final barrier=Completer<bool>(),client=_FakeAgentClient([response('session-a','late')]);
+    final controller=AgentController(client:client,prepareLanguage:()=>barrier.future);
+    final pending=controller.sendText('private old account question');await Future<void>.delayed(Duration.zero);
+    controller.dispose();barrier.complete(true);await pending;expect(client.requests,isEmpty);
+  });
+  test('account disposal during session initialization never sends old input',()async{
+    final store=_DelayedSessionStore('session-a'),client=_FakeAgentClient([response('session-a','late')]);
+    final controller=AgentController(client:client,sessionStore:store);
+    final pending=controller.sendText('old question');await Future<void>.delayed(Duration.zero);
+    controller.dispose();store.completer.complete();await pending;expect(client.requests,isEmpty);
+  });
+  test('session-not-found after account disposal never retries old input',()async{
+    final gate=Completer<AgentResponse>(),client=_FakeAgentClient([gate,response('session-b','late')]);
+    final controller=AgentController(client:client);await controller.bindSession('session-a');
+    final pending=controller.sendText('old question');await Future<void>.delayed(Duration.zero);expect(client.requests,hasLength(1));
+    controller.dispose();gate.completeError(const AgentException('Session expired',code:AgentErrorCode.sessionNotFound));await pending;expect(client.requests,hasLength(1));
+  });
+  test('late confirmation cannot restore cleared account confirmation',()async{
+    final gate=Completer<AgentResponse>(),client=_FakeAgentClient([confirmationResponse('session-a'),gate]);
+    final controller=AgentController(client:client);await controller.sendText('mark task');
+    final pending=controller.confirmPendingAction('confirm-1');await Future<void>.delayed(Duration.zero);
+    controller.dispose();gate.complete(confirmationResponse('session-a',confirmationId:'late-confirm'));await pending;
+    expect(controller.pendingConfirmation,null);expect(controller.taskWorkflow,null);
+  });
+  test('late clarification cannot restore previous account choice',()async{
+    final gate=Completer<AgentResponse>(),client=_FakeAgentClient([response('session-a','Which?',clarification:clarificationJson()),gate]);
+    final controller=AgentController(client:client);await controller.sendText('which plan');
+    final pending=controller.chooseClarificationOption('clarify-1','choice-a');await Future<void>.delayed(Duration.zero);
+    controller.dispose();gate.complete(response('session-a','late',clarification:clarificationJson(clarificationId:'late-choice')));await pending;
+    expect(controller.pendingClarification,null);
   });
 
   test('session-not-found clears and retries once', () async {

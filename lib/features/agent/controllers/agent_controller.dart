@@ -1,3 +1,5 @@
+import '../copilot/copilot_conflict.dart';
+import '../copilot/copilot_diagnostics.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +8,7 @@ import '../models/agent_context.dart';
 import '../models/agent_message.dart';
 import '../models/agent_request.dart';
 import '../models/agent_response.dart';
+import '../models/agent_task_workflow.dart';
 import '../services/agent_service.dart';
 import '../services/agent_session_store.dart';
 
@@ -34,6 +37,9 @@ class AgentController extends ChangeNotifier {
     required AgentClient client,
     AgentSessionStore sessionStore = const AgentSessionStore(),
     this.context,
+    this.contextProvider,
+    this.onCopilotResult,
+    this.prepareLanguage,
   }) : _client = client,
        _sessionStore = sessionStore;
 
@@ -42,10 +48,15 @@ class AgentController extends ChangeNotifier {
   final AgentClient _client;
   final AgentSessionStore _sessionStore;
   final AgentScreenContext? context;
+  final AgentScreenContext? Function()? contextProvider;
+  final Future<void> Function(AgentResponse, String)? onCopilotResult;
+  final Future<bool> Function()? prepareLanguage;
 
   final List<AgentChatMessage> _messages = [];
 
   String? _sessionId;
+  AgentTaskWorkflow? taskWorkflow;
+  List<CopilotConflict> conflicts = const [];
   String? _lastFailedText;
   bool _loading = false;
   AgentRequestProgress _requestProgress = AgentRequestProgress.awaitingResponse;
@@ -69,12 +80,18 @@ class AgentController extends ChangeNotifier {
 
   @override
   void dispose() {
+    taskWorkflow=null;
+    _pendingConfirmation=null;
+    _pendingClarification = null;
+    _pendingClarificationMessage = null;
+    conflicts = const [];
     _disposed = true;
     _generation++;
     super.dispose();
   }
 
   Future<void> bindSession(String id) async {
+    if (_disposed) return;
     _sessionId = id;
     _initialized = true;
     await _sessionStore.save(id);
@@ -83,7 +100,9 @@ class AgentController extends ChangeNotifier {
 
   /// Invalidate only the rejected reference, preserving chat and other accounts.
   Future<void> clearRejectedSession(String rejectedId) async {
-    if (_sessionId != rejectedId) return;
+    if (_disposed || _sessionId != rejectedId) return;
+    taskWorkflow=null;
+    _pendingConfirmation=null;
     _sessionId = null;
     await _sessionStore.clear();
     notifyListeners();
@@ -124,6 +143,30 @@ class AgentController extends ChangeNotifier {
     );
     _applyActionState(response, sourceMessage: transcript);
     notifyListeners();
+    await onCopilotResult?.call(response, 'voice');
+    notifyListeners();
+  }
+
+  /// Server-authorized, read-only follow-through has no fabricated user turn.
+  Future<void> acceptCopilotContinuation(
+    AgentResponse response, {
+    required String source,
+  }) async {
+    if (_disposed || _sessionId != response.sessionId) return;
+    _append(
+      AgentChatMessage(
+        id: _nextId(),
+        author: AgentMessageAuthor.assistant,
+        text: response.reply,
+        createdAt: DateTime.now(),
+        navigation: response.navigation,
+        speech: response.speech,
+      ),
+    );
+    conflicts = response.conflicts;
+    if(response.taskWorkflow!=null){taskWorkflow=response.taskWorkflow;CopilotDiagnostics.emit(CopilotDiagnostic.workflowChanged);}
+    notifyListeners();
+    await onCopilotResult?.call(response, source);
   }
 
   List<AgentChatMessage> get messages => List.unmodifiable(_messages);
@@ -136,12 +179,25 @@ class AgentController extends ChangeNotifier {
       ? _requestProgress
       : AgentRequestProgress.idle;
 
+  void _requireCurrent(int generation) {
+    if (_disposed || generation != _generation) {
+      throw const AgentException('Request is no longer current.', code: AgentErrorCode.unavailable);
+    }
+  }
+
   Future<AgentResponse> _withRequestProgress(
     Future<AgentResponse> Function() request,
   ) async {
+    final generation = _generation;
+    _requireCurrent(generation);
+    if (prepareLanguage != null && !await prepareLanguage!()) {
+      throw const AgentException('Language preference is not ready.', code: AgentErrorCode.unavailable, retryable: true);
+    }
+    _requireCurrent(generation);
     _requestProgress = AgentRequestProgress.awaitingResponse;
     notifyListeners();
     final response = await request();
+    _requireCurrent(generation);
     _requestProgress = AgentRequestProgress.applyingResponse;
     notifyListeners();
     return response;
@@ -158,7 +214,7 @@ class AgentController extends ChangeNotifier {
   AgentClarification? get pendingClarification => _pendingClarification;
 
   Future<void> initialize() async {
-    if (_initialized) return;
+    if (_disposed || _initialized) return;
 
     final existing = _initializationFuture;
     if (existing != null) {
@@ -179,7 +235,7 @@ class AgentController extends ChangeNotifier {
     bool requestSpeech = false,
   }) async {
     final trimmed = text.trim();
-    if (_loading ||
+    if (_disposed || _loading ||
         _confirmationLoading ||
         _clarificationLoading ||
         trimmed.isEmpty) {
@@ -194,7 +250,7 @@ class AgentController extends ChangeNotifier {
 
   Future<AgentResponse?> retryLast() async {
     final text = _lastFailedText;
-    if (_loading ||
+    if (_disposed || _loading ||
         _confirmationLoading ||
         _clarificationLoading ||
         text == null ||
@@ -234,12 +290,15 @@ class AgentController extends ChangeNotifier {
 
     try {
       await initialize();
+      _requireCurrent(generation);
       final response = await _withRequestProgress(
         () => _sendWithSessionRetry(text, requestSpeech: requestSpeech),
       );
       if (_disposed || generation != _generation) return null;
+      _requireCurrent(generation);
       _sessionId = response.sessionId;
       await _sessionStore.save(response.sessionId);
+      _requireCurrent(generation);
       _append(
         AgentChatMessage(
           id: _nextId(),
@@ -254,8 +313,11 @@ class AgentController extends ChangeNotifier {
         ),
       );
       _applyActionState(response, sourceMessage: text);
+      notifyListeners();
+      await onCopilotResult?.call(response, 'text');
       return response;
     } on AgentException catch (exception) {
+      if (_disposed || generation != _generation) return null;
       _error = exception;
       _lastFailedText = text;
       _append(
@@ -278,26 +340,30 @@ class AgentController extends ChangeNotifier {
     String text, {
     bool requestSpeech = false,
   }) async {
+    final generation = _generation;
+    _requireCurrent(generation);
     try {
       return await _client.send(
         AgentRequest(
           sessionId: _sessionId,
           message: text,
-          context: context,
+          context: contextProvider?.call() ?? context,
           requestSpeech: requestSpeech,
         ),
       );
     } on AgentException catch (exception) {
+      _requireCurrent(generation);
       if (!exception.isSessionNotFound || _sessionId == null) {
         rethrow;
       }
 
       await clearRejectedSession(_sessionId!);
+      _requireCurrent(generation);
 
       return _client.send(
         AgentRequest(
           message: text,
-          context: context,
+          context: contextProvider?.call() ?? context,
           requestSpeech: requestSpeech,
         ),
       );
@@ -314,8 +380,9 @@ class AgentController extends ChangeNotifier {
     String confirmationId,
     String decision,
   ) async {
+    final generation = _generation;
     final pending = _pendingConfirmation;
-    if (_loading ||
+    if (_disposed || _loading ||
         _confirmationLoading ||
         _clarificationLoading ||
         pending == null) {
@@ -340,8 +407,10 @@ class AgentController extends ChangeNotifier {
           ),
         ),
       );
+      _requireCurrent(generation);
       _sessionId = response.sessionId;
       await _sessionStore.save(response.sessionId);
+      _requireCurrent(generation);
       _append(
         AgentChatMessage(
           id: _nextId(),
@@ -353,7 +422,10 @@ class AgentController extends ChangeNotifier {
         ),
       );
       _applyActionState(response, completedConfirmationId: confirmationId);
+      notifyListeners();
+      await onCopilotResult?.call(response, 'text');
     } on AgentException catch (exception) {
+      if (_disposed || generation != _generation) return;
       _error = exception;
       _append(
         AgentChatMessage(
@@ -374,9 +446,10 @@ class AgentController extends ChangeNotifier {
     String clarificationId,
     String choiceId,
   ) async {
+    final generation = _generation;
     final pending = _pendingClarification;
     final sourceMessage = _pendingClarificationMessage;
-    if (_loading ||
+    if (_disposed || _loading ||
         _confirmationLoading ||
         _clarificationLoading ||
         pending == null ||
@@ -403,8 +476,10 @@ class AgentController extends ChangeNotifier {
           ),
         ),
       );
+      _requireCurrent(generation);
       _sessionId = response.sessionId;
       await _sessionStore.save(response.sessionId);
+      _requireCurrent(generation);
       _append(
         AgentChatMessage(
           id: _nextId(),
@@ -423,7 +498,10 @@ class AgentController extends ChangeNotifier {
         completedClarificationId: clarificationId,
         sourceMessage: sourceMessage,
       );
+      notifyListeners();
+      await onCopilotResult?.call(response, 'text');
     } on AgentException catch (exception) {
+      if (_disposed || generation != _generation) return;
       _error = exception;
       _pendingClarification = null;
       _pendingClarificationMessage = null;
@@ -448,6 +526,8 @@ class AgentController extends ChangeNotifier {
     String? completedClarificationId,
     String? sourceMessage,
   }) {
+    conflicts = response.conflicts;
+    if(response.taskWorkflow!=null){taskWorkflow=response.taskWorkflow;CopilotDiagnostics.emit(CopilotDiagnostic.workflowChanged);}
     if (response.clarification != null) {
       _pendingClarification = response.clarification;
       _pendingClarificationMessage = sourceMessage;
@@ -486,7 +566,9 @@ class AgentController extends ChangeNotifier {
 
   Future<void> _readSession() async {
     try {
-      _sessionId = await _sessionStore.read();
+      final generation = _generation;
+      final restored = await _sessionStore.read();
+      if (!_disposed && generation == _generation) _sessionId = restored;
     } finally {
       _initialized = true;
       _initializing = false;

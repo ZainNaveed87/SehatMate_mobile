@@ -1,3 +1,5 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
+import '../features/agent/copilot/adapters/settings_copilot_adapter.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
@@ -89,6 +91,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, _) => AppShell(
         currentRoute: AppRoutes.settings,
         title: context.tr('settings'),
+        copilot: settingsCopilotData(language:context.appLanguage.agentLanguageCode,simpleCare:_settings.simpleCareModeEnabled,busy:_signingOut||_settings.savingSimpleCareMode,labels:{
+          'language':context.tr('choose_language'),'simple_care':context.tr('settings_simple_care_hint'),'open_simple_care':context.tr('open_simple_care_view'),'calendar':context.tr('settings_reminders_from_care_description'),'sign_out':context.tr('sign_out'),'documents':context.tr('settings_documents_data_hint'),'care_plans':context.tr('settings_care_plans_data_hint'),'family':context.tr('settings_family_data_hint'),'about':context.tr('settings_about_description'),'safety':context.tr('settings_safety_note')},
+          setLanguage:(code)async{if(!mounted||ModalRoute.of(context)?.isCurrent==false)return false;final language=AppLanguageX.fromStorage(code);final controller=LanguageScope.read(context);try{await controller.setLanguage(language,persistBeforeNotify:true);return mounted&&controller.language==language;}catch(_){return false;}},
+          setSimpleCare:(enabled)async{if(!mounted||ModalRoute.of(context)?.isCurrent==false||_settings.savingSimpleCareMode)return false;try{await _settings.setSimpleCareMode(enabled);return mounted&&_settings.simpleCareModeEnabled==enabled;}catch(_){return false;}},
+          signOut:()async{if(!mounted||_signingOut)return false;await _signOut();return !AuthSession.instance.isAuthenticated;}),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 900),
@@ -109,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: context.tr('settings_language_section'),
                     icon: Icons.language_outlined,
                     children: [
-                      _SettingsActionRow(
+                      _SettingsActionRow(semanticId:'settings.language',
                         icon: Icons.translate_outlined,
                         title: context.tr('choose_language'),
                         description: context.tr(
@@ -171,7 +178,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onChanged: _setSimpleCareMode,
                       ),
                       if (_settings.simpleCareModeEnabled)
-                        _SettingsActionRow(
+                        _SettingsActionRow(semanticId:'settings.open_simple_care',
                           icon: Icons.check_circle_outline,
                           title: context.tr(
                             'simple_care_mode_enabled',
@@ -203,7 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: context.tr('settings_reminders_section'),
                     icon: Icons.notifications_active_outlined,
                     children: [
-                      _SettingsActionRow(
+                      _SettingsActionRow(semanticId:'settings.calendar',
                         icon: Icons.alarm_on_outlined,
                         title: context.tr(
                           'settings_reminders_from_care_title',
@@ -243,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: context.tr('settings_privacy_data_section'),
                   icon: Icons.privacy_tip_outlined,
                   children: [
-                    _SettingsActionRow(
+                    _SettingsActionRow(semanticId:'settings.documents',
                       icon: Icons.description_outlined,
                       title: context.tr('documents'),
                       description:
@@ -260,7 +267,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: Text(context.tr('open')),
                       ),
                     ),
-                    _SettingsActionRow(
+                    _SettingsActionRow(semanticId:'settings.care_plans',
                       icon: Icons.checklist_outlined,
                       title: context.tr('care_plans'),
                       description:
@@ -277,7 +284,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: Text(context.tr('open')),
                       ),
                     ),
-                    _SettingsActionRow(
+                    _SettingsActionRow(semanticId:'settings.family',
                       icon: Icons.handshake_outlined,
                       title: context.tr('family_care'),
                       description:
@@ -301,7 +308,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: context.tr('settings_about_section'),
                   icon: Icons.info_outline_rounded,
                   children: [
-                    _SettingsActionRow(
+                    _SettingsActionRow(semanticId:'settings.about',
                       icon: Icons.favorite_border_rounded,
                       title: context.tr('app_name'),
                       description:
@@ -310,9 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                SafetyNote(
-                  text: context.tr('settings_safety_note'),
-                ),
+                copilotAnchor(context,'settings.safety',SafetyNote(text:context.tr('settings_safety_note'))),
               ],
             ),
           ),
@@ -421,7 +426,7 @@ class _SettingsToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final content = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: value
@@ -492,6 +497,7 @@ class _SettingsToggleRow extends StatelessWidget {
         ],
       ),
     );
+    return copilotAnchor(context,'settings.simple_care',content);
   }
 }
 
@@ -501,8 +507,10 @@ class _SettingsActionRow extends StatelessWidget {
     required this.title,
     required this.description,
     this.action,
+    this.semanticId,
   });
 
+  final String? semanticId;
   final IconData icon;
   final String title;
   final String description;
@@ -553,7 +561,7 @@ class _SettingsActionRow extends StatelessWidget {
       ],
     );
 
-    return LayoutBuilder(
+    final content = LayoutBuilder(
       builder: (context, constraints) {
         if (action == null) return leading;
 
@@ -580,6 +588,7 @@ class _SettingsActionRow extends StatelessWidget {
         );
       },
     );
+    return semanticId==null?content:copilotAnchor(context,semanticId!,content);
   }
 }
 
@@ -603,6 +612,7 @@ class _AccountRow extends StatelessWidget {
         : email;
 
     return _SettingsActionRow(
+      semanticId:'settings.sign_out',
       icon: Icons.person_outline,
       title: title,
       description: description,
@@ -943,7 +953,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       ),
     ];
 
-    return AppCard(
+    return copilotSection(context,'profile.fields',context.tr('patient_profile'),AppCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -999,7 +1009,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildCareLinks(BuildContext context) {
@@ -1041,7 +1051,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       ),
     ];
 
-    return AppCard(
+    return copilotSection(context,'profile.links',context.tr('care_plans'),AppCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1068,7 +1078,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           ],
         ],
       ),
-    );
+    ));
   }
 
   Widget _readOnlyValue(BuildContext context, String value) {
@@ -1555,7 +1565,7 @@ class _SimpleCareScreenState extends State<SimpleCareScreen>
     final activePlans = _plans
         .where((plan) => plan.status == PlanStatus.active)
         .toList();
-    return AppCard(
+    return copilotSection(context,'simple_care.plans',context.tr('care_plans'),AppCard(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1627,7 +1637,7 @@ class _SimpleCareScreenState extends State<SimpleCareScreen>
           ),
         ],
       ),
-    );
+    ));
   }
 
   List<CareTaskOccurrence> _sortedOccurrences(
@@ -2565,7 +2575,7 @@ class _TeachBackScreenState extends State<TeachBackScreen> {
                   }
                   if (showFinal && finalResult != null) {
                     return FadeSlideIn(
-                      child: _FinalResultCard(
+                      child: copilotSection(context,'teach_back.result',context.tr('teach_back'),_FinalResultCard(
                         result: finalResult!,
                         statusLabel: _statusLabel(finalResult!.status),
                         statusColor: _statusColor(finalResult!.status),
@@ -2584,12 +2594,12 @@ class _TeachBackScreenState extends State<TeachBackScreen> {
                                       selectedTarget!.carePlanId,
                                     ),
                                   ),
-                      ),
+                      )),
                     );
                   }
                   return FadeSlideIn(
                     delay: const Duration(milliseconds: 60),
-                    child: _SessionBody(
+                    child: copilotSection(context,'teach_back.question',context.tr('teach_back'),_SessionBody(
                       targets: targets,
                       selectedTarget: selectedTarget,
                       session: session,
@@ -2622,7 +2632,7 @@ class _TeachBackScreenState extends State<TeachBackScreen> {
                       statusColor: currentAssessment == null
                           ? AppColors.muted
                           : _statusColor(currentAssessment!.status),
-                    ),
+                    )),
                   );
                 },
               ),

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import 'app_language.dart';
+import '../features/agent/copilot/copilot_diagnostics.dart';
 
 abstract interface class ProfileLanguageSync {
   bool get canSyncProfileLanguage;
@@ -140,9 +141,16 @@ class LanguageController extends ChangeNotifier {
   /// A voice session must wait for the selected preference to reach the existing
   /// authenticated profile flow. The backend independently reads that profile.
   Future<bool> prepareVoiceLanguage(AppLanguage selected) async {
+    return prepareAgentLanguage(selected);
+  }
+
+  /// Both input modes wait for the same authenticated preference barrier.
+  Future<bool> prepareAgentLanguage(AppLanguage selected) async {
     await _pendingLanguageWrite;
     if (_language != selected) return false;
-    return syncServerPreferredLanguage(selected);
+    final ready = await syncServerPreferredLanguage(selected);
+    CopilotDiagnostics.emit(CopilotDiagnostic.languageReady,language:selected.agentLanguageCode,outcome:ready?CopilotDiagnosticOutcome.succeeded:CopilotDiagnosticOutcome.rejected);
+    return ready;
   }
 
   Future<void> setFromStorageValue(String value) =>

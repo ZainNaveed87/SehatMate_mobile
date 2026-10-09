@@ -1,3 +1,4 @@
+import '../features/agent/copilot/copilot_screen_adapter.dart';
 import 'package:flutter/material.dart';
 
 import '../localization/language_scope.dart';
@@ -32,11 +33,11 @@ class SimulationScreen extends StatelessWidget {
   Widget build(BuildContext context) => AppShell(
     currentRoute: AppRoutes.simulation,
     title: context.tr('care_simulation'),
-    child: SimulationView(
+    child: copilotSection(context,'simulation.results',context.tr('care_simulation'),SimulationView(
       planId: planId,
       guidedSetup: guidedSetup,
       returnToPrevious: returnToPrevious,
-    ),
+    )),
   );
 }
 

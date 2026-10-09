@@ -1,3 +1,4 @@
+import '../copilot/copilot_conflict.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -34,15 +35,21 @@ class AgentScreen extends StatefulWidget {
   const AgentScreen({
     super.key,
     this.args,
+    this.embedded = false,
     this.controller,
     this.navigationHandler = const AgentNavigationHandler(),
     this.voiceService,
+    this.scrollController,
+    this.onRealtimeVoice,
   });
 
   final AgentScreenArgs? args;
+  final bool embedded;
   final AgentController? controller;
   final AgentNavigationHandler navigationHandler;
   final AgentVoiceClient? voiceService;
+  final ScrollController? scrollController;
+  final VoidCallback? onRealtimeVoice;
 
   @override
   State<AgentScreen> createState() => _AgentScreenState();
@@ -54,7 +61,10 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
   late final AgentVoiceClient _voiceService;
   late final bool _ownsVoiceService;
   final _composer = TextEditingController();
-  final _scroll = ScrollController();
+  final _ownedScroll = ScrollController();
+  ScrollController get _scroll=>widget.scrollController??_ownedScroll;
+  int _lastMessageCount=0;
+  bool _followNextMessage=false;
   final _focus = FocusNode();
   AgentVoiceUiState _voiceState = AgentVoiceUiState.idle;
   bool _finishingVoiceCapture = false;
@@ -85,9 +95,7 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _companion = widget.controller == null
-        ? VoiceCompanionScope.read(context)
-        : null;
+    _companion = VoiceCompanionScope.read(context);
     _ownsController = widget.controller == null && _companion == null;
     _controller =
         widget.controller ??
@@ -111,7 +119,7 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
     _controller.removeListener(_onControllerChanged);
     if (_ownsController) _controller.dispose();
     _composer.dispose();
-    _scroll.dispose();
+    _ownedScroll.dispose();
     _focus.dispose();
     super.dispose();
   }
@@ -158,8 +166,12 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
     _editedMessages.retainWhere(ids.contains);
     _replacedMessages.retainWhere(ids.contains);
     _responseKeys.removeWhere((id, _) => !ids.contains(id));
+    final appended=messages.length>_lastMessageCount;
+    final follow=appended && (_followNextMessage || !_scroll.hasClients || _scroll.position.extentAfter<100);
+    if(appended)_followNextMessage=false;
+    _lastMessageCount=messages.length;
     setState(() {});
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
+    if(follow)WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
   }
 
   void _scrollToEnd({int remainingFrames = 2}) {
@@ -213,6 +225,7 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
           .toSet();
       setState(() {});
     }
+    _followNextMessage=true;
     _composer.clear();
     try {
       if (_companion?.voiceSessionId != null) {
@@ -433,15 +446,18 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
     return Directionality(
       textDirection: language.textDirection,
       child: Scaffold(
+        resizeToAvoidBottomInset: !widget.embedded,
         backgroundColor: AppColors.background,
         body: SafeArea(
+          top:!widget.embedded,bottom:!widget.embedded,
           child: LayoutBuilder(
             builder: (context, layout) => Column(
               children: [
-                AssistantEntrance(
+                if(!widget.embedded) AssistantEntrance(
                   key: const ValueKey('agent_header_entry'),
                   duration: const Duration(milliseconds: 320),
                   child: AgentHeader(
+                    showBack: !widget.embedded,
                     compact: layout.maxHeight < 480,
                     title: context.tr('agent_title'),
                     subtitle: context.tr('agent_status_subtitle'),
@@ -455,7 +471,7 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
                       ? _conversation()
                       : _unavailableAuth(),
                 ),
-                if (AuthSession.instance.isAuthenticated)
+                if (AuthSession.instance.isAuthenticated && !widget.embedded)
                   if (_companion != null) const VoiceCompanionControls(),
                 if (AuthSession.instance.isAuthenticated)
                   AssistantEntrance(
@@ -480,7 +496,7 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
                           !_controller.initialized,
                       voiceState: _voiceState,
                       voiceBusy: _voiceBusy,
-                      onVoice: _toggleVoice,
+                      onVoice: widget.onRealtimeVoice??_toggleVoice,
                       onSend: () => _send(),
                     ),
                   ),
@@ -535,7 +551,7 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
                   onSuggestion: _send,
                 ),
         ),
-        Padding(
+        if(!widget.embedded) Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -559,6 +575,13 @@ class _AgentScreenState extends State<AgentScreen> with WidgetsBindingObserver {
             ],
           ),
         ),
+        if(_controller.taskWorkflow!=null&&const {'collecting','awaiting_confirmation'}.contains(_controller.taskWorkflow!.status))
+          Padding(padding:const EdgeInsets.symmetric(vertical:8),child:Text('${context.tr('agent_task_draft')}${_controller.taskWorkflow!.title==null?'':': ${_controller.taskWorkflow!.title}'}',key:const Key('agent_task_workflow_summary'))),
+        for (final conflict in _controller.conflicts)
+          CopilotConflictCard(
+            conflict: conflict,
+            navigationHandler: widget.navigationHandler,
+          ),
         ...messages.map((message) {
           final bubble = _MessageBubble(
             key: ValueKey('agent_message_${message.id}'),
@@ -860,7 +883,7 @@ class _MessageBubble extends StatelessWidget {
               else
                 SelectableText(
                   message.failed
-                      ? _localizedAgentFailure(context, message.text)
+                      ? _localizedAgentFailure(context, message.failureCode)
                       : message.text,
                   style: const TextStyle(
                     color: AppColors.foreground,
@@ -1093,24 +1116,13 @@ class _ConfirmationCard extends StatelessWidget {
   }
 }
 
-String _localizedAgentFailure(BuildContext context, String message) {
-  final normalized = message.trim();
-  if (normalized == 'Please sign in to continue.') {
-    return context.tr('agent_error_auth');
-  }
-  if (normalized == 'SehatMate AI returned an invalid response.') {
-    return context.tr('agent_error_malformed');
-  }
-  if (normalized ==
-      'SehatMate AI is busy right now. Please try again shortly.') {
-    return context.tr('agent_error_rate_limited');
-  }
-  if (normalized.isEmpty ||
-      normalized ==
-          'SehatMate AI is temporarily unavailable. Please try again.') {
-    return context.tr('agent_error_unavailable');
-  }
-  return normalized;
+String _localizedAgentFailure(BuildContext context, String? code) {
+  return context.tr(switch (code) {
+    'unauthenticated' || 'forbidden' => 'agent_error_auth',
+    'malformed' => 'agent_error_malformed',
+    'rateLimited' => 'agent_error_rate_limited',
+    _ => 'agent_error_unavailable',
+  });
 }
 
 class _Composer extends StatelessWidget {
