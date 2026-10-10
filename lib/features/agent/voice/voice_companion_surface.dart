@@ -82,9 +82,20 @@ class _VoiceCompanionSurfaceState extends State<VoiceCompanionSurface> {
         : (voice.interimTranscript.isNotEmpty
               ? voice.visibleInterimTranscript
               : voice.visibleFinalTranscript);
-    final detail = speaking || state.startsWith('awaiting_')
+    // Keep the current assistant reply visible when audio fails, finishes, or
+    // the user mutes. A new turn still shows its own input while processing.
+    final detail = connecting
+        ? ''
+        : processing
+        ? transcript
+        : voice.reply.isNotEmpty
         ? voice.reply
-        : (state == 'listening' || processing ? transcript : '');
+        : (state == 'listening' ? transcript : '');
+    if (detail.isNotEmpty && detail == voice.reply) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) voice.reportReplyRendered();
+      });
+    }
     final subtitle = _actionFailed
         ? 'agent_voice_action_failed_detail'
         : connecting

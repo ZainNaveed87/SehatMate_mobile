@@ -10,6 +10,7 @@ import '../../../localization/app_language.dart';
 import '../../../localization/language_controller.dart';
 import 'voice_backend.dart';
 import 'voice_transport.dart';
+import 'voice_turn_trace.dart';
 
 /// Application owned voice coordination. Audio, actions and transport ownership
 /// are fenced independently; uncertain actions are read by receipt, never replayed.
@@ -55,6 +56,7 @@ class VoiceCompanionController extends ChangeNotifier {
   late final StreamSubscription<VoiceConnection> _connections;
   Map<String, dynamic>? _binding;
   String? _workerIdentity, _inflight, _playbackId;
+  String? _replyTurn, _renderedReplyTurn;
   final _transcripts = <String, String>{};
   String? _finalTranscriptTurn, _romanFinalTranscript;
   bool _finalPresentationComplete = false;
@@ -123,6 +125,12 @@ class VoiceCompanionController extends ChangeNotifier {
       recoveryCode == 'DEVICE_TTS_UNAVAILABLE';
   bool _current(int generation) =>
       !_disposed && generation == _generation && authenticated() && foreground;
+  void reportReplyRendered() {
+    final turn = _replyTurn;
+    if (_disposed || !enabled || turn == null || _renderedReplyTurn == turn) return;
+    _renderedReplyTurn = turn;
+    traceVoiceTurn(VoiceTurnStage.uiRendered, turn);
+  }
   @override
   void notifyListeners() {
     if (!_disposed) super.notifyListeners();
@@ -597,6 +605,7 @@ class VoiceCompanionController extends ChangeNotifier {
         break;
       case 'agent_result':
         if (turn == null) return;
+        traceVoiceTurn(VoiceTurnStage.uiEventReceived, turn);
         if (value['resultViaUserApi'] == true) {
           final receipt = await backend.receipt(voiceSessionId!, turn);
           await _receipt(receipt, generation);
@@ -691,6 +700,7 @@ class VoiceCompanionController extends ChangeNotifier {
       _processingWatchdog?.cancel();
     }
     reply = response.reply;
+    _replyTurn = turn;
     _replyLanguage = AppLanguageX.fromStorage(raw['language'] as String?);
     // The owned Agent result supplies effective conversation language. UI/profile
     // selection stays independent; this does not reconnect the LiveKit room.
@@ -702,26 +712,28 @@ class VoiceCompanionController extends ChangeNotifier {
       _romanFinalTranscript = response.language == 'roman_ur' ? validatedRomanTranscript(rawTranscript, response.displayTranscript) : null;
       _finalPresentationComplete = true;
     }
+    // Publish the authoritative reply before an awaited Copilot navigation or
+    // decision UI. Text delivery never waits for action completion or TTS.
+    if (state == 'processing' &&
+        _inflight == null &&
+        !recoveryRequired &&
+        _connected) {
+      state = !_desiredListening
+          ? 'muted'
+          : response.confirmation != null
+          ? 'awaiting_confirmation'
+          : response.clarification != null
+          ? 'awaiting_clarification'
+          : 'listening';
+    }
+    notifyListeners();
+    traceVoiceTurn(VoiceTurnStage.uiTextReady, turn);
     await agent.acceptVoiceResult(
       response,
       transcript: rawTranscript,
       transcriptDisplayText: displayTranscript,
     );
     if (_current(generation)) {
-      // Completion is authoritative even when no later speech event arrives.
-      // Do not override a newer turn, user mute, playback or transport recovery.
-      if (state == 'processing' &&
-          _inflight == null &&
-          !recoveryRequired &&
-          _connected) {
-        state = !_desiredListening
-            ? 'muted'
-            : response.confirmation != null
-            ? 'awaiting_confirmation'
-            : response.clarification != null
-            ? 'awaiting_clarification'
-            : 'listening';
-      }
       onResult?.call(response);
       notifyListeners();
     }
