@@ -1,3 +1,5 @@
+import '../features/agent/controllers/agent_controller.dart';
+import '../features/agent/voice/voice_companion_scope.dart';
 import '../features/agent/copilot/copilot_screen_adapter.dart';
 import '../features/agent/copilot/adapters/care_plans_copilot_adapter.dart';
 import 'package:flutter/material.dart';
@@ -1403,12 +1405,37 @@ class NewCarePlanScreen extends StatefulWidget {
 }
 
 class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
+  AgentController? _agent;
+  String? _agentTitle;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final agent=VoiceCompanionScope.maybeOf(context)?.agent;
+    if(agent!=_agent){
+      _agent?.removeListener(_workflowChanged);
+      if(_agentTitle!=null&&_planNameController.text==_agentTitle)_planNameController.clear();
+      _agentTitle=null;_agent=agent;agent?.addListener(_workflowChanged);
+    }
+    _workflowChanged();
+  }
+  void _workflowChanged() {
+    if(!mounted)return;
+    final workflow=_agent?.taskWorkflow;
+    final title=workflow?.status=='awaiting_confirmation'?workflow?.title:null;
+    if(title!=null&&title!=_agentTitle&&(_planNameController.text.isEmpty||_planNameController.text==_agentTitle)) {
+      _planNameController.text=title;
+      WidgetsBinding.instance.addPostFrameCallback((_) {if(mounted)setState(() {});});
+    }
+    _agentTitle=title;
+  }
+
   final TextEditingController _planNameController = TextEditingController();
   bool _creating = false;
   bool _nameTouched = false;
 
   @override
   void dispose() {
+    _agent?.removeListener(_workflowChanged);
     _planNameController.dispose();
     super.dispose();
   }

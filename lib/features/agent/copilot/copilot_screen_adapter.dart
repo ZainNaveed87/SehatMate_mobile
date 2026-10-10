@@ -82,6 +82,8 @@ class _CopilotScreenAdapterState extends State<CopilotScreenAdapter> {
       final mainId = '${c.screenId}.main';
       final targets = <CopilotTarget>[
         CopilotTarget(id: mainId, kind: 'section', label: widget.title),
+        if (r.setAppLanguage != null && c.screenId != 'settings')
+          CopilotTarget(id:'app.language',kind:'control',label:'App language',value:r.appLanguageCode?.call()),
         ...?data?.targets,
         ...r.renderedDescriptions.where((t)=>!t.id.startsWith('navigation.')&&data?.targets.any((x)=>x.id==t.id)!=true),
       ];
@@ -102,6 +104,9 @@ class _CopilotScreenAdapterState extends State<CopilotScreenAdapter> {
           kind: 'scroll_to',
           targetId: mainId,
         ),
+        if (r.setAppLanguage != null && c.screenId != 'settings')
+          for (final code in const ['en','ur','roman_ur'])
+            CopilotAction(id:'app.language.$code',kind:'set_language',targetId:'app.language',requiresConfirmation:true,execute:()=>r.setAppLanguage!(code)),
         ...?data?.actions,
         for(final t in r.renderedDescriptions.where((t)=>data?.targets.any((x)=>x.id==t.id)!=true))CopilotAction(id:'${t.id}.read',kind:'read_section',targetId:t.id),
         ...r.renderedActions,
@@ -156,11 +161,12 @@ class _CopilotScreenAdapterState extends State<CopilotScreenAdapter> {
           ),
         );
       }
-      final definition=CopilotScreenDefinition(screenId:c.screenId,routeId:c.screenId,revision:data?.stateKey??widget.title,targets:targets,actions:actions,walkthroughOrder:targets.where((t)=>t.kind!='option').map((t)=>t.id).toList());
+      final definition=CopilotScreenDefinition(screenId:c.screenId,routeId:c.screenId,revision:data?.stateKey??widget.title,targets:targets,actions:actions,walkthroughOrder:targets.where((t)=>t.kind!='option'&&t.kind!='navigation'&&t.id!='app.language'&&(targets.length==1||t.id!=mainId)).map((t)=>t.id).toList(),keyActions:const ['app.language.en']);
       try {
-        final window=buildContextWindow(definition,focusedTargetId:data?.focusedSectionId);
+        final focused=r.owns(this)&&definition.targets.any((t)=>t.id==r.highlightedTarget)?r.highlightedTarget:data?.focusedSectionId;
+        final window=buildContextWindow(definition,focusedTargetId:focused);
         r.catalog=definition;
-        r.publish(owner:this,screenId:c.screenId,route:c.screenId,stateKey:'${definition.revision}:${data?.entity?.id??c.entity?.id??''}',entity:data?.entity??c.entity,focusedSectionId:window.targets.any((t)=>t.id==data?.focusedSectionId)?data?.focusedSectionId:window.targets.any((t)=>t.id==mainId)?mainId:null,targets:window.targets,actions:window.actions);
+        r.publish(owner:this,screenId:c.screenId,route:c.screenId,stateKey:'${definition.revision}:${data?.entity?.id??c.entity?.id??''}:${r.appLanguageCode?.call()??''}',entity:data?.entity??c.entity,focusedSectionId:window.targets.any((t)=>t.id==focused)?focused:window.targets.any((t)=>t.id==mainId)?mainId:null,targets:window.targets,actions:window.actions);
       } on FormatException {
         r.catalog=null;
         r.clear(owner:this);

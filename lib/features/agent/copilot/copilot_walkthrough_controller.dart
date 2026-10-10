@@ -24,7 +24,12 @@ class CopilotWalkthroughController extends ChangeNotifier {
     final s=state;
     if(!registry.valid){stop();return;}
     if(s!=null&&(registry.catalog?.screenId!=s.screenId||registry.catalog?.revision!=s.catalogRevision)) {
-      _generation++;state=s.at(s.currentIndex,'paused');registry.clearHighlight();
+      final d=registry.catalog;
+      // Normal value/locale refresh preserves the exact mounted step. A changed
+      // step catalog or route still pauses, invalidating pending async reveals.
+      if(d!=null&&d.screenId==s.screenId&&listEquals(d.walkthroughOrder,s.orderedTargetIds)&&d.targets.any((t)=>t.id==s.orderedTargetIds[s.currentIndex]&&t.visible!=false)) {
+        state=WalkthroughState(workflowId:s.workflowId,screenId:s.screenId,catalogRevision:d.revision,orderedTargetIds:s.orderedTargetIds,currentIndex:s.currentIndex,status:s.status,startedAt:s.startedAt);
+      } else {_generation++;state=s.at(s.currentIndex,'paused');registry.clearHighlight();}
     }
   }
   Future<bool> start()async{
@@ -44,7 +49,7 @@ class CopilotWalkthroughController extends ChangeNotifier {
       registry.publishCatalogWindow(window,focusedTargetId:id);
       final ok=await(reveal?.call(id)??registry.reveal(id,'highlight',sticky:true));
       if(!ok||_disposed||!registry.valid||generation!=_generation)return false;
-      state=s.at(index,'active');notifyListeners();return true;
+      state=state!.at(index,'active');notifyListeners();return true;
     }on FormatException{return false;}finally{_busy=false;}
   }
   Future<bool> next()async{

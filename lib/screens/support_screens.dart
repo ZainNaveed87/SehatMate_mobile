@@ -1,3 +1,4 @@
+import '../features/agent/voice/voice_companion_scope.dart';
 import '../features/agent/copilot/copilot_screen_adapter.dart';
 import '../features/agent/copilot/adapters/settings_copilot_adapter.dart';
 import 'package:flutter/material.dart';
@@ -93,7 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: context.tr('settings'),
         copilot: settingsCopilotData(language:context.appLanguage.agentLanguageCode,simpleCare:_settings.simpleCareModeEnabled,busy:_signingOut||_settings.savingSimpleCareMode,labels:{
           'language':context.tr('choose_language'),'simple_care':context.tr('settings_simple_care_hint'),'open_simple_care':context.tr('open_simple_care_view'),'calendar':context.tr('settings_reminders_from_care_description'),'sign_out':context.tr('sign_out'),'documents':context.tr('settings_documents_data_hint'),'care_plans':context.tr('settings_care_plans_data_hint'),'family':context.tr('settings_family_data_hint'),'about':context.tr('settings_about_description'),'safety':context.tr('settings_safety_note')},
-          setLanguage:(code)async{if(!mounted||ModalRoute.of(context)?.isCurrent==false)return false;final language=AppLanguageX.fromStorage(code);final controller=LanguageScope.read(context);try{await controller.setLanguage(language,persistBeforeNotify:true);return mounted&&controller.language==language;}catch(_){return false;}},
+          setLanguage:(code)async{if(!mounted||ModalRoute.of(context)?.isCurrent==false)return false;final language=AppLanguageX.fromStorage(code);final controller=LanguageScope.read(context);final voice=VoiceCompanionScope.read(context);try{if(voice!=null){if(!await voice.applyAppLanguage(language))return false;}else{await controller.setLanguage(language,persistBeforeNotify:true);}await WidgetsBinding.instance.endOfFrame;return mounted&&controller.language==language;}catch(_){return false;}},
           setSimpleCare:(enabled)async{if(!mounted||ModalRoute.of(context)?.isCurrent==false||_settings.savingSimpleCareMode)return false;try{await _settings.setSimpleCareMode(enabled);return mounted&&_settings.simpleCareModeEnabled==enabled;}catch(_){return false;}},
           signOut:()async{if(!mounted||_signingOut)return false;await _signOut();return !AuthSession.instance.isAuthenticated;}),
         child: Center(
@@ -130,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           constraints:
                               const BoxConstraints(maxWidth: 320),
                           child:
-                              DropdownButtonFormField<AppLanguage>(
+                              KeyedSubtree(key:ValueKey(context.appLanguage),child:DropdownButtonFormField<AppLanguage>(
                             key: const Key(
                               'settings_language_dropdown',
                             ),
@@ -152,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _setLanguage(value);
                               }
                             },
-                          ),
+                          )),
                         ),
                       ),
                     ],

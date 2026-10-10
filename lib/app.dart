@@ -73,9 +73,17 @@ class _SehatRouteAppState extends State<SehatRouteApp>
         FocusManager.instance.primaryFocus?.unfocus();
         await WidgetsBinding.instance.endOfFrame;
       });
-    registry.beforeVisualAction=()async{if(!registry.valid)return;presentation.enterGuided(GuidanceSummary(registry.snapshot?.screenId??'home'));voice.minimizePresentation();FocusManager.instance.primaryFocus?.unfocus();await WidgetsBinding.instance.endOfFrame;};
+    registry.beforeVisualAction=()async{if(!registry.valid)return;presentation.enterGuided(GuidanceSummary(registry.snapshot?.screenId??'home',targetId:presentation.guidance?.targetId??registry.highlightedTarget));voice.minimizePresentation();FocusManager.instance.primaryFocus?.unfocus();await WidgetsBinding.instance.endOfFrame;};
     copilotWalkthrough=CopilotWalkthroughController(registry:registry,presentation:presentation);
     registry.walkthroughCommand=copilotWalkthrough.command;
+    registry.appLanguageCode=()=>LanguageController.instance.language.agentLanguageCode;
+    registry.setAppLanguage=(code)async {
+      if(!registry.valid||AuthSession.instance.user?.id!=ownedAccountId)return false;
+      final language=AppLanguageX.fromStorage(code);
+      if(!await voice.applyAppLanguage(language))return false;
+      await WidgetsBinding.instance.endOfFrame;
+      return registry.valid&&AuthSession.instance.user?.id==ownedAccountId&&LanguageController.instance.language==language;
+    };
     final navigation=copilotNavigation;
     late CopilotExecutor executor;
     late CopilotService service;
@@ -123,7 +131,7 @@ class _SehatRouteAppState extends State<SehatRouteApp>
                 receipts.isNotEmpty &&
                 receipts.last.code == 'succeeded' &&
                 snapshot != null &&
-                snapshot.version != plan.version &&
+                (snapshot.version != plan.version || executedKind=='set_language') &&
                 registry.valid &&
                 !executor.paused &&
                 cancellation == executor.cancellationGeneration &&
@@ -180,7 +188,12 @@ class _SehatRouteAppState extends State<SehatRouteApp>
           copilotPresentation.open();
         }
         if(response.navigation!=null&&!planNavigates&&registry.valid) {
-          await navigation.navigate(response.navigation!);
+          final result=await navigation.navigate(response.navigation!);
+          if(!result.succeeded&&registry.valid){executor.contextUnavailable();presentation.openChat();}
+          if(result.succeeded&&response.navigation!.target=='care_plan_new'&&registry.valid) {
+            final shown=await registry.reveal('care_plan_new.name','focus');
+            if(shown&&registry.valid)presentation.enterGuided(const GuidanceSummary('care_plan_new',targetId:'care_plan_new.name'));
+          }
         }
         if (response.memoryProposal != null && registry.valid) {
           final context = navigatorKey.currentState?.overlay?.context;
@@ -213,7 +226,7 @@ class _SehatRouteAppState extends State<SehatRouteApp>
                 child: AlertDialog(
                   title: Text(copilotText(context, 'review_change')),
                   content: Text(
-                    '${target?.label ?? action.kind}\n\n${copilotText(context, 'save_notice')}',
+                    '${target?.label ?? action.kind}${action.kind=='set_language'?': ${AppLanguageX.fromStorage(action.id.split('.').last).displayName}':''}\n\n${copilotText(context, 'save_notice')}',
                   ),
                   actions: [
                     TextButton(

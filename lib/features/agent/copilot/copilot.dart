@@ -32,6 +32,7 @@ const copilotActionKinds = {
 
 /// Only an actual step or navigation warrants fresh automatic narration.
 bool copilotShouldContinueAfter(String? executedKind) => const {
+  'set_language',
   'next',
   'previous',
   'open_entity',
@@ -248,6 +249,10 @@ class CopilotRegistry extends ChangeNotifier {
   CopilotScreenDefinition? catalog;
   Future<bool> Function(String)? walkthroughCommand;
   Future<void> Function()? beforeVisualAction;
+  // App-owned setting callback, not a model-supplied method or arbitrary args.
+  String Function()? appLanguageCode;
+  Future<bool> Function(String)? setAppLanguage;
+
   void publishCatalogWindow(CopilotContextWindow window,{required String focusedTargetId}) {
     final d=catalog,owner=_owner;if(d==null||owner==null)return;
     publish(owner:owner,screenId:d.screenId,route:d.routeId,stateKey:'${d.revision}:focused:$focusedTargetId',entity:snapshot?.entity,focusedSectionId:focusedTargetId,targets:window.targets,actions:window.actions);
@@ -294,6 +299,7 @@ class CopilotRegistry extends ChangeNotifier {
         )) {
       throw const FormatException('Invalid screen capabilities');
     }
+    final sameScreen = identical(_owner, owner) && snapshot?.screenId == screenId && snapshot?.entity?.id == entity?.id;
     final same =
         identical(_owner, owner) &&
         _stateKey == stateKey &&
@@ -316,7 +322,10 @@ class CopilotRegistry extends ChangeNotifier {
     _stateKey = stateKey;
     snapshot = next;
     if (!same) {
-      highlightedTarget = null;
+      if (!sameScreen || !targets.any((t) => t.id == highlightedTarget && t.visible != false)) {
+        highlightedTarget = null;
+        _highlightTimer?.cancel();
+      }
       CopilotDiagnostics.emit(CopilotDiagnostic.contextReady,registeredScreen:screenId);
       if (kDebugMode) debugPrint('AGENT_UI:CONTEXT_ACCEPTED');
       _notify();
@@ -436,8 +445,10 @@ class CopilotRegistry extends ChangeNotifier {
     }
   }
 
-  Future<bool> reveal(String id, String kind,{bool sticky=false}) async {
+  Future<bool> reveal(String id, String kind,{bool sticky=true}) async {
+    final originOwner=_owner, originScreen=snapshot?.screenId, originGeneration=generation;
     await beforeVisualAction?.call();
+    if (!valid || !identical(_owner,originOwner) || snapshot?.screenId!=originScreen || generation!=originGeneration) return false;
     final anchor = _activeAnchor(id);
     if (!valid ||
         anchor == null ||
@@ -445,18 +456,43 @@ class CopilotRegistry extends ChangeNotifier {
         snapshot?.targets.any((t) => t.id == id&&t.visible!=false) != true) {
       return false;
     }
-    final version = snapshot?.version;
+    final owner = _owner, screenId = snapshot?.screenId, entityId = snapshot?.entity?.id;
+    final startedGeneration = generation;
+    bool current() => valid && !_disposed && generation == startedGeneration &&
+        identical(_owner, owner) && snapshot?.screenId == screenId && snapshot?.entity?.id == entityId &&
+        anchor.mounted && _activeAnchor(id) == anchor && snapshot?.targets.any((t) => t.id == id && t.visible != false) == true;
+    // One bounded layout wait, never a polling or coordinate loop.
+    var render = anchor.context.findRenderObject();
+    if (render is! RenderBox || !render.attached || !render.hasSize) {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!anchor.mounted || !current()) return false;
+      render = anchor.context.findRenderObject();
+      if (render is! RenderBox || !render.attached || !render.hasSize) return false;
+    }
     final reduced =
         MediaQuery.maybeOf(anchor.context)?.disableAnimations ?? false;
-    await Scrollable.ensureVisible(
-      anchor.context,
-      alignment: .35,
-      duration: reduced ? Duration.zero : const Duration(milliseconds: 220),
-    );
-    if (!valid ||
-        !anchor.mounted ||
-        snapshot?.version != version ||
-        _activeAnchor(id) != anchor) {
+    // Reveal inner to outer sequentially. Parallel ancestor scrolling calculates
+    // the outer offset before the inner scroll, which can leave a nested target
+    // outside the final viewport. Bound the walk and fence every await.
+    var scrollable = Scrollable.maybeOf(anchor.context);
+    var depth = 0;
+    while (scrollable != null && depth++ < 8) {
+      await scrollable.position.ensureVisible(render, alignment:.5,
+          duration:reduced ? Duration.zero : const Duration(milliseconds:220));
+      if (!anchor.mounted || !scrollable.mounted || !current()) return false;
+      scrollable = Scrollable.maybeOf(scrollable.context);
+    }
+    if (scrollable != null) return false;
+    final box=anchor.context.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return false;
+    final bounds=box.localToGlobal(Offset.zero)&box.size;
+    final mediaSize=MediaQuery.maybeSizeOf(anchor.context);
+    final view=View.maybeOf(anchor.context);
+    final viewportSize=mediaSize!=null&&!mediaSize.isEmpty?mediaSize:
+        view==null?Size.zero:view.physicalSize/view.devicePixelRatio;
+    final viewport=Offset.zero&viewportSize;
+    if (!bounds.overlaps(viewport)) return false;
+    if (!current()) {
       return false;
     }
     if (kind == 'focus') anchor.focusNode.requestFocus();
@@ -722,10 +758,12 @@ class _CopilotAnchorState extends State<CopilotAnchor> {
           duration: MediaQuery.maybeOf(context)?.disableAnimations == true
               ? Duration.zero
               : const Duration(milliseconds: 180),
+          padding: EdgeInsets.zero,
           foregroundDecoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
+            boxShadow: highlighted ? const [BoxShadow(color: Color(0x240D9488), blurRadius: 12, spreadRadius: 2)] : null,
             border: highlighted
-                ? Border.all(color: const Color(0xFF0D9488), width: 3)
+                ? Border.all(color: const Color(0xFF0D9488), width: 1.5)
                 : null,
           ),
           child: widget.child,

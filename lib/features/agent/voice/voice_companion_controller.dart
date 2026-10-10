@@ -181,9 +181,33 @@ class VoiceCompanionController extends ChangeNotifier {
     );
   }
 
+  bool _appLanguageAction = false;
+  /// Confirmed app setting uses the existing persistence and Worker resume claim.
+  /// It keeps the RTC room, mute intent and transport generation intact.
+  Future<bool> applyAppLanguage(AppLanguage selected) async {
+    if (_disposed || !authenticated() || _languagePreferences == null || _appLanguageAction) return false;
+    final generation=_generation;
+    _appLanguageAction=true;
+    try {
+      await _languagePreferences.setLanguage(selected,persistBeforeNotify:true);
+      if (!_current(generation)) return false;
+      language=selected;
+      _replyLanguage=selected;
+      if (enabled && _connected && transportOwner=='worker' && _desiredListening && !recoveryRequired) {
+        await _control('interrupt');
+        if (!_current(generation)) return false;
+        await _control('resume');
+      }
+      if (!_current(generation)) return false;
+      notifyListeners();
+      return _languagePreferences.language==selected;
+    } finally {_appLanguageAction=false;}
+  }
+
   void _selectedLanguageChanged() {
     if (_disposed) return;
     final selected = _languagePreferences!.language;
+    if (_appLanguageAction) {language=selected;notifyListeners();return;}
     if (selected == language && !_languageRebindPending) return;
     if (!_languageRebindPending) {
       _languageRebindListening = _desiredListening;
@@ -668,6 +692,9 @@ class VoiceCompanionController extends ChangeNotifier {
     }
     reply = response.reply;
     _replyLanguage = AppLanguageX.fromStorage(raw['language'] as String?);
+    // The owned Agent result supplies effective conversation language. UI/profile
+    // selection stays independent; this does not reconnect the LiveKit room.
+    language = _replyLanguage;
     final rawTranscript = _transcripts.remove(turn);
     final displayTranscript = rawTranscript == null ? null : transcriptForDisplay(rawTranscript, language,
       rendering: response.language == 'roman_ur' ? response.displayTranscript : null, complete: true);
