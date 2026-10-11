@@ -1,3 +1,4 @@
+import '../widgets/agent_confirmation_card.dart';
 import '../copilot/copilot_conflict.dart';
 import 'dart:async';
 
@@ -936,7 +937,7 @@ class _MessageBubble extends StatelessWidget {
               ],
               if (!isUser && message.confirmation != null) ...[
                 const SizedBox(height: 10),
-                _ConfirmationCard(
+                AgentConfirmationCard(
                   messageId: message.id,
                   confirmationId: message.confirmation!.confirmationId,
                   message: message.confirmation!.message,
@@ -1018,96 +1019,6 @@ class _ClarificationCard extends StatelessWidget {
                       : const Icon(Icons.check_circle_outline, size: 17),
                   label: Text(option.label),
                 ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ConfirmationCard extends StatelessWidget {
-  const _ConfirmationCard({
-    required this.messageId,
-    required this.confirmationId,
-    required this.message,
-    required this.kind,
-    required this.active,
-    required this.loading,
-    required this.onConfirm,
-    required this.onCancel,
-  });
-
-  final String messageId;
-  final String confirmationId;
-  final String message;
-  final String kind;
-  final bool active;
-  final bool loading;
-  final ValueChanged<String> onConfirm;
-  final ValueChanged<String> onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    final titleKey = kind == 'schedule_time'
-        ? 'agent_review_reminder_time'
-        : 'agent_review_change';
-    return Container(
-      key: ValueKey('agent_confirmation_card_${messageId}_$confirmationId'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLight,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(AppRadii.md),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.tr(titleKey),
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(message, style: const TextStyle(height: 1.35)),
-          const SizedBox(height: 6),
-          Text(
-            context.tr('agent_nothing_changed_yet'),
-            style: const TextStyle(color: AppColors.muted, fontSize: 13),
-          ),
-          if (kind == 'schedule_time') ...[
-            const SizedBox(height: 6),
-            Text(
-              context.tr('agent_schedule_medical_recheck'),
-              style: const TextStyle(color: AppColors.muted, fontSize: 13),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                key: ValueKey('agent_cancel_${messageId}_$confirmationId'),
-                onPressed: active && !loading
-                    ? () => onCancel(confirmationId)
-                    : null,
-                child: Text(context.tr('cancel')),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                key: ValueKey('agent_confirm_${messageId}_$confirmationId'),
-                onPressed: active && !loading
-                    ? () => onConfirm(confirmationId)
-                    : null,
-                icon: loading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check, size: 17),
-                label: Text(context.tr('agent_confirm_action')),
-              ),
             ],
           ),
         ],

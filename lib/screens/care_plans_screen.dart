@@ -1,3 +1,4 @@
+import '../features/agent/widgets/agent_confirmation_card.dart';
 import '../features/agent/controllers/agent_controller.dart';
 import '../features/agent/copilot/agent_text_entry.dart';
 import '../features/agent/voice/voice_companion_scope.dart';
@@ -1470,14 +1471,18 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
     return null;
   }
 
-  bool get _canContinue => !_creating && _pendingAgentTitle==null && !_typing.isAnimating && _planNameErrorKey == null;
+  bool get _awaitingAgentConfirmation =>
+      _agent?.pendingConfirmation?.kind == 'create_care_plan' &&
+      _agent?.taskWorkflow?.status == 'awaiting_confirmation' &&
+      _agent?.pendingConfirmation?.confirmationId == _agent?.taskWorkflow?.confirmationId;
+  bool get _canContinue => !_creating && !_awaitingAgentConfirmation && _pendingAgentTitle==null && !_typing.isAnimating && _planNameErrorKey == null;
 
   @override
   Widget build(BuildContext context) {
     return AppShell(
       currentRoute: AppRoutes.carePlanNew,
       title: context.tr('new_care_plan'),
-      child: AnimatedBuilder(animation:_typing,builder:(context,_)=>LayoutBuilder(
+      child: AnimatedBuilder(animation:Listenable.merge([_typing, if (_agent != null) _agent!]),builder:(context,_)=>LayoutBuilder(
         builder: (context, constraints) {
           // AppShell can provide unbounded vertical constraints because its
           // content is scrollable. Use the real viewport height instead so
@@ -1652,6 +1657,14 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
                           key:const ValueKey('new_care_plan_name_support'),
                           style:TextStyle(fontSize:12,color:_nameTouched&&!_typing.isAnimating&&_planNameErrorKey!=null?Theme.of(context).colorScheme.error:AppColors.muted),
                         )),
+                      if (_awaitingAgentConfirmation)
+                        AgentPendingConfirmation(
+                          voice: VoiceCompanionScope.read(context)!, surface: 'guided', carePlanOnly: true,
+                          // Confirm only after the real control contains the exact
+                          // authoritative title. Edits never silently change it.
+                          allowConfirm: _pendingAgentTitle == null && !_typing.isAnimating &&
+                              _planNameController.text == _agent?.taskWorkflow?.title,
+                        ),
                       SizedBox(height: compactHeight ? 10 : 16),
                       SafetyNote(text: context.tr('new_plan_safety_note')),
                       SizedBox(height: compactHeight ? 10 : 18),

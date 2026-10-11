@@ -111,6 +111,9 @@ class VoiceCompanionController extends ChangeNotifier {
   int? get epoch => _binding?['epoch'] as int?;
   String? get transportOwner => _binding?['transportOwner'] as String?;
   bool get muted => _manualMuted;
+  int get sessionGeneration => _generation;
+  bool get canResolveConfirmation => _binding != null && !_busy &&
+      _inflight == null && !recoveryRequired && authenticated();
   bool get automaticInputGated => enabled && !_manualMuted && !_micRequested;
   bool _micRequested = false;
   void _trace(VoiceLifecycleEvent event, VoiceLifecycleReason reason) =>
@@ -160,7 +163,14 @@ class VoiceCompanionController extends ChangeNotifier {
     }
   }
 
-  void _recover(String code) {
+  void _recover(String code, {String? failureCode,
+      VoiceLifecycleReason reason = VoiceLifecycleReason.lifecycle}) {
+    if (state != 'recovering' || recoveryCode != code) {
+      traceVoiceLifecycle(VoiceLifecycleEvent.attentionRequired,
+          reason, generation: _generation, state: state,
+          manualMuted: _manualMuted, micEnabled: _micRequested,
+          attentionCode: code, failureCode: failureCode, connected: _connected);
+    }
     recoveryCode = code;
     state = 'recovering';
     notifyListeners();
@@ -587,10 +597,13 @@ class VoiceCompanionController extends ChangeNotifier {
         .then((_) async {
           if (_current(generation) && enabled) await _event(packet, generation);
         })
-        .catchError((Object _) {
+        .catchError((Object error) {
           if (_current(generation)) {
             recoveryRequired = true;
-            _recover('VOICE_EVENT_RECOVERY_REQUIRED');
+            _recover('VOICE_EVENT_RECOVERY_REQUIRED', failureCode:
+                error is VoiceFailure ? error.code :
+                error is FormatException ? 'VOICE_RESULT_INVALID' : 'VOICE_EVENT_FAILED',
+                reason: VoiceLifecycleReason.eventRecovery);
             // Protocol/transport recovery is not a user mute request.
             unawaited(_gateEventFailure(generation));
           }
@@ -689,7 +702,8 @@ class VoiceCompanionController extends ChangeNotifier {
         break;
       case 'interrupted':
         _playbackId = null;
-        if (_desiredListening) state = 'listening';
+        // Interrupting the old review prompt does not finish its new decision.
+        if (_desiredListening && _inflight == null) state = 'listening';
         break;
       case 'awaiting_confirmation':
         state = 'awaiting_confirmation';
@@ -705,7 +719,8 @@ class VoiceCompanionController extends ChangeNotifier {
             _devicePlaybacks.contains(offeredPlayback)) {
           return;
         }
-        _recover(value['code']?.toString() ?? 'VOICE_FALLBACK_REQUIRED');
+        _recover(value['code']?.toString() ?? 'VOICE_FALLBACK_REQUIRED',
+            reason: VoiceLifecycleReason.workerRecovery);
         if (value['component'] == 'stt') {
           await _microphone(false, VoiceLifecycleReason.workerRecovery);
           if(!_current(generation))return;
@@ -725,7 +740,8 @@ class VoiceCompanionController extends ChangeNotifier {
       case 'recovering':
         await _microphone(false, VoiceLifecycleReason.workerRecovery);
         if(!_current(generation))return;
-        _recover(value['code']?.toString() ?? 'VOICE_RECOVERING');
+        _recover(value['code']?.toString() ?? 'VOICE_RECOVERING',
+            reason: VoiceLifecycleReason.workerRecovery);
         break;
       case 'disconnected':
         await _microphone(false, VoiceLifecycleReason.workerRecovery);
@@ -990,12 +1006,18 @@ class VoiceCompanionController extends ChangeNotifier {
     }
     state = 'processing';
     notifyListeners();
-    await _microphone(false, VoiceLifecycleReason.processing);
-    await device?.cancelListening();
-    if (!_current(generation)) return null;
+    final liveConfirmation = confirmation != null && transportOwner == 'worker';
+    if (!liveConfirmation) {
+      await _microphone(false, VoiceLifecycleReason.processing);
+      if (!_current(generation)) return null;
+      await device?.cancelListening();
+      if (!_current(generation)) return null;
+    }
     try {
-      await _control('mute');
+      // Resolving a review interrupts its prompt, but is not a user mute.
+      await _control(liveConfirmation ? 'interrupt' : 'mute');
     } catch (_) {}
+    if (!_current(generation)) return null;
     final today = DateTime.now().toIso8601String().substring(0, 10);
     try {
       final receipt = await backend.submit(voiceSessionId!, {
@@ -1012,20 +1034,25 @@ class VoiceCompanionController extends ChangeNotifier {
         submittedConfirmationTurn: confirmation != null ? id : null,
       )) {
         playbackTurn = receipt['turnId'];
-      } else {
+      } else if (_current(generation)) {
         await reconcile();
       }
     } catch (_) {
+      if (!_current(generation)) return null;
       await reconcile();
     }
     if (_current(generation) && !recoveryRequired && _inflight == null) {
-      state = 'listening';
+      state = !_desiredListening ? 'muted' : agent.pendingConfirmation != null
+          ? 'awaiting_confirmation' : agent.pendingClarification != null
+          ? 'awaiting_clarification' : 'listening';
       if (transportOwner == 'device' && deviceTtsEnabled) {
         await device!.speak(reply, language: _replyLanguage);
       }
       if (_desiredListening && transportOwner == 'worker') {
-        await _microphone(true, VoiceLifecycleReason.processing);
+        if (!liveConfirmation) await _microphone(true, VoiceLifecycleReason.processing);
+        if (!_current(generation) || !_desiredListening) return null;
         await _control('resume');
+        if (!_current(generation) || !_desiredListening) return null;
         await _control('receipt_ready', turnId: playbackTurn);
       }
       notifyListeners();
@@ -1128,7 +1155,7 @@ class VoiceCompanionController extends ChangeNotifier {
     if (connection == VoiceConnection.reconnecting) {
       await _microphone(false, VoiceLifecycleReason.reconnecting);
       if(!ownsConnection())return;
-      _recover('LIVEKIT_RECONNECTING');
+      _recover('LIVEKIT_RECONNECTING', reason: VoiceLifecycleReason.reconnecting);
       _reconnectTimeout?.cancel();
       final generation=_generation, bindingId=voiceSessionId, bindingEpoch=epoch;
       _reconnectTimeout = Timer(
@@ -1160,13 +1187,16 @@ class VoiceCompanionController extends ChangeNotifier {
         if (!ownsConnection()) return;
         if (_desiredListening) await resume();
       } catch (_) {
-        if(ownsConnection())_recover('VOICE_RECONNECT_AUTHORIZATION_FAILED');
+        if (ownsConnection()) {
+          _recover('VOICE_RECONNECT_AUTHORIZATION_FAILED',
+              reason: VoiceLifecycleReason.reconnected);
+        }
       }
     }
     if (connection == VoiceConnection.disconnected) {
       await _microphone(false, VoiceLifecycleReason.reconnecting);
       if(!ownsConnection())return;
-      _recover('LIVEKIT_DISCONNECTED');
+      _recover('LIVEKIT_DISCONNECTED', reason: VoiceLifecycleReason.transportLost);
     }
   }
 

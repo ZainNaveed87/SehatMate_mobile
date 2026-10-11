@@ -29,6 +29,10 @@ void main() {
   String? freshError;
   late String freshId;
   const store = AgentSessionStore(accountId: 'startup');
+  // Startup ordering has its own channel; lifecycle/attention tracing may
+  // interleave. Retain all diagnostics for the privacy assertions below.
+  List<String> startupDiagnostics() => diagnostics
+      .where((message) => message.startsWith('VOICE_CLIENT_START:')).toList();
 
   http.Response failure(String code) => http.Response(
     jsonEncode({'success': false, 'code': code, 'message': 'private-body'}),
@@ -118,7 +122,7 @@ void main() {
       expect(sessionRequests(), 0);
       expect(transport.connects, 1);
       expect(voice.state, 'listening');
-      expect(diagnostics, [
+      expect(startupDiagnostics(), [
         'VOICE_CLIENT_START:AGENT_SESSION_READY',
         'VOICE_CLIENT_START:CREATE_REQUEST',
         'VOICE_CLIENT_START:CREATE_SUCCESS',
@@ -144,7 +148,7 @@ void main() {
       expect(states, isNot(contains('recovering')));
       expect(voice.state, 'listening');
       expect(transport.connects, 1);
-      expect(diagnostics, [
+      expect(startupDiagnostics(), [
         'VOICE_CLIENT_START:AGENT_SESSION_READY',
         'VOICE_CLIENT_START:CREATE_REQUEST',
         'VOICE_CLIENT_START:STALE_AGENT_SESSION',
@@ -166,7 +170,7 @@ void main() {
       expect(await store.read(), isNull);
       expect(voice.state, 'recovering');
       expect(transport.connects, 0);
-      expect(diagnostics.last, 'VOICE_CLIENT_START:CREATE_FAILED');
+      expect(startupDiagnostics().last, 'VOICE_CLIENT_START:CREATE_FAILED');
     },
   );
 
@@ -183,7 +187,7 @@ void main() {
       expect(await store.read(), '22');
       expect(voice.state, 'recovering');
       expect(transport.connects, 0);
-      expect(diagnostics.last, 'VOICE_CLIENT_START:CREATE_FAILED');
+      expect(startupDiagnostics().last, 'VOICE_CLIENT_START:CREATE_FAILED');
       expect(diagnostics.join(), isNot(contains('private-body')));
     });
   }

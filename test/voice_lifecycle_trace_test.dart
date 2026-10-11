@@ -18,4 +18,19 @@ void main() {
       expect(mic['micEnabled'],false);expect(mic['manualMuted'],false);
     } finally {debugPrint=previous;}
   });
+  test('attention diagnostics retain fixed reason codes and discard private codes', () {
+    final logs=<String>[];final previous=debugPrint;
+    debugPrint=(String? message,{int? wrapWidth}){if(message!=null)logs.add(message);};
+    try {
+      traceVoiceLifecycle(VoiceLifecycleEvent.attentionRequired,VoiceLifecycleReason.eventRecovery,
+        attentionCode:'FISH_RATE_LIMIT',state:'awaiting_confirmation',generation:2);
+      final known=jsonDecode(logs.last) as Map<String,dynamic>;
+      expect(known['event'],'VOICE_ATTENTION_REQUIRED');expect(known['code'],'FISH_RATE_LIMIT');
+      traceVoiceLifecycle(VoiceLifecycleEvent.attentionRequired,VoiceLifecycleReason.eventRecovery,
+        attentionCode:'private-room-token',failureCode:'private-provider-body');
+      final unknown=jsonDecode(logs.last) as Map<String,dynamic>;
+      expect(unknown['code'],'VOICE_ATTENTION_OTHER');expect(unknown['failure'],'VOICE_EVENT_FAILED');
+      expect(logs.last,isNot(contains('private')));
+    }finally{debugPrint=previous;}
+  });
 }

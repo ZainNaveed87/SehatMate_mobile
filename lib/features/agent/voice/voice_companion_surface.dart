@@ -1,3 +1,5 @@
+import '../widgets/agent_confirmation_card.dart';
+import 'voice_lifecycle_trace.dart';
 import 'package:flutter/material.dart';
 import '../../../core/app_theme.dart';
 import '../../../localization/language_scope.dart';
@@ -16,6 +18,8 @@ class VoiceCompanionSurface extends StatefulWidget {
 class _VoiceCompanionSurfaceState extends State<VoiceCompanionSurface> {
   bool _acting = false;
   bool _actionFailed = false;
+  int? _failedGeneration;
+  String? _reportedAttention;
   bool get _disconnected =>
       widget.controller.state == 'disconnected' ||
       (widget.controller.state == 'recovering' &&
@@ -30,11 +34,18 @@ class _VoiceCompanionSurfaceState extends State<VoiceCompanionSurface> {
       _acting = true;
       _actionFailed = false;
     });
+    final owner = widget.controller, generation = widget.controller.sessionGeneration;
     try {
       await action();
     } catch (_) {
       // Keep unexpected action errors local to this presentation.
-      if (mounted) setState(() => _actionFailed = true);
+      if (mounted && identical(widget.controller, owner) &&
+          owner.sessionGeneration == generation) {
+        traceVoiceLifecycle(VoiceLifecycleEvent.attentionRequired,
+            VoiceLifecycleReason.actionFailed, generation: generation,
+            state: owner.state, attentionCode: 'VOICE_UI_ACTION_FAILED');
+        setState(() { _actionFailed = true; _failedGeneration = generation; });
+      }
     } finally {
       if (mounted) setState(() => _acting = false);
     }
@@ -66,13 +77,25 @@ class _VoiceCompanionSurfaceState extends State<VoiceCompanionSurface> {
       'awaiting_confirmation',
       'awaiting_clarification',
     };
-    final state = _actionFailed
+    final actionFailed = _actionFailed && _failedGeneration == voice.sessionGeneration;
+    final state = actionFailed
         ? 'recovering'
         : _disconnected
         ? 'disconnected'
         : visibleStates.contains(voice.state)
         ? voice.state
         : 'recovering';
+    if (state == 'recovering') {
+      final code = actionFailed ? 'VOICE_UI_ACTION_FAILED' :
+          visibleStates.contains(voice.state) ? voice.recoveryCode : 'VOICE_UI_STATE_UNKNOWN';
+      final key = '${voice.sessionGeneration}:$code';
+      if (_reportedAttention != key) {
+        _reportedAttention = key;
+        traceVoiceLifecycle(VoiceLifecycleEvent.attentionRequired,
+            VoiceLifecycleReason.lifecycle, generation: voice.sessionGeneration,
+            state: voice.state, attentionCode: code);
+      }
+    } else { _reportedAttention = null; }
     final connecting = state == 'connecting';
     final processing = state == 'processing';
     final speaking = state == 'speaking';
@@ -96,7 +119,7 @@ class _VoiceCompanionSurfaceState extends State<VoiceCompanionSurface> {
         if (mounted) voice.reportReplyRendered();
       });
     }
-    final subtitle = _actionFailed
+    final subtitle = actionFailed
         ? 'agent_voice_action_failed_detail'
         : connecting
         ? 'agent_voice_connecting_detail'
@@ -232,6 +255,8 @@ class _VoiceCompanionSurfaceState extends State<VoiceCompanionSurface> {
                                     ),
                                   ),
                                 ],
+                                AgentPendingConfirmation(voice: voice, surface: 'voice',
+                                  showMessage: detail != voice.agent.pendingConfirmation?.message),
                                 if (recovering &&
                                         !voice.recoveryRequired &&
                                         voice.voiceSessionId != null ||
