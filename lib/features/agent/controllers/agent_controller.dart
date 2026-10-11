@@ -11,6 +11,7 @@ import '../models/agent_response.dart';
 import '../models/agent_task_workflow.dart';
 import '../services/agent_service.dart';
 import '../services/agent_session_store.dart';
+import '../voice/voice_lifecycle_trace.dart';
 
 abstract interface class AgentClient {
   Future<AgentResponse> send(AgentRequest request);
@@ -145,7 +146,14 @@ class AgentController extends ChangeNotifier {
     );
     _applyActionState(response, sourceMessage: transcript);
     notifyListeners();
-    await onCopilotResult?.call(response, 'voice');
+    // The authoritative turn is already accepted. A local visual callback must
+    // not escape into the RTC event-error handler and mute healthy voice input.
+    try {
+      await onCopilotResult?.call(response, 'voice');
+    } catch (_) {
+      traceVoiceLifecycle(VoiceLifecycleEvent.actionCompleted,
+          VoiceLifecycleReason.actionFailed);
+    }
     notifyListeners();
   }
 

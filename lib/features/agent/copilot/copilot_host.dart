@@ -70,17 +70,19 @@ class _CopilotHostState extends State<CopilotHost> {
         ),
         if(enabled&&!p.visible&&!p.memoryReviewBusy)PositionedDirectional(end:12,bottom:padding.bottom+bottomBar+12,
           child:Material(elevation:5,color:const Color(0xFFEFFAF7),borderRadius:BorderRadius.circular(30),
-            child:ConstrainedBox(constraints:BoxConstraints(maxWidth:MediaQuery.sizeOf(context).width-24),child:Row(mainAxisSize:MainAxisSize.min,children:[
-              Flexible(child:TextButton.icon(key:const ValueKey('assistant_launcher'),onPressed:p.openChat,
-                icon:const Icon(Icons.auto_awesome,size:18),label:Text(p.mode==CopilotMode.guided?copilotText(context,'guided'):context.tr('agent_title'),maxLines:1,overflow:TextOverflow.ellipsis))),
-              if(p.mode==CopilotMode.guided&&widget.registry.walkthroughCommand!=null)...[
+            child:ConstrainedBox(constraints:BoxConstraints(maxWidth:MediaQuery.sizeOf(context).width-24),child:Wrap(alignment:WrapAlignment.end,crossAxisAlignment:WrapCrossAlignment.center,children:[
+              TextButton.icon(key:const ValueKey('assistant_launcher'),onPressed:p.openChat,
+                icon:const Icon(Icons.auto_awesome,size:18),label:Text(p.mode==CopilotMode.guided?copilotText(context,'guided'):context.tr('agent_title'),maxLines:1,overflow:TextOverflow.ellipsis)),
+              if(p.mode==CopilotMode.guided&&widget.registry.walkthroughCommand!=null)Row(mainAxisSize:MainAxisSize.min,children:[
                 IconButton(tooltip:copilotText(context,'walkthrough_previous'),onPressed:()=>widget.registry.walkthroughCommand!('walkthrough_previous'),icon:const Icon(Icons.chevron_left)),
                 IconButton(tooltip:copilotText(context,'walkthrough_next'),onPressed:()=>widget.registry.walkthroughCommand!('walkthrough_next'),icon:const Icon(Icons.chevron_right)),
                 IconButton(tooltip:copilotText(context,'stop'),onPressed:()=>widget.registry.walkthroughCommand!('walkthrough_stop'),icon:const Icon(Icons.close)),
-              ],
+              ]),
+              Row(mainAxisSize:MainAxisSize.min,children:[
               IconButton(tooltip:copilotText(context,'return_voice'),onPressed:()=>unawaited(_voice()),icon:const Icon(Icons.mic_outlined)),
               if(v.voiceSessionId!=null)IconButton(tooltip:copilotText(context,v.muted?'unmute':'mute'),onPressed:v.muted?v.resume:v.mute,icon:Icon(v.muted?Icons.mic_off_outlined:Icons.pause)),
               if(v.voiceSessionId!=null)IconButton(tooltip:context.tr('agent_voice_end'),onPressed:v.end,icon:const Icon(Icons.stop_circle_outlined)),
+              ]),
             ]))),
         ),
       ]);

@@ -8,6 +8,7 @@ import '../models/agent_context.dart';
 import 'copilot_screen_catalog.dart';
 import 'copilot_context_window.dart';
 import 'copilot_diagnostics.dart';
+import '../voice/voice_lifecycle_trace.dart';
 
 const copilotActionKinds = {
   'read_current_screen',
@@ -446,6 +447,8 @@ class CopilotRegistry extends ChangeNotifier {
   }
 
   Future<bool> reveal(String id, String kind,{bool sticky=true}) async {
+    traceVoiceLifecycle(VoiceLifecycleEvent.actionStarted,VoiceLifecycleReason.action,
+        generation:generation,screen:snapshot?.screenId,action:kind);
     final originOwner=_owner, originScreen=snapshot?.screenId, originGeneration=generation;
     await beforeVisualAction?.call();
     if (!valid || !identical(_owner,originOwner) || snapshot?.screenId!=originScreen || generation!=originGeneration) return false;
@@ -506,6 +509,8 @@ class CopilotRegistry extends ChangeNotifier {
         _notify();
       });}
     }
+    traceVoiceLifecycle(VoiceLifecycleEvent.actionCompleted,VoiceLifecycleReason.action,
+        generation:generation,screen:snapshot?.screenId,action:kind);
     return true;
   }
 
@@ -634,7 +639,9 @@ class CopilotExecutor extends ChangeNotifier {
           if (_seen.length > 128) _seen.remove(_seen.first);
           try {
             bool ok;
-            if ({'highlight', 'focus', 'scroll_to'}.contains(action!.kind)) {
+            traceVoiceLifecycle(VoiceLifecycleEvent.actionStarted,VoiceLifecycleReason.action,
+                generation:generation,screen:plan.screenId,action:action!.kind);
+            if ({'highlight', 'focus', 'scroll_to'}.contains(action.kind)) {
               ok = await registry.reveal(op.targetId, action.kind);
             } else if (action.kind.startsWith('read_')) {
               ok = await registry.reveal(op.targetId,'highlight');
@@ -663,6 +670,9 @@ class CopilotExecutor extends ChangeNotifier {
           confirmationRef: confirmationRef,
         );
         output.add(result);
+        traceVoiceLifecycle(VoiceLifecycleEvent.actionCompleted,
+            code=='succeeded'?VoiceLifecycleReason.action:VoiceLifecycleReason.actionFailed,
+            generation:generation,screen:plan.screenId,action:action?.kind);
         status = code;
         if (kDebugMode) {
           if (code == 'succeeded') debugPrint('AGENT_UI:ACTION_EXECUTED');

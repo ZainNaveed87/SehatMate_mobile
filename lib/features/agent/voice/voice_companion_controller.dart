@@ -11,6 +11,7 @@ import '../../../localization/language_controller.dart';
 import 'voice_backend.dart';
 import 'voice_transport.dart';
 import 'voice_turn_trace.dart';
+import 'voice_lifecycle_trace.dart';
 
 /// Application owned voice coordination. Audio, actions and transport ownership
 /// are fenced independently; uncertain actions are read by receipt, never replayed.
@@ -69,6 +70,7 @@ class VoiceCompanionController extends ChangeNotifier {
   AppLanguage _replyLanguage = AppLanguage.english;
   int _generation = 0, _eventSeq = 0, _controlSeq = 0;
   bool _disposed = false,
+      _manualMuted = false,
       _desiredListening = false,
       _busy = false,
       _connected = false,
@@ -76,6 +78,7 @@ class VoiceCompanionController extends ChangeNotifier {
   Future<void> _eventQueue = Future<void>.value();
   Future<void> _languageQueue = Future<void>.value();
   Completer<void>? _startupDone;
+  Future<void>? _ending;
   int _languageRevision = 0;
   bool _languageRebindPending = false,
       _languageRebindListening = false,
@@ -107,7 +110,25 @@ class VoiceCompanionController extends ChangeNotifier {
   String? get voiceSessionId => _binding?['id'] as String?;
   int? get epoch => _binding?['epoch'] as int?;
   String? get transportOwner => _binding?['transportOwner'] as String?;
-  bool get muted => !_desiredListening;
+  bool get muted => _manualMuted;
+  bool get automaticInputGated => enabled && !_manualMuted && !_micRequested;
+  bool _micRequested = false;
+  void _trace(VoiceLifecycleEvent event, VoiceLifecycleReason reason) =>
+      traceVoiceLifecycle(event, reason, generation:_generation, state:state,
+          manualMuted:_manualMuted, micEnabled:_micRequested);
+  Future<void> _microphone(bool enabled, VoiceLifecycleReason reason) async {
+    final generation=_generation;
+    _micRequested=enabled;
+    _trace(VoiceLifecycleEvent.micTrackState,reason);
+    traceVoiceLifecycle(VoiceLifecycleEvent.autoGateChanged,reason,
+        generation:generation,gated:automaticInputGated,manualMuted:_manualMuted);
+    await transport.microphone(enabled);
+  }
+  Future<void> _disconnect(VoiceLifecycleReason reason) async {
+    _trace(VoiceLifecycleEvent.disconnectStarted,reason);
+    await transport.disconnect();
+    _trace(VoiceLifecycleEvent.disconnectCompleted,reason);
+  }
   bool get activeForeground =>
       enabled && foreground && authenticated() && _binding != null;
   bool get eligibleCheckIn =>
@@ -133,7 +154,10 @@ class VoiceCompanionController extends ChangeNotifier {
   }
   @override
   void notifyListeners() {
-    if (!_disposed) super.notifyListeners();
+    if (!_disposed) {
+      _trace(VoiceLifecycleEvent.sessionState,VoiceLifecycleReason.lifecycle);
+      super.notifyListeners();
+    }
   }
 
   void _recover(String code) {
@@ -183,9 +207,14 @@ class VoiceCompanionController extends ChangeNotifier {
     _binding = value;
     _workerIdentity = value['workerIdentity'] as String?;
     _expiry?.cancel();
+    final generation=_generation, bindingId=value['id'], bindingEpoch=value['epoch'];
     _expiry = Timer(
       DateTime.parse(value['expiresAt']).difference(DateTime.now()),
-      () => unawaited(end()),
+      () {
+        if(_current(generation)&&voiceSessionId==bindingId&&epoch==bindingEpoch) {
+          unawaited(end(reason:VoiceLifecycleReason.expiry));
+        }
+      },
     );
   }
 
@@ -233,7 +262,7 @@ class VoiceCompanionController extends ChangeNotifier {
     ++_generation;
     ++_speechGeneration;
     // Stop old-locale input immediately; cleanup/start are serialized below.
-    unawaited(transport.microphone(false).catchError((Object _) {}));
+    unawaited(_microphone(false, VoiceLifecycleReason.languageChange).catchError((Object _) {}));
     final previousStartup = _startupDone?.future;
     final change = _languageQueue
         .then((_) async {
@@ -285,13 +314,15 @@ class VoiceCompanionController extends ChangeNotifier {
     AppLanguage selected, {
     bool initiallyListening = true,
   }) async {
-    if (_busy || enabled || !foreground || !authenticated()) return;
+    await _ending;
+    if (_disposed || _busy || enabled || !foreground || !authenticated()) return;
     final generation = ++_generation;
     final startup = Completer<void>();
     _startupDone = startup;
     _busy = true;
     enabled = true;
     _desiredListening = initiallyListening;
+    _manualMuted = !initiallyListening;
     language = selected;
     state = 'connecting';
     recoveryRequired = false;
@@ -362,17 +393,12 @@ class VoiceCompanionController extends ChangeNotifier {
       }
       _bind(value);
       await transport.connect(value);
+      if (!_current(generation)) return;
       _connected = true;
       if (_workerIdentity != null) await transport.bindWorker(_workerIdentity!);
-      if (!_current(generation)) {
-        await transport.disconnect();
-        return;
-      }
-      await transport.microphone(_desiredListening);
-      if (!_current(generation)) {
-        await transport.microphone(false);
-        return;
-      }
+      if (!_current(generation)) return;
+      await _microphone(_desiredListening, VoiceLifecycleReason.start);
+      if (!_current(generation)) return;
       state = _desiredListening ? 'listening' : 'muted';
       notifyListeners();
     } catch (error) {
@@ -383,7 +409,7 @@ class VoiceCompanionController extends ChangeNotifier {
         _recover(
           error is VoiceFailure ? error.code : 'VOICE_CONNECTION_FAILED',
         );
-        await transport.disconnect();
+        await _disconnect(VoiceLifecycleReason.start);
       }
     } finally {
       if (identical(_startupDone, startup)) _startupDone = null;
@@ -401,6 +427,7 @@ class VoiceCompanionController extends ChangeNotifier {
     String? turnId,
   }) async {
     if (_binding == null || transportOwner != 'worker') return;
+    final controlGeneration=_generation;
     if (_workerIdentity == null) {
       final generation = _generation;
       final current = await backend.get(voiceSessionId!);
@@ -415,6 +442,7 @@ class VoiceCompanionController extends ChangeNotifier {
       }
       await transport.bindWorker(_workerIdentity!);
     }
+    if(!_current(controlGeneration))return;
     await transport.send({
       'v': 1,
       'type': type,
@@ -427,34 +455,46 @@ class VoiceCompanionController extends ChangeNotifier {
   }
 
   Future<void> mute() async {
+    final generation = _generation;
     if (_languageRebindPending) _languageRebindListening = false;
     ++_speechGeneration;
     _desiredListening = false;
+    _manualMuted = true;
+    _trace(VoiceLifecycleEvent.manualMuteChanged,VoiceLifecycleReason.userMute);
     state = 'muted';
     notifyListeners();
     try {
       await _control('mute');
     } catch (_) {}
-    await transport.microphone(false);
+    if (!_current(generation)) return;
+    await _microphone(false, VoiceLifecycleReason.userMute);
+    if (!_current(generation)) return;
     await device?.cancelListening();
+    if (!_current(generation)) return;
     await device?.stopSpeaking();
   }
 
   Future<void> interrupt() async {
     if (!activeForeground) return;
+    final generation = _generation;
     ++_speechGeneration;
     try {
       await _control('interrupt');
     } catch (_) {
+      if (!_current(generation)) return;
       _recover('VOICE_CONTROL_UNAVAILABLE');
     }
+    if (!_current(generation)) return;
     await device?.stopSpeaking();
+    if (!_current(generation)) return;
     _playbackId = null;
     if (_desiredListening && !recoveryRequired) await resume();
   }
 
   Future<void> stopPlayback() async {
+    final generation = _generation;
     await mute();
+    if (!_current(generation)) return;
     try {
       await _control('stop');
     } catch (_) {}
@@ -471,6 +511,8 @@ class VoiceCompanionController extends ChangeNotifier {
     }
     enabled = true;
     _desiredListening = true;
+    _manualMuted = false;
+    _trace(VoiceLifecycleEvent.manualMuteChanged,VoiceLifecycleReason.userResume);
     // Explicit resume skips an offered fallback; never leave an older reply playable.
     _pendingDeviceTts = null;
     final generation = _generation;
@@ -482,10 +524,7 @@ class VoiceCompanionController extends ChangeNotifier {
         if (!_current(generation) || !_desiredListening) return;
         _bind(value);
         await transport.connect(value);
-        if (!_current(generation)) {
-          await transport.disconnect();
-          return;
-        }
+        if (!_current(generation)) return;
         _connected = true;
         if (_workerIdentity != null) {
           await transport.bindWorker(_workerIdentity!);
@@ -511,30 +550,33 @@ class VoiceCompanionController extends ChangeNotifier {
           }
           _bind(value);
           await transport.connect(value);
-          if (!_current(generation)) {
-            await transport.disconnect();
-            return;
-          }
+          if (!_current(generation)) return;
           _connected = true;
           if (_workerIdentity != null) {
             await transport.bindWorker(_workerIdentity!);
           }
         }
         if (!_current(generation) || !_desiredListening) return;
-        await transport.microphone(true);
-        if (!_current(generation) || !_desiredListening) {
-          await transport.microphone(false);
+        await _microphone(true, VoiceLifecycleReason.userResume);
+        // Obsolete work must not clean up the transport now owned by a newer
+        // session. The RTC transport already fences/cleans its captured Room.
+        if (!_current(generation)) return;
+        if (!_desiredListening) {
+          await _microphone(false, VoiceLifecycleReason.userResume);
           return;
         }
         await _control('resume');
       } else if (transportOwner == 'device') {
         await _listenDevice();
       }
+      if (!_current(generation) || !_desiredListening) return;
       state = 'listening';
       notifyListeners();
     } catch (error) {
+      if(!_current(generation))return;
       _desiredListening = false;
-      await transport.microphone(false);
+      await _microphone(false, VoiceLifecycleReason.userResume);
+      if (!_current(generation)) return;
       _recover(error is VoiceFailure ? error.code : 'VOICE_RESUME_FAILED');
     }
   }
@@ -549,9 +591,17 @@ class VoiceCompanionController extends ChangeNotifier {
           if (_current(generation)) {
             recoveryRequired = true;
             _recover('VOICE_EVENT_RECOVERY_REQUIRED');
-            unawaited(mute());
+            // Protocol/transport recovery is not a user mute request.
+            unawaited(_gateEventFailure(generation));
           }
         });
+  }
+
+  Future<void> _gateEventFailure(int generation) async {
+    if(!_current(generation))return;
+    await _microphone(false,VoiceLifecycleReason.eventRecovery);
+    if(!_current(generation))return;
+    try {await _control('mute');} catch (_) {}
   }
 
   Future<void> _event(VoicePacket packet, int generation) async {
@@ -572,13 +622,16 @@ class VoiceCompanionController extends ChangeNotifier {
       if (_workerIdentity != null) await transport.bindWorker(_workerIdentity!);
     }
     if (_workerIdentity == null || packet.sender != _workerIdentity) return;
+    if(!_current(generation))return;
     _eventSeq = value['seq'];
     final turn = value['turnId'] as String?;
     switch (value['type']) {
       case 'ready':
         if (_desiredListening) {
-          await transport.microphone(true);
+          await _microphone(true, VoiceLifecycleReason.workerRecovery);
+          if(!_current(generation))return;
           await _control('resume');
+          if(!_current(generation))return;
           state = 'listening';
         }
         break;
@@ -627,8 +680,10 @@ class VoiceCompanionController extends ChangeNotifier {
         if (_playbackId == null || value['playbackId'] != _playbackId) return;
         _playbackId = null;
         if (_desiredListening && !recoveryRequired) {
-          await transport.microphone(true);
+          await _microphone(true, VoiceLifecycleReason.workerRecovery);
+          if(!_current(generation))return;
           await _control('resume');
+          if(!_current(generation))return;
           state = 'listening';
         }
         break;
@@ -652,7 +707,8 @@ class VoiceCompanionController extends ChangeNotifier {
         }
         _recover(value['code']?.toString() ?? 'VOICE_FALLBACK_REQUIRED');
         if (value['component'] == 'stt') {
-          await transport.microphone(false);
+          await _microphone(false, VoiceLifecycleReason.workerRecovery);
+          if(!_current(generation))return;
           if (deviceSpeechEnabled) await useDeviceSpeech();
         } else if (value['component'] == 'tts') {
           final tts = value['deviceTts'];
@@ -663,15 +719,17 @@ class VoiceCompanionController extends ChangeNotifier {
         } else {
           recoveryRequired = true;
           _desiredListening = false;
-          await transport.microphone(false);
+          await _microphone(false, VoiceLifecycleReason.workerRecovery);
         }
         break;
       case 'recovering':
-        await transport.microphone(false);
+        await _microphone(false, VoiceLifecycleReason.workerRecovery);
+        if(!_current(generation))return;
         _recover(value['code']?.toString() ?? 'VOICE_RECOVERING');
         break;
       case 'disconnected':
-        await transport.microphone(false);
+        await _microphone(false, VoiceLifecycleReason.workerRecovery);
+        if(!_current(generation))return;
         enabled = false;
         _desiredListening = false;
         state = 'disconnected';
@@ -782,6 +840,7 @@ class VoiceCompanionController extends ChangeNotifier {
         await _delay(const Duration(seconds: 2));
       }
     } catch (_) {}
+    if (!_current(generation)) return false;
     recoveryRequired = true;
     _recover('VOICE_TURN_UNCERTAIN');
     return false;
@@ -789,9 +848,11 @@ class VoiceCompanionController extends ChangeNotifier {
 
   Future<bool> _transfer(String mode) async {
     if (_binding == null) return false;
-    await transport.microphone(false);
-    await device?.cancelListening();
     final generation = _generation, id = voiceSessionId!, oldEpoch = epoch!;
+    await _microphone(false, VoiceLifecycleReason.transfer);
+    if (!_current(generation)) return false;
+    await device?.cancelListening();
+    if (!_current(generation)) return false;
     final current = await backend.get(id);
     if (!_current(generation) ||
         current['epoch'] != oldEpoch ||
@@ -800,29 +861,37 @@ class VoiceCompanionController extends ChangeNotifier {
     }
     _inflight ??= current['activeTurnId'] as String?;
     if (!await reconcile()) return false;
+    if(!_current(generation))return false;
     final value = await backend.transfer(id, oldEpoch, mode);
     if (!_current(generation)) return false;
     _bind(value);
-    await transport.disconnect();
+    await _disconnect(VoiceLifecycleReason.transfer);
+    if (!_current(generation)) return false;
     _connected = false;
     return true;
   }
 
-  Future<void> manual() async {
+  Future<void> manual({VoiceLifecycleReason reason=VoiceLifecycleReason.transfer}) async {
+    _trace(VoiceLifecycleEvent.disconnectRequested,reason);
     if (_languageRebindPending) {
       await end();
       state = 'manual';
       notifyListeners();
       return;
     }
+    final generation = _generation;
     ++_speechGeneration;
     _desiredListening = false;
     await device?.cancelListening();
+    if (!_current(generation)) return;
     await device?.stopSpeaking();
+    if (!_current(generation)) return;
     try {
       await _control('manual');
-      if (await _transfer('manual')) state = 'manual';
+      if (!_current(generation)) return;
+      if (await _transfer('manual') && _current(generation)) state = 'manual';
     } catch (error) {
+      if (!_current(generation)) return;
       _recover(
         error is VoiceFailure ? error.code : 'VOICE_HANDOFF_UNAVAILABLE',
       );
@@ -921,7 +990,7 @@ class VoiceCompanionController extends ChangeNotifier {
     }
     state = 'processing';
     notifyListeners();
-    await transport.microphone(false);
+    await _microphone(false, VoiceLifecycleReason.processing);
     await device?.cancelListening();
     if (!_current(generation)) return null;
     try {
@@ -955,7 +1024,7 @@ class VoiceCompanionController extends ChangeNotifier {
         await device!.speak(reply, language: _replyLanguage);
       }
       if (_desiredListening && transportOwner == 'worker') {
-        await transport.microphone(true);
+        await _microphone(true, VoiceLifecycleReason.processing);
         await _control('resume');
         await _control('receipt_ready', turnId: playbackTurn);
       }
@@ -998,7 +1067,7 @@ class VoiceCompanionController extends ChangeNotifier {
     _pendingDeviceTts = null;
     final speechGeneration = ++_speechGeneration;
     deviceTtsEnabled = true;
-    await transport.microphone(false);
+    await _microphone(false, VoiceLifecycleReason.playback);
     await device!.cancelListening();
     try {
       var text = offer['text'] as String?;
@@ -1038,7 +1107,7 @@ class VoiceCompanionController extends ChangeNotifier {
         return;
       }
       _pendingDeviceTts = null;
-      await transport.microphone(true);
+      await _microphone(true, VoiceLifecycleReason.playback);
       await _control('playback_complete', playbackId: offer['playbackId']);
       state = 'listening';
       notifyListeners();
@@ -1049,53 +1118,66 @@ class VoiceCompanionController extends ChangeNotifier {
 
   Future<void> _connection(VoiceConnection connection) async {
     if (!enabled || transportOwner != 'worker') return;
+    final connectionGeneration=_generation, connectionId=voiceSessionId, connectionEpoch=epoch;
+    bool ownsConnection() => _current(connectionGeneration) &&
+        voiceSessionId==connectionId && epoch==connectionEpoch && transportOwner=='worker';
+    if (!ownsConnection()) return;
     _connected =
         connection == VoiceConnection.connected ||
         connection == VoiceConnection.reconnected;
     if (connection == VoiceConnection.reconnecting) {
-      await transport.microphone(false);
+      await _microphone(false, VoiceLifecycleReason.reconnecting);
+      if(!ownsConnection())return;
       _recover('LIVEKIT_RECONNECTING');
       _reconnectTimeout?.cancel();
+      final generation=_generation, bindingId=voiceSessionId, bindingEpoch=epoch;
       _reconnectTimeout = Timer(
         const Duration(seconds: 20),
-        () => unawaited(manual()),
+        () {
+          if(_current(generation)&&enabled&&!_connected&&voiceSessionId==bindingId&&epoch==bindingEpoch) {
+            unawaited(manual(reason:VoiceLifecycleReason.reconnectTimeout));
+          }
+        },
       );
     }
     if (connection == VoiceConnection.reconnected) {
       _reconnectTimeout?.cancel();
-      final generation = _generation;
       try {
         final value = await backend.get(voiceSessionId!);
-        if (!_current(generation) ||
-            value['epoch'] != epoch ||
+        if (!ownsConnection()) return;
+        if (value['id'] != connectionId || value['epoch'] != connectionEpoch ||
             !_validBinding(value)) {
-          await end();
+          await end(reason:VoiceLifecycleReason.workerTerminal);
           return;
         }
         _binding = value;
         _workerIdentity = value['workerIdentity'] as String?;
         _inflight ??= value['activeTurnId'] as String?;
-        if (!await reconcile() || !_current(generation)) return;
+        if (!await reconcile() || !ownsConnection()) return;
         if (_workerIdentity != null) {
           await transport.bindWorker(_workerIdentity!);
         }
+        if (!ownsConnection()) return;
         if (_desiredListening) await resume();
       } catch (_) {
-        _recover('VOICE_RECONNECT_AUTHORIZATION_FAILED');
+        if(ownsConnection())_recover('VOICE_RECONNECT_AUTHORIZATION_FAILED');
       }
     }
     if (connection == VoiceConnection.disconnected) {
-      await transport.microphone(false);
+      await _microphone(false, VoiceLifecycleReason.reconnecting);
+      if(!ownsConnection())return;
       _recover('LIVEKIT_DISCONNECTED');
     }
   }
 
   Future<void> background() async {
     foreground = false;
-    await end();
+    await end(reason:VoiceLifecycleReason.background);
   }
 
   Future<void> lifecycle(AppLifecycleState lifecycle) async {
+    traceVoiceLifecycle(VoiceLifecycleEvent.sessionState,VoiceLifecycleReason.lifecycle,
+        generation:_generation,state:lifecycle.name,manualMuted:_manualMuted,micEnabled:_micRequested);
     if (lifecycle == AppLifecycleState.resumed) {
       foregroundAgain();
     } else if (lifecycle != AppLifecycleState.inactive) {
@@ -1110,13 +1192,25 @@ class VoiceCompanionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> end() {
+  Future<void> end({VoiceLifecycleReason reason=VoiceLifecycleReason.userEnd}) {
     ++_languageRevision;
     _languageRebindPending = false;
-    return _endSession();
+    _trace(VoiceLifecycleEvent.disconnectRequested,reason);
+    return _endSession(reason:reason);
   }
 
-  Future<void> _endSession() async {
+  Future<void> _endSession({VoiceLifecycleReason reason=VoiceLifecycleReason.languageChange}) {
+    if(_ending!=null)return _ending!;
+    late final Future<void> ending;
+    ending=_performEndSession(reason).whenComplete(() {
+      if(identical(_ending,ending))_ending=null;
+    });
+    _ending=ending;
+    return ending;
+  }
+
+  Future<void> _performEndSession(VoiceLifecycleReason reason) async {
+    _trace(VoiceLifecycleEvent.disconnectStarted,reason);
     ++_generation;
     ++_speechGeneration;
     enabled = false;
@@ -1142,14 +1236,14 @@ class VoiceCompanionController extends ChangeNotifier {
     interimTranscript = '';
     notifyListeners();
     try {
-      await transport.microphone(false);
+      await _microphone(false, reason);
     } catch (_) {}
     try {
       await device?.cancelListening();
       await device?.stopSpeaking();
     } catch (_) {}
     try {
-      await transport.disconnect();
+      await _disconnect(reason);
     } catch (_) {}
     if (id != null) {
       try {
@@ -1158,10 +1252,12 @@ class VoiceCompanionController extends ChangeNotifier {
         recoveryCode = 'VOICE_CLEANUP_PENDING';
       }
     }
+    _trace(VoiceLifecycleEvent.disconnectCompleted,reason);
   }
 
   @override
   void dispose() {
+    _trace(VoiceLifecycleEvent.controllerDisposed,VoiceLifecycleReason.dispose);
     _disposed = true;
     ++_languageRevision;
     _languagePreferences?.removeListener(_selectedLanguageChanged);

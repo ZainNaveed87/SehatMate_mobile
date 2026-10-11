@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'voice_transport.dart';
 import 'voice_backend.dart';
+import 'voice_lifecycle_trace.dart';
 
 class LiveKitVoiceTransport implements VoiceTransport {
   final _events = StreamController<VoicePacket>.broadcast();
@@ -11,13 +12,20 @@ class LiveKitVoiceTransport implements VoiceTransport {
   Room? _room;
   EventsListener<RoomEvent>? _listener;
   String? _workerIdentity;
+  int _roomGeneration=0;
+  void _micState(Room room) {
+    if(_room!=room)return;
+    traceVoiceLifecycle(VoiceLifecycleEvent.micTrackState,
+        VoiceLifecycleReason.microphoneObserved,generation:_roomGeneration,
+        micEnabled:room.localParticipant?.isMicrophoneEnabled()??false);
+  }
   @override
   Stream<VoicePacket> get events => _events.stream;
   @override
   Stream<VoiceConnection> get connections => _connections.stream;
   @override
   Future<void> connect(Map<String, dynamic> session) async {
-    await disconnect();
+    await _closeRoom(VoiceLifecycleReason.start);
     final url = Uri.tryParse(session['livekitUrl']?.toString() ?? '');
     if (url?.scheme != 'wss' ||
         url!.host.isEmpty ||
@@ -34,6 +42,9 @@ class LiveKitVoiceTransport implements VoiceTransport {
       ),
     );
     _room = room;
+    final generation=++_roomGeneration;
+    traceVoiceLifecycle(VoiceLifecycleEvent.sessionState,VoiceLifecycleReason.start,
+        generation:generation,state:'connecting');
     _workerIdentity = session['workerIdentity'] as String?;
     _listener = room.createListener()
       ..on<DataReceivedEvent>((event) {
@@ -58,8 +69,21 @@ class LiveKitVoiceTransport implements VoiceTransport {
       ..on<RoomReconnectedEvent>((_) {
         if (_room == room) _connections.add(VoiceConnection.reconnected);
       })
-      ..on<RoomDisconnectedEvent>((_) {
-        if (_room == room) _connections.add(VoiceConnection.disconnected);
+      ..on<RoomDisconnectedEvent>((event) {
+        if (_room == room) {
+          traceVoiceLifecycle(VoiceLifecycleEvent.sessionState,
+              VoiceLifecycleReason.transportLost,generation:generation,state:'disconnected',disconnectCause:event.reason?.name??'unknown');
+          _connections.add(VoiceConnection.disconnected);
+        }
+      })
+      ..on<TrackMutedEvent>((event) {
+        if(identical(event.participant,room.localParticipant)&&event.publication.source==TrackSource.microphone)_micState(room);
+      })
+      ..on<TrackUnmutedEvent>((event) {
+        if(identical(event.participant,room.localParticipant)&&event.publication.source==TrackSource.microphone)_micState(room);
+      })
+      ..on<LocalTrackPublishedEvent>((event) {
+        if(event.publication.source==TrackSource.microphone)_micState(room);
       })
       ..on<TrackPublishedEvent>((event) {
         if (_room == room &&
@@ -83,6 +107,8 @@ class LiveKitVoiceTransport implements VoiceTransport {
           )
           .timeout(const Duration(seconds: 20));
       if (_room != room) {
+        traceVoiceLifecycle(VoiceLifecycleEvent.disconnectStarted,
+            VoiceLifecycleReason.staleStartup,generation:generation);
         await room.disconnect();
         return;
       }
@@ -90,8 +116,10 @@ class LiveKitVoiceTransport implements VoiceTransport {
         throw const VoiceFailure('VOICE_PARTICIPANT_MISMATCH');
       }
       _connections.add(VoiceConnection.connected);
+      traceVoiceLifecycle(VoiceLifecycleEvent.sessionState,VoiceLifecycleReason.start,
+          generation:generation,state:'listening');
     } catch (_) {
-      if (_room == room) await disconnect();
+      if (_room == room) await _closeRoom(VoiceLifecycleReason.startupFailed);
       rethrow;
     }
   }
@@ -116,7 +144,9 @@ class LiveKitVoiceTransport implements VoiceTransport {
 
   @override
   Future<void> microphone(bool enabled) async {
-    await _room?.localParticipant?.setMicrophoneEnabled(enabled);
+    final room=_room;
+    await room?.localParticipant?.setMicrophoneEnabled(enabled);
+    if(room!=null)_micState(room);
   }
 
   @override
@@ -134,7 +164,10 @@ class LiveKitVoiceTransport implements VoiceTransport {
   }
 
   @override
-  Future<void> disconnect() async {
+  Future<void> disconnect() => _closeRoom(VoiceLifecycleReason.transportClose);
+  Future<void> _closeRoom(VoiceLifecycleReason reason) async {
+    traceVoiceLifecycle(VoiceLifecycleEvent.disconnectStarted,
+        reason,generation:_roomGeneration);
     final room = _room;
     _room = null;
     _workerIdentity = null;
@@ -149,5 +182,7 @@ class LiveKitVoiceTransport implements VoiceTransport {
         await room.dispose();
       }
     }
+    traceVoiceLifecycle(VoiceLifecycleEvent.disconnectCompleted,
+        reason,generation:_roomGeneration);
   }
 }

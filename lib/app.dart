@@ -28,6 +28,7 @@ import 'features/agent/voice/voice_companion_scope.dart';
 import 'widgets/app_error_boundary.dart';
 import 'features/agent/voice/voice_backend.dart';
 import 'features/agent/voice/livekit_voice_transport.dart';
+import 'features/agent/voice/voice_lifecycle_trace.dart';
 
 class SehatRouteApp extends StatefulWidget {
   const SehatRouteApp({super.key});
@@ -282,7 +283,7 @@ class _SehatRouteAppState extends State<SehatRouteApp>
     copilotNavigation.invalidate();
     copilotRegistry.dispose();
     final old = voice;
-    unawaited(old.end());
+    unawaited(old.end(reason:VoiceLifecycleReason.accountChanged));
     old.agent.dispose();
     old.dispose();
     _createCompanion();
@@ -309,7 +310,7 @@ class _SehatRouteAppState extends State<SehatRouteApp>
     copilotWalkthrough.dispose();
     copilotNavigation.invalidate();
     copilotRegistry.dispose();
-    unawaited(voice.end());
+    unawaited(voice.end(reason:VoiceLifecycleReason.dispose));
     voice.agent.dispose();
     voice.dispose();
     super.dispose();

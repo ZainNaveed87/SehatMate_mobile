@@ -1,4 +1,5 @@
 import '../features/agent/controllers/agent_controller.dart';
+import '../features/agent/copilot/agent_text_entry.dart';
 import '../features/agent/voice/voice_companion_scope.dart';
 import '../features/agent/copilot/copilot_screen_adapter.dart';
 import '../features/agent/copilot/adapters/care_plans_copilot_adapter.dart';
@@ -1405,16 +1406,20 @@ class NewCarePlanScreen extends StatefulWidget {
 }
 
 class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
+  late final AgentTextEntry _typing = AgentTextEntry(_planNameController);
   AgentController? _agent;
   String? _agentTitle;
+  String? _pendingAgentTitle;
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final agent=VoiceCompanionScope.maybeOf(context)?.agent;
     if(agent!=_agent){
+      final ownedPartial=_typing.isAnimating&&_typing.ownsText;
+      _typing.cancel();
       _agent?.removeListener(_workflowChanged);
-      if(_agentTitle!=null&&_planNameController.text==_agentTitle)_planNameController.clear();
-      _agentTitle=null;_agent=agent;agent?.addListener(_workflowChanged);
+      if(ownedPartial||(_agentTitle!=null&&_planNameController.text==_agentTitle))_planNameController.clear();
+      _agentTitle=null;_pendingAgentTitle=null;_agent=agent;agent?.addListener(_workflowChanged);
     }
     _workflowChanged();
   }
@@ -1422,9 +1427,22 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
     if(!mounted)return;
     final workflow=_agent?.taskWorkflow;
     final title=workflow?.status=='awaiting_confirmation'?workflow?.title:null;
-    if(title!=null&&title!=_agentTitle&&(_planNameController.text.isEmpty||_planNameController.text==_agentTitle)) {
-      _planNameController.text=title;
-      WidgetsBinding.instance.addPostFrameCallback((_) {if(mounted)setState(() {});});
+    if(title==null){_pendingAgentTitle=null;if(_typing.isAnimating)_typing.cancel();}
+    if(title!=null&&title!=_agentTitle&&(_planNameController.text.isEmpty||_planNameController.text==_agentTitle||_typing.ownsText)) {
+      final owner=_agent, before=_planNameController.value;
+      _pendingAgentTitle=title;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if(!mounted)return;
+        if(!mounted||_agent!=owner||_agent?.taskWorkflow?.title!=title||
+            _agent?.taskWorkflow?.status!='awaiting_confirmation'||
+            (_planNameController.value!=before&&!_typing.ownsText)){
+          if(_pendingAgentTitle==title)setState(()=>_pendingAgentTitle=null);
+          return;
+        }
+        _pendingAgentTitle=null;
+        _typing.fill(title,animate:MediaQuery.maybeOf(context)?.disableAnimations!=true);
+      });
+      WidgetsBinding.instance.ensureVisualUpdate();
     }
     _agentTitle=title;
   }
@@ -1436,6 +1454,7 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
   @override
   void dispose() {
     _agent?.removeListener(_workflowChanged);
+    _typing.dispose();
     _planNameController.dispose();
     super.dispose();
   }
@@ -1451,14 +1470,14 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
     return null;
   }
 
-  bool get _canContinue => !_creating && _planNameErrorKey == null;
+  bool get _canContinue => !_creating && _pendingAgentTitle==null && !_typing.isAnimating && _planNameErrorKey == null;
 
   @override
   Widget build(BuildContext context) {
     return AppShell(
       currentRoute: AppRoutes.carePlanNew,
       title: context.tr('new_care_plan'),
-      child: LayoutBuilder(
+      child: AnimatedBuilder(animation:_typing,builder:(context,_)=>LayoutBuilder(
         builder: (context, constraints) {
           // AppShell can provide unbounded vertical constraints because its
           // content is scrollable. Use the real viewport height instead so
@@ -1617,21 +1636,22 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
                         decoration: InputDecoration(
                           labelText: '${context.tr('plan_name')} *',
                           hintText: context.tr('plan_name_hint'),
-                          helperText: compactHeight
-                              ? null
-                              : context.tr('plan_name_helper'),
                           prefixIcon: const Icon(Icons.folder_open_outlined),
                           filled: true,
                           fillColor: const Color(0xFFF8FBFA),
-                          errorText: _nameTouched && _planNameErrorKey != null
-                              ? context.tr(_planNameErrorKey!)
-                              : null,
                         ),
-                        onChanged: (_) => setState(() => _nameTouched = true),
+                        onTap: _typing.cancel,
+                        onChanged: (_) { _typing.cancel();setState(() => _nameTouched = true); },
                         onSubmitted: (_) {
                           if (_canContinue) _continue();
                         },
                       )),
+                      if((_nameTouched&&!_typing.isAnimating&&_planNameErrorKey!=null)||!compactHeight)
+                        Padding(padding:const EdgeInsetsDirectional.fromSTEB(12,8,12,0),child:Text(
+                          _nameTouched&&!_typing.isAnimating&&_planNameErrorKey!=null?context.tr(_planNameErrorKey!):context.tr('plan_name_helper'),
+                          key:const ValueKey('new_care_plan_name_support'),
+                          style:TextStyle(fontSize:12,color:_nameTouched&&!_typing.isAnimating&&_planNameErrorKey!=null?Theme.of(context).colorScheme.error:AppColors.muted),
+                        )),
                       SizedBox(height: compactHeight ? 10 : 16),
                       SafetyNote(text: context.tr('new_plan_safety_note')),
                       SizedBox(height: compactHeight ? 10 : 18),
@@ -1666,7 +1686,7 @@ class _NewCarePlanScreenState extends State<NewCarePlanScreen> {
             ],
           );
         },
-      ),
+      )),
     );
   }
 
