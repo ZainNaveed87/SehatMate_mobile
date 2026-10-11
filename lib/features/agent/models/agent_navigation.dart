@@ -1,13 +1,20 @@
-import 'agent_context.dart';
-
 class AgentNavigation {
   const AgentNavigation({required this.target, this.params = const {}});
 
   final String target;
   final Map<String, String> params;
 
-  static const supportedTargets = {...AgentScreenContext.supportedScreenIds,
-    'calendar','family'};
+  // Navigable destinations are narrower than screen context identities. A
+  // document viewer needs an owned file loaded by the UI; family gap/simulation
+  // reads have no independent mounted destinations.
+  static const supportedTargets = {
+    'home', 'calendar', 'family', 'care_plan_new', 'care_plan_upload',
+    'care_plan_review', 'family_member_new', 'doctor_questions', 'simple_care',
+    'teach_back', 'today', 'progress', 'care_plans', 'care_plan_detail',
+    'reality_check', 'simulation', 'care_gaps', 'care_gap_detail', 'family_care',
+    'family_member_detail', 'family_member_care_plans', 'routine_settings',
+    'profile', 'documents', 'notifications', 'settings',
+  };
 
   factory AgentNavigation.fromJson(Object? value) {
     if (value == null) {

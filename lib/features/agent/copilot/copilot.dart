@@ -618,6 +618,10 @@ class CopilotExecutor extends ChangeNotifier {
         if (code == null && !screen!.targets.any((t) => t.id == op.targetId)) {
           code = 'target_not_found';
         }
+        if (code == null &&
+            screen!.targets.any((t) => t.id == op.targetId && t.enabled == false)) {
+          code = 'action_unavailable';
+        }
         if (code == null) {
           for (final a in screen!.actions) {
             if (a.id == op.actionId && a.targetId == op.targetId) action = a;
