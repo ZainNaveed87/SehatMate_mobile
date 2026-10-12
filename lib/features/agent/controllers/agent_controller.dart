@@ -63,6 +63,8 @@ class AgentController extends ChangeNotifier {
   AgentRequestProgress _requestProgress = AgentRequestProgress.awaitingResponse;
   bool _initializing = false;
   bool _confirmationLoading = false;
+  int _memoryRevision = 0;
+  int get memoryRevision => _memoryRevision;
   bool _clarificationLoading = false;
   bool _initialized = false;
   AgentException? _error;
@@ -547,6 +549,11 @@ class AgentController extends ChangeNotifier {
       _pendingClarificationMessage = null;
     }
 
+    if (response.actionStatus == 'confirmed' &&
+        response.memoryReceipt?.operation == 'remember' &&
+        response.memoryReceipt?.status == 'succeeded') {
+      _memoryRevision++;
+    }
     if (response.actionStatus == 'awaiting_confirmation' &&
         response.confirmation != null) {
       _pendingConfirmation = response.confirmation;

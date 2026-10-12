@@ -4,6 +4,7 @@ import 'agent_navigation.dart';
 import 'agent_speech.dart';
 import 'agent_validation.dart';
 import 'agent_task_workflow.dart';
+import 'agent_memory_receipt.dart';
 
 class AgentReferencedEntity {
   const AgentReferencedEntity({required this.type, required this.id});
@@ -64,7 +65,7 @@ class AgentConfirmation {
     );
   }
 
-  static const supportedKinds = {'task_outcome', 'schedule_time','create_care_plan'};
+  static const supportedKinds = {'task_outcome', 'schedule_time','create_care_plan','personal_memory'};
 }
 
 class AgentClarificationOption {
@@ -156,6 +157,7 @@ class AgentResponse {
     this.fallbackCode,
     this.uiPlan,
     this.memoryProposal,
+    this.memoryReceipt,
     this.conflicts = const [],
     this.taskWorkflow,
     this.displayTranscript,
@@ -175,6 +177,7 @@ class AgentResponse {
   final CopilotPlan? uiPlan;
   final List<CopilotConflict> conflicts;
   final Map<String, dynamic>? memoryProposal;
+  final AgentMemoryReceipt? memoryReceipt;
   final AgentTaskWorkflow? taskWorkflow;
   /// Optional server rendering; raw ASR remains separate action input.
   final String? displayTranscript;
@@ -267,6 +270,7 @@ class AgentResponse {
       memoryProposal: json['memoryProposal'] is Map<String, dynamic>
           ? Map<String, dynamic>.unmodifiable(json['memoryProposal'])
           : null,
+      memoryReceipt: json['memoryReceipt'] == null ? null : AgentMemoryReceipt.fromJson(json['memoryReceipt']),
       sessionId: sessionId,
       language: language,
       reply: reply,

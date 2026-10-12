@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'copilot_strings.dart';
 import 'package:flutter/material.dart';
 import 'copilot_service.dart';
@@ -128,17 +129,36 @@ class _MemoryReview extends StatefulWidget {
 class _MemoryReviewState extends State<_MemoryReview> {
   List<Map<String, dynamic>>? items;
   String? error;
+  int _memoryRevision = 0, _loadGeneration = 0;
   @override
   void initState() {
     super.initState();
+    _memoryRevision = widget.service.agent.memoryRevision;
+    widget.service.agent.addListener(_memoryChanged);
     _load();
   }
 
+  void _memoryChanged() {
+    final revision = widget.service.agent.memoryRevision;
+    if (!mounted || revision == _memoryRevision || !widget.service.registry.valid) return;
+    _memoryRevision = revision;
+    setState(() { items = null; error = null; });
+    unawaited(_load());
+  }
+
+  @override
+  void dispose() {
+    _loadGeneration++;
+    widget.service.agent.removeListener(_memoryChanged);
+    super.dispose();
+  }
+
   Future<void> _load() async {
+    final generation = ++_loadGeneration;
     try {
       final data = await widget.service.request('memory', method: 'GET');
       final raw = data['data'] ?? data['items'] ?? data['memory'] ?? [];
-      if (mounted) {
+      if (mounted && generation == _loadGeneration && widget.service.registry.valid) {
         setState(() {
           items = raw is List
               ? raw.whereType<Map<String, dynamic>>().toList()
@@ -147,7 +167,7 @@ class _MemoryReviewState extends State<_MemoryReview> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => error = 'memory_unavailable');
+      if (mounted && generation == _loadGeneration && widget.service.registry.valid) setState(() => error = 'memory_unavailable');
     }
   }
 
